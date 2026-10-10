@@ -1,0 +1,69 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# private sibling folders (not part of the landing page)
+/Poppin social inc./
+/other/
+
+# editor / agent settings
+/.claude/
+.env*
+
+# Raw brand animation sources. The GIFs and MP4s the ghost bits are authored
+# as run 4-10MB each; public/ is served verbatim, so a copy left in there
+# ships forty megabytes to every visitor. The shipping forms are the webp +
+# still pairs in public/v2, produced from these. Originals live in the
+# team's own Design folder, not in this repo.
+public/v2/brand/
+
+# Image and video masters. They are the input to public/v2/*, not the output,
+# and a 6MB render has no business in git history.
+assets-src/
+
+# THE LIST ITSELF NEVER ENTERS GIT. 28,689 real addresses, exported from
+# Loops, held on disk only for as long as a send takes. A repository is the
+# wrong place for it: it is copied, cloned and kept forever by design.
+waitlist-export.txt
+*-export.txt
+failed-*.txt
+scheduled-*.json
+
+# Resend disa aktarimlari: icinde gercek adresler var, depoya girmemeli.
+*-sent.csv
+resend-*.csv
+
+# the template is meant to be committed
+!.env.example

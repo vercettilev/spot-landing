@@ -1,0 +1,43 @@
+.page {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+  line-height: 1.6;
+}
+
+.page h1 {
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(36px, 9vw, 52px);
+  letter-spacing: -0.035em;
+}
+
+.page h2 {
+  margin-top: 32px;
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.page p {
+  margin-top: 10px;
+  color: var(--dim);
+}
+
+.page a {
+  color: var(--white);
+}
+
+.back {
+  margin-bottom: 28px;
+  font-weight: 700;
+}
+
+.back a {
+  text-decoration: none;
+}
+
+.updated {
+  font-size: 14px;
+}

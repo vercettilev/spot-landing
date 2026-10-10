@@ -1,0 +1,432 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(640px 520px at 88% -8%, rgba(252, 78, 2, 0.34), rgba(252, 78, 2, 0) 70%),
+    var(--ink);
+}
+
+.wrap {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* ---------- header ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lockup img:first-child {
+  height: 34px;
+  width: auto;
+}
+
+.lockup img:last-child {
+  height: 26px;
+  width: auto;
+}
+
+.headerCta {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.headerCta:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ---------- hero ---------- */
+.hero {
+  display: grid;
+  padding-top: 20px;
+  padding-bottom: 72px;
+}
+
+.kicker {
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 8px 12px;
+  border: 1.5px solid rgba(252, 78, 2, 0.5);
+  border-radius: 999px;
+  color: var(--orange);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.h1 {
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(44px, 12.5vw, 92px);
+  line-height: 0.93;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.h1 em {
+  font-style: normal;
+  color: var(--orange);
+}
+
+.lede {
+  margin-top: 20px;
+  max-width: 32em;
+  font-size: clamp(17px, 4.4vw, 20px);
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+/* The puppy holds the card's top edge the way the logo holds its ledge:
+   its ledge line sits exactly on the card's edge (12.3% of its height up
+   from the drawing's bottom, see PUPPY_LEDGE_FROM_BOTTOM). */
+.formWrap {
+  --pup-w: 230px;
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  justify-self: center;
+  margin-top: calc(var(--pup-w) / 1.5149 * 0.877 + 34px);
+  scroll-margin-top: calc(var(--pup-w) / 1.5149 + 24px);
+}
+
+.puppySlot {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - var(--pup-w) / 1.5149 * 0.1231);
+  width: var(--pup-w);
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.formWrap > :last-child {
+  padding-top: 38px;
+}
+
+@media (min-width: 960px) {
+  .hero {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+    column-gap: 64px;
+    padding-top: 48px;
+    padding-bottom: 120px;
+  }
+  .formWrap {
+    --pup-w: 250px;
+    justify-self: end;
+  }
+}
+
+/* ---------- film ---------- */
+.film {
+  background: var(--orange);
+  color: var(--ink);
+  padding: 56px 0 64px;
+}
+
+.filmTitle {
+  margin-bottom: 22px;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(32px, 8vw, 56px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.filmNote {
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(11, 11, 12, 0.72);
+}
+
+/* ---------- sections ---------- */
+.section {
+  padding-top: 84px;
+}
+
+.eyebrow {
+  margin-bottom: 12px;
+  color: var(--orange);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.eyebrowRed {
+  color: var(--red);
+}
+
+.h2 {
+  max-width: 15em;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(34px, 8.5vw, 60px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.h3 {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.sectionLede {
+  margin-top: 16px;
+  max-width: 32em;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.steps {
+  display: grid;
+  gap: 14px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--ink-2);
+}
+
+.step p {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.stepNo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: var(--ink);
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: 20px;
+}
+
+@media (min-width: 820px) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app {
+  padding: 10px 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.appMore {
+  border-style: dashed;
+  color: var(--faint);
+}
+
+/* ---------- scam ---------- */
+.scam {
+  margin-top: 96px;
+  padding: 72px 0 80px;
+  background:
+    radial-gradient(520px 420px at 50% 22%, rgba(255, 45, 35, 0.36), rgba(255, 45, 35, 0) 70%),
+    var(--ink);
+  border-top: 1px solid rgba(255, 77, 61, 0.16);
+  border-bottom: 1px solid rgba(255, 77, 61, 0.16);
+}
+
+.scamGrid {
+  display: grid;
+  gap: 36px;
+}
+
+.scamDog {
+  width: min(320px, 78%);
+  margin: 0 auto;
+  padding-top: 34px;
+}
+
+.red {
+  color: var(--red);
+}
+
+.checks {
+  display: grid;
+  gap: 14px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.check b {
+  color: var(--white);
+}
+
+.check svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+@media (min-width: 900px) {
+  .scam {
+    background:
+      radial-gradient(620px 460px at 24% 58%, rgba(255, 45, 35, 0.34), rgba(255, 45, 35, 0) 70%),
+      var(--ink);
+  }
+  .scamGrid {
+    grid-template-columns: 0.8fr 1.2fr;
+    align-items: center;
+    gap: 56px;
+  }
+  .scamDog {
+    width: 100%;
+    max-width: 360px;
+  }
+}
+
+/* ---------- facts ---------- */
+.facts {
+  display: grid;
+  gap: 22px;
+  margin-top: 30px;
+}
+
+.fact {
+  padding-top: 18px;
+  border-top: 3px solid var(--orange);
+}
+
+.fact p {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+@media (min-width: 820px) {
+  .facts {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+}
+
+/* ---------- final + footer ---------- */
+.final {
+  padding-top: 110px;
+  padding-bottom: 96px;
+  text-align: center;
+}
+
+.finalTitle {
+  max-width: 13em;
+  margin: 0 auto;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(34px, 8vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.finalCta {
+  display: inline-flex;
+  align-items: center;
+  height: 58px;
+  margin-top: 28px;
+  padding: 0 30px;
+  border-radius: 18px;
+  background: var(--orange);
+  color: var(--ink);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 19px;
+  text-decoration: none;
+  transition: transform 0.12s, background 0.15s;
+}
+
+.finalCta:hover {
+  background: #ff5f1a;
+}
+
+.finalCta:active {
+  transform: scale(0.98);
+}
+
+.footer {
+  display: grid;
+  gap: 16px;
+  padding-top: 32px;
+  padding-bottom: 48px;
+  border-top: 1px solid var(--line);
+}
+
+.footer p {
+  max-width: 62em;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--faint);
+}
+
+.footerNav {
+  display: flex;
+  gap: 18px;
+  font-size: 14px;
+}
+
+.footerNav a {
+  color: var(--dim);
+}
