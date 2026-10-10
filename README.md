@@ -30,10 +30,12 @@ Locally the form cannot store anything without `BLOB_READ_WRITE_TOKEN`, and BotI
 ## Put it live on Vercel
 
 1. Import this repo as a new Vercel project. `vercel.json` pins the Next.js preset, so a project first created while the repo was empty (preset "Other") still builds it as Next.js.
-2. Storage → create a **Blob** store and connect it to the project. That sets `BLOB_READ_WRITE_TOKEN`.
-3. Add the domain, then set `NEXT_PUBLIC_SITE_URL` to it and `NEXT_PUBLIC_CONTACT_EMAIL` to the address for privacy requests (see `.env.example`).
-4. Optional: `RESEND_API_KEY`, `MAIL_FROM` and `OPS_INBOX` for a note per signup and a mail rescue when the store fails.
-5. Turn on Web Analytics in the project to count visits.
+2. Storage → create a **Blob** store (Private, if it asks) and connect it to the project. That sets `BLOB_READ_WRITE_TOKEN`.
+3. Settings → Environment Variables: set `NEXT_PUBLIC_CONTACT_EMAIL` to the address for privacy requests.
+4. Redeploy, so the site picks up both.
+5. Add the domain when it is picked, then redeploy. Links and social cards follow the project's production domain on their own; `NEXT_PUBLIC_SITE_URL` only overrides that (see `.env.example`).
+6. Optional: `RESEND_API_KEY`, `MAIL_FROM` and `OPS_INBOX` for a note per signup and a mail rescue when the store fails.
+7. Turn on Web Analytics in the project to count visits.
 
 ## Reading the list
 
@@ -48,3 +50,4 @@ npm run waitlist -- --csv  # email,platform,created_at
 - **The operator.** `/privacy` names the company that runs the site (`OPERATOR` in `src/lib/site.ts`). It has to be the real legal operator, so change it if Spot gets its own company.
 - **Claims.** The safety section lists only checks the trading engine actually runs: a sell route, mint authority, freeze authority and holder count. Top-holder share is not one of them, so it is not promised. Keep the page and the film in step with the product.
 - **The film** is `public/spot-promo.mp4` (H.264, about 2 MB) with `public/spot-promo-poster.jpg`. It uses example data, and the page says so.
+- **Who commits.** Vercel deploys a commit only if its author is on the Vercel team; on a Hobby team with a private repo, only the owner's commits deploy. A deployment marked Blocked usually means the newest commit was authored by someone else, a bot included.
