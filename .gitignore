@@ -38,8 +38,9 @@ next-env.d.ts
 /Poppin social inc./
 /other/
 
-# editor / agent settings
-/.claude/
+# editor / agent settings. Project skills in .claude/skills are shared, so they stay in.
+/.claude/*
+!/.claude/skills/
 .env*
 
 # Raw brand animation sources. The GIFs and MP4s the ghost bits are authored
