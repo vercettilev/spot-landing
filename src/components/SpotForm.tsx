@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
-import { parseCode, type Spot } from "@/lib/referral";
+import { REF_BONUS, parseCode, type Spot } from "@/lib/referral";
 import { PLATFORM_LABEL, PLATFORMS, type Platform } from "@/lib/waitlist";
 import { SpotPass, type PassMode } from "./SpotPass";
 import styles from "./SpotForm.module.css";
@@ -38,7 +38,8 @@ const recall = (key: string) => {
 const IMPACT_MS = 990;
 
 /**
- * THE ONE THING ON THE PAGE THAT ASKS FOR SOMETHING: an address and a phone.
+ * THE ONE THING ON THE PAGE THAT ASKS FOR SOMETHING: an address and a phone,
+ * on a ticket, with a stub at its foot and a notch cut on each side.
  *
  * The phone is preselected from the device when it can be told (an iPhone
  * says so; a Seeker reads as Android, so Seeker owners pick it themselves),
@@ -185,7 +186,7 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
 
   const form = (ghost: boolean) => (
     <form onSubmit={submit} aria-hidden={ghost || undefined} inert={ghost || undefined}>
-      <h2 className={styles.title}>Get early access</h2>
+      <h2 className={styles.title}>Take a number.</h2>
       {invitedBy && <p className={styles.invited}>A friend sent you. Joining moves them up the line.</p>}
 
       <label className={styles.label} htmlFor="spot-email">
@@ -233,14 +234,17 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
       />
 
       <button className={styles.submit} type="submit" disabled={status === "sending" || ghost}>
-        {status === "sending" || ghost ? "Adding you…" : "Get early access"}
+        {status === "sending" || ghost ? "Adding you…" : "Take a number"}
       </button>
       {status === "error" && (
         <p className={styles.error} role="alert">
           {error}
         </p>
       )}
-      <p className={styles.fine}>We&apos;ll email you when Spot is ready for your phone.</p>
+      <p className={styles.stub}>
+        <span aria-hidden="true">No. ______</span>
+        <span>Bring a friend, move up {REF_BONUS}</span>
+      </p>
     </form>
   );
 

@@ -208,8 +208,8 @@
   margin-top: 12px;
   padding: 0 6px 0 14px;
   border-radius: 14px;
-  border: 1.5px solid #e2e2e7;
-  background: #f6f6f8;
+  border: 1.5px solid var(--paper-line);
+  background: var(--paper);
 }
 
 .link {
