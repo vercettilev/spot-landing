@@ -15,6 +15,7 @@ src/components/SpotPuppy.tsx  the mascot; press it and it barks, the angry one g
 src/components/puppyArt.ts    the logo traced and split into ears, jaw, head and paws (generated)
 public/                       the 23-second film, its poster, the bark and growl, logo files
 scripts/waitlist.ts           counts per phone, or a CSV of the list
+brand/banner/                 the X profile banner (orange and dark, 1500x500 and @2x) and the page it is rendered from
 ```
 
 ## Run it

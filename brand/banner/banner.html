@@ -1,0 +1,171 @@
+<!doctype html>
+<!--
+  SPOT'S PROFILE BANNER, for X (1500 x 500) and anything else that takes 3:1.
+
+  Two looks from one file: orange (the default, like the film's poster) and
+  dark (like the site); add ?theme=dark for the second. Render at a
+  1500 x 500 viewport, with deviceScaleFactor 2 for the @2x files.
+
+  The bottom-left corner is left empty on purpose: X puts the profile photo
+  there. The top corners stay clear of copy too, because X's mobile app puts
+  its back, search and menu buttons over them.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spot banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800;900&display=block" rel="stylesheet">
+<style>
+  :root {
+    --orange: #fc4e02;
+    --ink: #0b0b0c;
+    --white: #fff;
+  }
+  html, body { margin: 0; background: var(--ink); }
+
+  .banner {
+    --ground:
+      radial-gradient(900px 620px at 18% 0%, #ff7a2e 0%, rgba(255, 122, 46, 0) 70%),
+      radial-gradient(700px 520px at 100% 110%, #d94200 0%, rgba(217, 66, 0, 0) 70%),
+      var(--orange);
+    --dot: rgba(11, 11, 12, 0.16);
+    --pill-bg: var(--ink);
+    --pill-fg: var(--white);
+    --pill-sep: var(--orange);
+    --em: var(--ink);
+    --woof-fill: var(--white);
+    --woof-edge: var(--ink);
+
+    position: relative;
+    width: 1500px;
+    height: 500px;
+    overflow: hidden;
+    background: var(--ground);
+    font-family: "Rubik", "Arial Black", sans-serif;
+    color: var(--white);
+  }
+  .banner.dark {
+    --ground:
+      radial-gradient(820px 600px at 80% 80%, rgba(252, 78, 2, 0.58), rgba(252, 78, 2, 0) 70%),
+      radial-gradient(520px 380px at 0% 0%, rgba(252, 78, 2, 0.12), rgba(252, 78, 2, 0) 70%),
+      var(--ink);
+    --dot: rgba(252, 78, 2, 0.2);
+    --pill-bg: transparent;
+    --pill-fg: var(--orange);
+    --pill-sep: rgba(252, 78, 2, 0.6);
+    --em: var(--orange);
+    --woof-fill: var(--orange);
+    --woof-edge: var(--white);
+  }
+
+  /* A halftone of spots, densest behind the puppy and gone before the copy. */
+  .dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--dot) 0 3.4px, transparent 3.8px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(620px 460px at 82% 70%, #000 0%, transparent 75%);
+            mask-image: radial-gradient(620px 460px at 82% 70%, #000 0%, transparent 75%);
+  }
+
+  .copy {
+    position: absolute;
+    left: 104px;
+    top: 78px;
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .wordmark { display: block; width: auto; height: 58px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 16px;
+    border: 2px solid var(--pill-bg);
+    border-radius: 999px;
+    background: var(--pill-bg);
+    color: var(--pill-fg);
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: translateY(-4px);
+  }
+  .dark .pill { border-color: rgba(252, 78, 2, 0.55); }
+  .pill i { margin: 0 0.45em; font-style: normal; color: var(--pill-sep); }
+
+  h1 {
+    margin: 30px 0 0;
+    font-weight: 900;
+    font-size: 88px;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+  }
+  h1 em { font-style: normal; color: var(--em); }
+
+  /* Paws on the bottom edge, the way the logo holds its ledge. */
+  .puppy {
+    position: absolute;
+    right: 64px;
+    bottom: -6px;
+    display: block;
+    width: 570px;
+  }
+
+  .woof {
+    position: absolute;
+    left: 850px;
+    top: 58px;
+    transform: rotate(-9deg);
+  }
+  .woof span {
+    display: block;
+    font-weight: 900;
+    font-size: 64px;
+    letter-spacing: -0.01em;
+    color: var(--woof-fill);
+    -webkit-text-stroke: 14px var(--woof-edge);
+    paint-order: stroke fill;
+  }
+  .woof svg { position: absolute; left: -46px; top: 12px; }
+  .woof path { stroke: var(--woof-edge); }
+</style>
+</head>
+<body>
+<div class="banner" id="banner">
+  <div class="dots"></div>
+
+  <div class="copy">
+    <div class="top">
+      <img class="wordmark" src="../../public/spot-wordmark-white.svg" alt="Spot">
+      <span class="pill">Coming soon<i>·</i>iPhone<i>·</i>Android<i>·</i>Seeker</span>
+    </div>
+    <h1>The buy button<br>for <em>every app.</em></h1>
+  </div>
+
+  <div class="woof" aria-hidden="true">
+    <svg width="44" height="60" viewBox="0 0 44 60">
+      <g stroke-width="7" stroke-linecap="round">
+        <path d="M6 8 L30 20" /><path d="M4 32 L30 32" /><path d="M6 56 L30 44" />
+      </g>
+    </svg>
+    <span>WOOF!</span>
+  </div>
+
+  <img class="puppy" id="puppy" src="puppy-happy.svg" alt="">
+</div>
+<script>
+  /* ?theme=dark: the site's look. Its black ears need the white sticker edge. */
+  if (new URLSearchParams(location.search).get("theme") === "dark") {
+    document.getElementById("banner").classList.add("dark");
+    document.getElementById("puppy").src = "puppy-happy-halo.svg";
+  }
+</script>
+</body>
+</html>
