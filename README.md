@@ -29,7 +29,7 @@ Locally the form cannot store anything without `BLOB_READ_WRITE_TOKEN`, and BotI
 
 ## Put it live on Vercel
 
-1. Import this repo as a new Vercel project.
+1. Import this repo as a new Vercel project. `vercel.json` pins the Next.js preset, so a project first created while the repo was empty (preset "Other") still builds it as Next.js.
 2. Storage → create a **Blob** store and connect it to the project. That sets `BLOB_READ_WRITE_TOKEN`.
 3. Add the domain, then set `NEXT_PUBLIC_SITE_URL` to it and `NEXT_PUBLIC_CONTACT_EMAIL` to the address for privacy requests (see `.env.example`).
 4. Optional: `RESEND_API_KEY`, `MAIL_FROM` and `OPS_INBOX` for a note per signup and a mail rescue when the store fails.
