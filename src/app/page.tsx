@@ -54,7 +54,7 @@ export default function Home() {
           </div>
           <div className={styles.formWrap} id="get">
             <div className={styles.puppySlot}>
-              <SpotPuppy halo label="Spot the puppy. Press to make it bark." />
+              <SpotPuppy halo cheer label="Spot the puppy. Press to make it bark." />
             </div>
             <SpotForm shareUrl={SITE_URL} />
           </div>

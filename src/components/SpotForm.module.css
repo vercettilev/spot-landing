@@ -141,50 +141,43 @@
   text-align: center;
 }
 
-.doneTitle {
-  font-family: var(--font-display-stack);
-  font-weight: 800;
-  font-size: 26px;
-  letter-spacing: -0.02em;
-}
-
-.doneText {
-  margin-top: 8px;
-  font-size: 16px;
-  line-height: 1.45;
-  color: #3a3a40;
-}
-
-.shareLabel {
-  margin-top: 18px;
-  font-size: 13px;
+.invited {
+  margin: -6px 0 14px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: #fff1ea;
+  color: #8a2c00;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #6e6e76;
+  line-height: 1.35;
 }
 
-.shareRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 8px;
+/* The stamp hitting the paper (SpotPass) pushes the card down a hair. */
+.thud {
+  animation: thud 0.34s cubic-bezier(0.3, 0.7, 0.4, 1) 0.99s both;
 }
 
-.shareBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 48px;
-  border-radius: 14px;
-  border: 1.5px solid var(--ink);
+@keyframes thud {
+  30% {
+    transform: translateY(3px);
+  }
+}
+
+/* The form, for a quarter second after joining: laid over the arriving pass
+   on the card's own padding, fading up and out. */
+.ghost {
+  position: absolute;
+  inset: 0;
+  padding: inherit;
   background: var(--white);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 15px;
-  text-decoration: none;
-  cursor: pointer;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: ghost 0.24s ease-in both;
 }
 
-.shareBtn:first-child {
-  background: var(--ink);
-  color: var(--white);
+@keyframes ghost {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 }

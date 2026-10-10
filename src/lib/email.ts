@@ -38,13 +38,20 @@ export function sendSignupNotice(email: string, platform: string): Promise<boole
   ]);
 }
 
-export function sendRescue(email: string, platform: string, reason: string): Promise<boolean> {
+export function sendRescue(
+  email: string,
+  platform: string,
+  reason: string,
+  line: { code?: string; referredBy?: string } = {},
+): Promise<boolean> {
   return mailOps(`Spot waitlist rescue: ${email}`, [
     `An early-access signup could not be written to the store.`,
     ``,
     `email:    ${email}`,
     `platform: ${platform}`,
     `when:     ${new Date().toISOString()}`,
+    ...(line.code ? [`code:     ${line.code}`] : []),
+    ...(line.referredBy ? [`referred: ${line.referredBy}`] : []),
     `reason:   ${reason}`,
     ``,
     `This address is NOT in the store. Add it by hand once the store is back,`,

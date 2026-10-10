@@ -1,4 +1,4 @@
-import { head, put, BlobNotFoundError } from "@vercel/blob";
+import { get, head, put, BlobNotFoundError } from "@vercel/blob";
 import { createHash } from "node:crypto";
 
 /**
@@ -25,6 +25,11 @@ export type SignupRecord = {
   platform: string;
   created_at: string;
   source: string;
+  /** Their referral code, when the line was up to give one (line.ts). */
+  code?: string;
+  /** The code of the link that brought them, if one did. */
+  referred_by?: string;
+  updated_at?: string;
 };
 
 export type RecordResult =
@@ -32,7 +37,22 @@ export type RecordResult =
   /** The store could not take it. The caller falls back to mailing ourselves. */
   | { stored: false; reason: string };
 
-export async function recordSignup(email: string, platform: string): Promise<RecordResult> {
+async function readRecord(pathname: string): Promise<SignupRecord | null> {
+  try {
+    const res = await get(pathname, { access: "private", useCache: false });
+    if (!res) return null;
+    const record = JSON.parse(await new Response(res.stream).text());
+    return record && typeof record.email === "string" ? (record as SignupRecord) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function recordSignup(
+  email: string,
+  platform: string,
+  line: { code?: string; referredBy?: string } = {},
+): Promise<RecordResult> {
   const pathname = pathFor(email);
 
   /* Asked before writing so the notice can say "someone new". Not atomic with
@@ -49,13 +69,30 @@ export async function recordSignup(email: string, platform: string): Promise<Rec
     }
   }
 
-  const record: SignupRecord = { email, platform, created_at: new Date().toISOString(), source: "landing" };
+  const now = new Date().toISOString();
+  let record: SignupRecord;
+  if (isNew) {
+    record = { email, platform, created_at: now, source: "landing" };
+    if (line.code) record.code = line.code;
+    if (line.referredBy) record.referred_by = line.referredBy;
+  } else {
+    /* A REPEAT KEEPS ITS HISTORY: when they first came and whose link brought
+       them stay; the phone changes if they picked another, and a code arrives
+       if the first visit came while the line was down. A record that cannot
+       be read is left as it is rather than overwritten blind. */
+    const before = await readRecord(pathname);
+    if (!before) return { stored: true, isNew: false };
+    const code = before.code ?? line.code;
+    if (before.platform === platform && before.code === code) return { stored: true, isNew: false };
+    record = { ...before, platform, updated_at: now };
+    if (code) record.code = code;
+  }
   try {
     await put(pathname, JSON.stringify(record, null, 2), {
       access: "private",
       contentType: "application/json",
       addRandomSuffix: false,  // the pathname IS the dedupe key
-      allowOverwrite: true,    // a repeat lands on itself, and updates the phone if it changed
+      allowOverwrite: true,    // a repeat lands on itself
     });
   } catch (err) {
     return { stored: false, reason: err instanceof Error ? err.message : String(err) };

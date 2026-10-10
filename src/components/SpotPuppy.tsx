@@ -35,16 +35,19 @@ const SECOND_BARK = 0.29; // "woof woof", matched to woof.mp3
  *
  * Drawn from the traced logo split into ears, a hidden jaw, head and paws
  * (puppyArt.ts). `halo` adds the white sticker edge its black ears need on a
- * dark ground.
+ * dark ground. `cheer` makes it bark, silently, when someone joins the list
+ * (a "spot:cheer" event from the form, timed to the stamp landing).
  */
 export function SpotPuppy({
   mood = "calm",
   halo = false,
+  cheer = false,
   label,
   className = "",
 }: {
   mood?: "calm" | "angry";
   halo?: boolean;
+  cheer?: boolean;
   label: string;
   className?: string;
 }) {
@@ -105,14 +108,18 @@ export function SpotPuppy({
     return () => clearTimeout(timer);
   }, [angry, apply, rest]);
 
-  const speak = useCallback(() => {
+  /* `quiet` for a bark nobody pressed for: a page should not make noise on
+     its own, so the cheer is all mouth and no sound. */
+  const speak = useCallback(({ quiet = false }: { quiet?: boolean } = {}) => {
     if (busy.current) return;
     busy.current = true;
     setSaid((n) => n + 1);
 
-    const a = audio.current ?? (audio.current = new Audio(angry ? "/grr.mp3" : "/woof.mp3"));
-    a.currentTime = 0;
-    a.play().catch(() => {});
+    if (!quiet) {
+      const a = audio.current ?? (audio.current = new Audio(angry ? "/grr.mp3" : "/woof.mp3"));
+      a.currentTime = 0;
+      a.play().catch(() => {});
+    }
 
     if (angry) {
       setGrowling(true);
@@ -146,10 +153,24 @@ export function SpotPuppy({
     requestAnimationFrame(tick);
   }, [angry, apply, rest]);
 
+  useEffect(() => {
+    if (!cheer || angry) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const onCheer = (e: Event) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => speak({ quiet: true }), (e as CustomEvent<{ at?: number }>).detail?.at ?? 0);
+    };
+    window.addEventListener("spot:cheer", onCheer);
+    return () => {
+      window.removeEventListener("spot:cheer", onCheer);
+      clearTimeout(timer);
+    };
+  }, [cheer, angry, speak]);
+
   return (
     <button
       type="button"
-      onClick={speak}
+      onClick={() => speak()}
       aria-label={label}
       className={`${styles.puppy} ${angry ? styles.angry : ""} ${growling ? styles.growling : ""} ${className}`}
     >

@@ -1,0 +1,397 @@
+.pass {
+  position: relative;
+}
+
+.title {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- the ticket: label, number, stamp ---------- */
+
+.place {
+  position: relative;
+  margin-top: 16px;
+  padding: 14px 16px 15px;
+}
+
+/* Paper with a notch on each side, behind the content, so the stamp and the
+   digits are not cut by the mask. */
+.place::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: #f5f3ef;
+  -webkit-mask: radial-gradient(circle 9px at 0 var(--notch-y, 104px), transparent 96%, #000 100%) left / 51% 100% no-repeat,
+    radial-gradient(circle 9px at 100% var(--notch-y, 104px), transparent 96%, #000 100%) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 9px at 0 var(--notch-y, 104px), transparent 96%, #000 100%) left / 51% 100% no-repeat,
+    radial-gradient(circle 9px at 100% var(--notch-y, 104px), transparent 96%, #000 100%) right / 51% 100% no-repeat;
+}
+
+.place > * {
+  position: relative;
+}
+
+/* No note, no tear line: plain paper. */
+.short::before {
+  -webkit-mask: none;
+  mask: none;
+}
+
+.numberRow {
+  position: relative;
+  height: 78px;
+}
+
+.placeLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #77757a;
+}
+
+.number {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/* Five digits and a comma need the room the stamp would otherwise take. */
+.long {
+  font-size: 46px;
+}
+
+.hash {
+  color: var(--orange);
+  font-size: 0.78em;
+  margin-right: 0.04em;
+}
+
+/* ---------- the counter ---------- */
+
+.counter {
+  --cell: 1.18em;
+  display: inline-flex;
+}
+
+.wheel {
+  display: inline-block;
+  width: 0.64em;
+  height: var(--cell);
+  overflow: hidden;
+  text-align: center;
+  /* Digits blur in and out at the edges of the window, never at rest. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 17%, #000 83%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 17%, #000 83%, transparent 100%);
+}
+
+.strip {
+  display: block;
+  will-change: transform;
+}
+
+.strip > span {
+  display: block;
+  height: var(--cell);
+  line-height: var(--cell);
+}
+
+.sep {
+  display: inline-block;
+  width: 0.26em;
+  text-align: center;
+}
+
+/* ---------- the stamp ---------- */
+
+.stamp {
+  --base: translateY(-50%);
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  width: 88px;
+  height: 88px;
+  color: var(--orange);
+  opacity: 0.88;
+  mix-blend-mode: multiply;
+  transform: var(--base) rotate(-12deg);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.stampText {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+
+/* Lands once: from above and turned, overshoots into the paper, settles. */
+.slam {
+  animation: slam 0.46s cubic-bezier(0.2, 0.75, 0.25, 1) 0.74s both;
+}
+
+@keyframes slam {
+  0% {
+    opacity: 0;
+    transform: var(--base) rotate(-27deg) scale(2.2);
+  }
+  55% {
+    opacity: 0.95;
+    transform: var(--base) rotate(-10deg) scale(0.93);
+  }
+  76% {
+    transform: var(--base) rotate(-12.6deg) scale(1.03);
+  }
+  100% {
+    opacity: 0.88;
+    transform: var(--base) rotate(-12deg) scale(1);
+  }
+}
+
+/* Already stamped on an earlier visit: it is just there. */
+.settled {
+  animation: fade 0.3s ease 0.35s both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.note {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1.5px dashed #d8d4cc;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #3a3a40;
+}
+
+/* ---------- moving up ---------- */
+
+.moveUp {
+  margin-top: 18px;
+}
+
+.moveTitle {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.moveText {
+  margin-top: 3px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #3a3a40;
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  margin-top: 12px;
+  padding: 0 6px 0 14px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e2e7;
+  background: #f6f6f8;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.copy {
+  flex: none;
+  min-width: 76px;
+  height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shareRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.shareX,
+.shareMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.shareX {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--ink);
+}
+
+.shareMore {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.count {
+  margin-top: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3a3a40;
+}
+
+.notYou {
+  display: block;
+  margin: 16px auto 0;
+  padding: 4px;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: #6e6e76;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---------- the plain thank-you, when there is no line ---------- */
+
+.plain {
+  position: relative;
+  margin-top: 4px;
+}
+
+.plain .stamp {
+  --base: translateY(0);
+  top: 2px;
+  right: -10px;
+  width: 84px;
+  height: 84px;
+}
+
+.plain .note {
+  min-height: 72px;
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 8px;
+  padding-right: 84px;
+}
+
+.plain .moveTitle {
+  margin-top: 18px;
+  font-size: 15px;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- arriving ---------- */
+
+.enter .title {
+  animation: rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.enter .placeLabel {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.14s both;
+}
+.enter .number {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s both;
+}
+.enter .place::before {
+  animation: paper 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.08s both;
+}
+.enter .note {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+}
+.enter .moveUp,
+.enter .plain .moveTitle,
+.enter .plain .shareRow {
+  animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.15s both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes paper {
+  from {
+    opacity: 0;
+    transform: scaleY(0.92);
+  }
+}
+
+@media (min-width: 960px) {
+  .number {
+    font-size: 60px;
+  }
+  .long {
+    font-size: 52px;
+  }
+  .numberRow {
+    height: 84px;
+  }
+  .stamp {
+    right: -6px;
+    width: 104px;
+    height: 104px;
+  }
+  .place::before {
+    --notch-y: 110px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter *,
+  .enter .place::before,
+  .slam,
+  .settled {
+    animation-delay: 0s !important;
+  }
+}
