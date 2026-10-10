@@ -25,12 +25,12 @@ npm test        # the form's rules and the endpoint
 npm run dev
 ```
 
-Locally the form cannot store anything without `BLOB_READ_WRITE_TOKEN`, and BotID needs to reach Vercel, so the full signup path is best tried on a preview deployment.
+Locally the form cannot store anything without the Blob credentials described under *Reading the list*, and BotID needs to reach Vercel, so the full signup path is best tried on a preview deployment.
 
 ## Put it live on Vercel
 
 1. Import this repo as a new Vercel project. `vercel.json` pins the Next.js preset, so a project first created while the repo was empty (preset "Other") still builds it as Next.js.
-2. Storage → create a **Blob** store (Private, if it asks) and connect it to the project. That sets `BLOB_READ_WRITE_TOKEN`.
+2. Storage → create a **Private** Blob store and connect it to the project. Vercel connects it through OIDC: it sets `BLOB_STORE_ID`, and each request carries a short-lived token the SDK picks up. The site needs nothing else, so the store's read-write token can be revoked once a signup has gone through.
 3. Settings → Environment Variables: set `NEXT_PUBLIC_CONTACT_EMAIL` to the address for privacy requests.
 4. Redeploy, so the site picks up both.
 5. Add the domain when it is picked, then redeploy. Links and social cards follow the project's production domain on their own; `NEXT_PUBLIC_SITE_URL` only overrides that (see `.env.example`).
@@ -39,7 +39,10 @@ Locally the form cannot store anything without `BLOB_READ_WRITE_TOKEN`, and BotI
 
 ## Reading the list
 
+The store's **Manage Blobs** page in the Vercel dashboard shows one file per signup under `signups/`. For counts or a CSV, connect the store to the **Development** environment as well, so `vercel env pull` brings `BLOB_STORE_ID` and a `VERCEL_OIDC_TOKEN` into `.env.local` (a `BLOB_READ_WRITE_TOKEN` there works too):
+
 ```
+vercel link
 vercel env pull
 npm run waitlist           # counts per phone
 npm run waitlist -- --csv  # email,platform,created_at

@@ -10,8 +10,9 @@ import { createHash } from "node:crypto";
  *     the same second cannot erase each other the way an appended list can.
  *   - No address in a filename: the index is hashes, and the store is private.
  *
- * Needs BLOB_READ_WRITE_TOKEN, which Vercel sets once a Blob store is
- * connected to the project.
+ * Vercel connects the store through OIDC: it sets BLOB_STORE_ID, and the SDK
+ * picks up the short-lived token Vercel attaches to each request. A
+ * BLOB_READ_WRITE_TOKEN works as well.
  */
 export const PREFIX = "signups/";
 

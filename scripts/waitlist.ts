@@ -4,10 +4,12 @@
  *   npm run waitlist           # counts per phone
  *   npm run waitlist -- --csv  # email,platform,created_at for a spreadsheet
  *
- * Reads the private Blob store, so it needs BLOB_READ_WRITE_TOKEN in
- * .env.local (`vercel env pull` writes it there). Addresses are inside the
- * files, not in their names, so the CSV opens every file: one operation per
- * person, which is why this is a script and not something the site does.
+ * Reads the private Blob store, so it needs the store's credentials in
+ * .env.local: BLOB_STORE_ID and a VERCEL_OIDC_TOKEN, which `vercel env pull`
+ * writes once the store is connected to the Development environment, or a
+ * BLOB_READ_WRITE_TOKEN. Addresses are inside the files, not in their names,
+ * so the CSV opens every file: one operation per person, which is why this is
+ * a script and not something the site does.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { get, list } from "@vercel/blob";
@@ -19,8 +21,12 @@ if (existsSync(".env.local")) {
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
   }
 }
-if (!process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN.includes("SENSITIVE")) {
-  console.error("BLOB_READ_WRITE_TOKEN is missing or a placeholder. Run: vercel env pull");
+const usable = (v: string | undefined) => Boolean(v && !v.includes("SENSITIVE"));
+const env = process.env;
+if (!usable(env.BLOB_READ_WRITE_TOKEN) && !(usable(env.BLOB_STORE_ID) && usable(env.VERCEL_OIDC_TOKEN))) {
+  console.error(
+    "No Blob credentials in .env.local. Connect the Blob store to the Development environment, then run: vercel env pull",
+  );
   process.exit(1);
 }
 
