@@ -2,17 +2,13 @@
  * THE SITE'S OWN FACTS, in one place.
  *
  * SITE_URL is the public address: canonical links, the sitemap, social cards
- * and the share link after signing up. NEXT_PUBLIC_SITE_URL wins when set. On
- * Vercel it otherwise falls back to the project's production domain (the
- * shortest custom domain, else the .vercel.app one), so the first deploy
- * already shares the right link; previews share it too, which is what a
- * share link should do. Only a local run is left on localhost.
+ * and the share link after signing up. It is www.usespot.fun because that is
+ * the address that serves the site; usespot.fun answers with a redirect to it,
+ * and links should land on the page, not on a redirect. Previews and local
+ * runs use it too, which is what a share link should do.
+ * NEXT_PUBLIC_SITE_URL overrides it, for a staging copy or a new domain.
  */
-const VERCEL_PRODUCTION = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (VERCEL_PRODUCTION ? `https://${VERCEL_PRODUCTION}` : "http://localhost:3000")
-).replace(/\/+$/, "");
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.usespot.fun").replace(/\/+$/, "");
 
 /**
  * WHO RUNS THIS SITE. A privacy notice has to name the company that collects
