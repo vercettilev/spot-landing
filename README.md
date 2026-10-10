@@ -50,4 +50,4 @@ npm run waitlist -- --csv  # email,platform,created_at
 - **The operator.** `/privacy` names the company that runs the site (`OPERATOR` in `src/lib/site.ts`). It has to be the real legal operator, so change it if Spot gets its own company.
 - **Claims.** The safety section lists only checks the trading engine actually runs: a sell route, mint authority, freeze authority and holder count. Top-holder share is not one of them, so it is not promised. Keep the page and the film in step with the product.
 - **The film** is `public/spot-promo.mp4` (H.264, about 2 MB) with `public/spot-promo-poster.jpg`. It uses example data, and the page says so.
-- **Who commits.** Vercel deploys a commit only if its author is on the Vercel team; on a Hobby team with a private repo, only the owner's commits deploy. A deployment marked Blocked usually means the newest commit was authored by someone else, a bot included.
+- **Who commits.** If a deployment ever shows as Blocked, check who authored the newest commit: on a Hobby team with a private repo, Vercel deploys only the owner's commits.
