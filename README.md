@@ -14,7 +14,7 @@ src/lib/line.ts               the line: places and referral credit, in Redis (no
 src/lib/referral.ts           what page and server share about codes and links
 src/app/r/[code]/route.ts     a shared link, usespot.fun/r/CODE, lands on the page with the code
 src/components/SpotPass.tsx   what a reader sees once they are in: place, stamp, their link
-src/components/PhoneDemo.tsx  Spot on a phone, on a loop: share, sniff, Face ID, done (example data)
+src/components/PhoneDemo.tsx  Spot on a phone, on a loop: share, sniff, take profit on, Face ID, done (example data)
 src/components/Reveal.tsx     plays the stamp and the receipt once they scroll into view
 src/lib/email.ts              optional notes to ourselves (new signup, or a rescue if the store is down)
 src/components/SpotPuppy.tsx  the mascot; press it and it barks, the angry one growls
@@ -60,7 +60,7 @@ With the Redis variables in `.env.local` as well (connect it to Development too)
 ## Things to know
 
 - **The operator.** `/privacy` names the company that runs the site (`OPERATOR` in `src/lib/site.ts`). It has to be the real legal operator, so change it if Spot gets its own company.
-- **Claims.** The sniff report lists only checks the trading engine actually runs: a sell route, mint authority, freeze authority and holder count. Top-holder share is not one of them, so it is not promised. Keep the page and the film in step with the product.
+- **Claims.** The sniff report lists only checks the trading engine actually runs: a sell route, mint authority, freeze authority and holder count. Top-holder share is not one of them, so it is not promised. The page also promises two things after a buy, and both have to ship in the first version: an alert when a coin turns (its creator selling, liquidity pulled), and an optional take profit (half at 2×) that sells from the buyer's own wallet under a rule they approved when buying. Keep the page and the film in step with the product.
 - **The film** (`public/spot-promo.mp4`, with `public/spot-promo-poster.jpg`) is no longer on the page; the phone demo shows the same steps. It is kept at its address for posts, and it uses example data.
 - **The line.** A newcomer gets the next number; each friend who joins through their link subtracts 10 (and a half, so they pass ten people rather than tie with the tenth). Ties go to whoever came first. A repeat of an address, however it is typed (`j.doe+x@gmail.com` is `jdoe@gmail.com`), keeps its place and credits nobody, and one network can give 5 referral credits a day. `REF_BONUS` in `src/lib/referral.ts` sets both the move and the "10 spots" the page promises.
 - **Who commits.** If a deployment ever shows as Blocked, check who authored the newest commit: on a Hobby team with a private repo, Vercel deploys only the owner's commits.

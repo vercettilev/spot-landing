@@ -25,10 +25,37 @@ function Mark({ tone }: { tone: (typeof SNIFF)[number]["tone"] }) {
   );
 }
 
+/* A lock-screen notification, drawn: what Spot says once the coin is yours. */
+function Notice({ title, text, action }: { title: string; text: string; action?: string }) {
+  return (
+    <div className={styles.noticeCard}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/spot-icon.svg" alt="" width={38} height={36} />
+      <div>
+        <p className={styles.noticeTop}>
+          <span>Spot</span>
+          <span>now</span>
+        </p>
+        <p className={styles.noticeText}>
+          <b>{title}</b> {text}
+        </p>
+      </div>
+      {action && (
+        <span className={styles.noticeAction} aria-hidden="true">
+          {action}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /**
  * THE WHOLE PAGE, IN TWO GROUNDS AND A FOOTER. Black: what Spot is, the one
- * field, and Spot doing its thing on a phone. Orange: the two reasons to
- * trust it, as paper. Black again: the small print.
+ * field, and Spot doing its thing on a phone. Orange: what it does before you
+ * buy and after, as paper and notifications. Black again: the small print.
+ *
+ * Everything here is a promise about the first version: the sniff report's
+ * checks, the alert when a coin turns, the optional take profit, no gas.
  */
 export default function Home() {
   return (
@@ -44,7 +71,7 @@ export default function Home() {
         <section className={`${styles.wrap} ${styles.hero}`}>
           <div>
             <h1 className={styles.h1}>The buy button for every app.</h1>
-            <p className={styles.lede}>See it in your feed. Buy it without leaving.</p>
+            <p className={styles.lede}>See it in any feed. Buy it without leaving.</p>
             <div className={styles.join}>
               <SpotForm shareUrl={SITE_URL} />
             </div>
@@ -55,7 +82,7 @@ export default function Home() {
         <section className={styles.trust}>
           <div className={`${styles.wrap} ${styles.trustGrid}`}>
             <div className={styles.col}>
-              <h2 className={styles.h2}>It sniffs every coin first.</h2>
+              <h2 className={styles.h2}>Sniffs before you buy. Keeps watching&nbsp;after.</h2>
               <Reveal className={styles.sniff}>
                 <div className={styles.sniffPup}>
                   <SpotPuppy mood="angry" label="Spot growling at a scam coin. Press to hear it." />
@@ -83,6 +110,10 @@ export default function Home() {
                   </p>
                 </div>
               </Reveal>
+              <Reveal className={styles.notice}>
+                <Notice title="GRRR." text="The creator just sold 40% of $EXAMPLE. Sell?" action="Sell" />
+              </Reveal>
+              <p className={styles.curious}>Just curious? Share it for a sniff. No wallet needed.</p>
             </div>
 
             <div className={styles.col}>
@@ -111,9 +142,16 @@ export default function Home() {
                       <dt>Spot fee</dt>
                       <dd>shown before you buy</dd>
                     </div>
+                    <div>
+                      <dt>Take profit</dt>
+                      <dd>half at 2×</dd>
+                    </div>
                   </dl>
                   <p className={styles.thanks}>Thank you · Woof</p>
                 </div>
+              </Reveal>
+              <Reveal className={`${styles.notice} ${styles.noticeOver}`}>
+                <Notice title="$EXAMPLE doubled." text="Sold half, so your $25 is back." />
               </Reveal>
             </div>
           </div>

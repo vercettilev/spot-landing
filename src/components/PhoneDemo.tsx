@@ -34,7 +34,8 @@ const Tabs = () => (
 
 /**
  * SPOT, DOING ITS ONE THING, on a loop: a post in a feed, Share, Spot's sheet
- * sniffing the coin, Face ID, and back to the feed with the buy done. The
+ * sniffing the coin while take profit goes on, Face ID, and back to the feed
+ * with the buy done and where it came from. The
  * puppy holds the top of the phone the way the logo holds its ledge.
  *
  * Pure CSS: every moving part runs on the same 12-second clock (see the
@@ -84,7 +85,7 @@ export function PhoneDemo() {
                 <div>
                   <b>Bought $EXAMPLE</b>
                   <br />
-                  25 USDC, in your Spot balance
+                  25 USDC · from @ana.trades
                 </div>
               </div>
             </div>
@@ -146,6 +147,12 @@ export function PhoneDemo() {
                 <span>10</span>
                 <span className={styles.chipOn}>25</span>
                 <span>50</span>
+              </div>
+              <div className={styles.tp}>
+                <span>Sell half at 2×</span>
+                <i className={styles.toggle}>
+                  <i className={`${styles.tap} ${styles.tap4}`} />
+                </i>
               </div>
               <div className={styles.checks}>
                 <span className={styles.sniffing}>Sniffing it first…</span>
