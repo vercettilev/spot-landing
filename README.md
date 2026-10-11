@@ -1,6 +1,6 @@
 # Spot landing
 
-The early-access page for **Spot, the buy button for every app**: see a stock or a coin on TikTok, Reddit or X, share the post, tap Spot, confirm, and never leave the app.
+The early-access page for **Spot, the buy button for every app**: see a stock or a coin on TikTok, Reddit or X, share the post, tap Spot, confirm, and never leave the app. Selling is the same move, and Spot can sell for you at a price you set.
 
 One page and one field: an email. The phone (iPhone, Android or Solana Seeker) is read from the device, or asked on the pass after joining when it cannot be (a desktop), so the first build goes where the people are. Under the field the page shows the number a newcomer would get; whoever joins gets that place in line and a link, and each friend who joins through it moves them up 10 spots.
 

@@ -138,7 +138,11 @@ export function PhoneDemo() {
               <div className={styles.buyHead}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/spot-icon.svg" alt="" />
-                Buy $EXAMPLE
+                $EXAMPLE
+                <span className={styles.side}>
+                  <b>Buy</b>
+                  <span>Sell</span>
+                </span>
               </div>
               <div className={styles.amount}>
                 25 <span>USDC</span>

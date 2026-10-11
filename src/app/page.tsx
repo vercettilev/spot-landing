@@ -71,7 +71,7 @@ export default function Home() {
         <section className={`${styles.wrap} ${styles.hero}`}>
           <div>
             <h1 className={styles.h1}>The buy button for every app.</h1>
-            <p className={styles.lede}>See it in any feed. Buy it without leaving.</p>
+            <p className={styles.lede}>See it in any feed. Buy&nbsp;or&nbsp;sell it without leaving.</p>
             <div className={styles.join}>
               <SpotForm shareUrl={SITE_URL} />
             </div>

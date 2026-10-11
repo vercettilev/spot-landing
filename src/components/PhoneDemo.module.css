@@ -296,6 +296,32 @@
   height: auto;
 }
 
+/* Buy or sell: the same sheet, the other side one tap away. */
+.side {
+  display: inline-flex;
+  margin-left: auto;
+  padding: calc(2 * var(--u));
+  border-radius: 999px;
+  background: #efede8;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: calc(10.5 * var(--u));
+  font-weight: 700;
+}
+
+.side > * {
+  padding: calc(3 * var(--u)) calc(10 * var(--u));
+  border-radius: 999px;
+}
+
+.side b {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.side span {
+  color: #6e6a62;
+}
+
 .amount {
   font-family: var(--font-display-stack);
   font-weight: 900;

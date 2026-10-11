@@ -22,4 +22,4 @@ export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
 
 export const TAGLINE = "The buy button for every app.";
 export const DESCRIPTION =
-  "Saw a stock or a coin on TikTok, Reddit or X? Buy it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
+  "Saw a stock or a coin on TikTok, Reddit or X? Buy or sell it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
