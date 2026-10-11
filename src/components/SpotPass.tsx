@@ -2,7 +2,9 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { REF_BONUS, displayLink, referralLink, type Spot } from "@/lib/referral";
+import { X_HANDLE, X_URL } from "@/lib/site";
 import { PLATFORM_LABEL, PLATFORMS, type Platform } from "@/lib/waitlist";
+import { XMark } from "./XMark";
 import styles from "./SpotPass.module.css";
 
 const PHONE_NAME: Record<Platform, string> = { iphone: "your iPhone", android: "your Android phone", seeker: "your Seeker" };
@@ -165,6 +167,8 @@ export function SpotPass({
   const tweet = spot
     ? "Got my spot in line for Spot: ape any CA from any app, in USDC, no SOL needed."
     : "Spot: ape any CA from any app. Buy or sell in USDC, no SOL needed.";
+  /* "via @handle" on the post, so every share also points at Spot's account. */
+  const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}&via=${X_HANDLE}`;
   const copy = () => {
     navigator.clipboard?.writeText(link).then(() => {
       setCopied(true);
@@ -229,12 +233,7 @@ export function SpotPass({
               </button>
             </div>
             <div className={`${styles.shareRow} ${canShare ? styles.two : ""}`}>
-              <a
-                className={styles.shareX}
-                href={`https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a className={styles.shareX} href={intent} target="_blank" rel="noopener noreferrer">
                 Share on X
               </a>
               {canShare && (
@@ -261,12 +260,7 @@ export function SpotPass({
           )}
           <p className={styles.moveTitle}>Know someone who trades from their feed?</p>
           <div className={`${styles.shareRow} ${styles.two}`}>
-            <a
-              className={styles.shareX}
-              href={`https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a className={styles.shareX} href={intent} target="_blank" rel="noopener noreferrer">
               Share on X
             </a>
             <button type="button" className={styles.shareMore} onClick={copy}>
@@ -275,6 +269,13 @@ export function SpotPass({
           </div>
         </div>
       )}
+
+      <a className={styles.follow} href={X_URL} target="_blank" rel="noopener noreferrer">
+        <XMark size={14} />
+        <span>
+          Follow <b>@{X_HANDLE}</b> for updates
+        </span>
+      </a>
 
       {mode === "back" && (
         <button type="button" className={styles.notYou} onClick={onReset}>
