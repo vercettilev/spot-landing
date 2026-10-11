@@ -164,11 +164,12 @@ export function SpotPass({
   }, []);
 
   const link = spot ? referralLink(shareUrl, spot.code) : shareUrl;
+  /* The first words are the hook: their place, then the one-liner. */
   const tweet = spot
-    ? "Got my spot in line for Spot, the buy button for every app. See a stock or coin on TikTok, Reddit or X and buy it without leaving the app."
-    : "Spot: the buy button for every app. See a stock or coin on TikTok, Reddit or X, buy it without leaving the app.";
+    ? `I'm #${spot.rank.toLocaleString("en-US")} in line for Spot. Buy crypto from any post on mobile.`
+    : "Spot: buy crypto from any post on mobile.";
   /* "via @handle" on the post, so every share also points at Spot's account. */
-  const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}${X_HANDLE ? `&via=${X_HANDLE}` : ""}`;
+  const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}&via=${X_HANDLE}`;
   const copy = () => {
     navigator.clipboard?.writeText(link).then(() => {
       setCopied(true);
@@ -270,14 +271,12 @@ export function SpotPass({
         </div>
       )}
 
-      {X_URL && (
-        <a className={styles.follow} href={X_URL} target="_blank" rel="noopener noreferrer">
-          <XMark size={14} />
-          <span>
-            Follow <b>@{X_HANDLE}</b> for updates
-          </span>
-        </a>
-      )}
+      <a className={styles.follow} href={X_URL} target="_blank" rel="noopener noreferrer">
+        <XMark size={14} />
+        <span>
+          Follow <b>@{X_HANDLE}</b> for updates
+        </span>
+      </a>
 
       {mode === "back" && (
         <button type="button" className={styles.notYou} onClick={onReset}>

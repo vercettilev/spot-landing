@@ -12,7 +12,7 @@ const display = Rubik({ subsets: ["latin"], weight: ["700", "800", "900"], varia
 const body = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono", display: "swap" });
 
-const TITLE = "Spot: the buy button for every app";
+const TITLE = "Spot: buy crypto from any post on mobile";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -22,8 +22,7 @@ export const metadata: Metadata = {
   /* Images come from opengraph-image.png and twitter-image.png beside this
      file, so the card and the page cannot drift apart. */
   openGraph: { type: "website", siteName: "Spot", title: TITLE, description: DESCRIPTION, url: "/" },
-  /* `site` credits the card to Spot's account on X, once there is one to credit. */
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, ...(X_HANDLE ? { site: `@${X_HANDLE}` } : {}) },
+  twitter: { card: "summary_large_image", site: `@${X_HANDLE}`, title: TITLE, description: DESCRIPTION },
 };
 
 export const viewport: Viewport = {

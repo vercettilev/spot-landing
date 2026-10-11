@@ -41,32 +41,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   height: 72px;
+}
+
+/* Spot on X: the logo and the handle, quiet until pointed at. */
+.xLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.xLink:hover {
+  color: var(--orange);
 }
 
 .wordmark {
   width: 76px;
   height: auto;
-}
-
-/* Spot on X, across from the wordmark: a quiet pill, so the field stays the
-   one thing on the page that asks. */
-.follow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 36px;
-  padding: 0 14px;
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: border-color 0.15s;
-}
-
-.follow:hover {
-  border-color: var(--white);
 }
 
 /* ---------- hero: black ---------- */
@@ -243,7 +241,7 @@
 
 .grrr {
   position: absolute;
-  right: -12px;
+  right: -8px;
   bottom: -22px;
   padding: 4px 14px;
   border: 3.5px solid #c7372b;
@@ -378,6 +376,92 @@
   }
 }
 
+/* ---------- after the buy: notifications, drawn ---------- */
+.notice {
+  position: relative;
+  max-width: 400px;
+  margin-top: 48px;
+  margin-left: 16px;
+}
+
+/* The take-profit one lands over the receipt's torn edge. */
+.noticeOver {
+  z-index: 2;
+  margin-top: -4px;
+  margin-left: auto;
+}
+
+.noticeCard {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  box-shadow: 0 14px 30px rgba(90, 30, 0, 0.3);
+}
+
+.noticeCard img {
+  width: 38px;
+  height: auto;
+}
+
+.noticeTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6e6a62;
+}
+
+.noticeText {
+  margin-top: 2px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.noticeText b {
+  font-weight: 700;
+}
+
+.noticeAction {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.curious {
+  margin-top: 28px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Each drops in like a banner once it scrolls into view (Reveal). */
+.notice[data-reveal="armed"] .noticeCard {
+  opacity: 0;
+}
+
+.notice[data-reveal="in"] .noticeCard {
+  animation: drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.5s both;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ---------- footer: black ---------- */
 .footer {
   background: var(--ink);
@@ -385,42 +469,11 @@
 }
 
 .footerInner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28px 56px;
   padding-top: 40px;
   padding-bottom: 48px;
 }
 
-.serving {
-  padding: 14px 20px 16px;
-  border: 2px solid #2a2a2e;
-  border-radius: 12px;
-  background: var(--ink-2);
-  font-family: var(--font-mono-stack);
-}
-
-.serving span {
-  display: block;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.serving b {
-  display: block;
-  margin-top: 6px;
-  font-size: 44px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.08em;
-  color: var(--orange);
-}
-
 .small {
-  flex: 1 1 420px;
   max-width: 640px;
   font-size: 13px;
   line-height: 1.55;

@@ -21,16 +21,12 @@ export const OPERATOR = "Poppin Social, Inc.";
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
 
 /**
- * SPOT ON X, the handle without the @. The header, the pass and the footer
- * link to the account, and a post shared from the pass ends "via @handle".
- * It comes from NEXT_PUBLIC_X_HANDLE until it is written in here. Unset,
- * nothing links to X: a guessed handle would send people to somebody else's
- * account.
+ * Spot on X: the header and the pass link to it, a post shared from the pass
+ * ends "via @handle", and social cards credit it.
  */
-const handle = (process.env.NEXT_PUBLIC_X_HANDLE || "").trim().replace(/^@/, "");
-export const X_HANDLE = /^[A-Za-z0-9_]{1,15}$/.test(handle) ? handle : "";
-export const X_URL = X_HANDLE ? `https://x.com/${X_HANDLE}` : "";
+export const X_HANDLE = "getspotfun";
+export const X_URL = `https://x.com/${X_HANDLE}`;
 
-export const TAGLINE = "The buy button for every app.";
+export const TAGLINE = "Buy crypto from any post on mobile.";
 export const DESCRIPTION =
-  "Saw a stock or a coin on TikTok, Reddit or X? Buy it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
+  "Saw a stock or a coin on TikTok, Reddit or X? Buy or sell it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
