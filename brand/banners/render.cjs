@@ -60,7 +60,7 @@ async function main() {
         }
       }
     }, { art, EARS });
-    await page.evaluate(() => window.laidOut);
+    await page.evaluate(() => document.fonts.ready);
 
     for (const id of await page.$$eval("section.board", (els) => els.map((e) => e.id))) {
       const name = scale === 1 ? `${id}.png` : `${id}@2x.png`;

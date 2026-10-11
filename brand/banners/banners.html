@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <title>Spot banners</title>
-<!-- The site's own faces: Rubik Black for display, IBM Plex Mono for what is printed (the tape). -->
+<!-- The site's display face, Rubik Black. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Rubik:wght@800;900&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@900&display=block" rel="stylesheet">
 <style>
   /* Tokens copied from src/app/globals.css. */
   :root {
@@ -14,7 +14,6 @@
     --ink: #0b0b0c;
     --white: #ffffff;
     --display: "Rubik", "Arial Black", system-ui, sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   }
 
   body {
@@ -26,34 +25,20 @@
     justify-items: start;
   }
 
-  /* ONE ARTBOARD PER FILE. render.cjs screenshots each .board by its id.
-     A board sets its size, where the tape starts (--ledge) and how wide the
-     puppy is; everything else is placed from those. */
+  /* ONE ARTBOARD PER FILE, two things on each: the line and the puppy.
+     render.cjs screenshots each .board by its id. */
   .board {
     position: relative;
     overflow: hidden;
     width: var(--w);
     height: var(--h);
-    background: var(--ground);
-    color: var(--type);
-    --ground: var(--orange);
-    --type: var(--ink);
-    --tape: var(--ink);
-    --tape-type: var(--white);
-    --dot: var(--orange);
+    background: var(--orange);
+    color: var(--ink);
   }
 
   .board.black {
-    --ground: var(--ink);
-    --type: var(--white);
-    --tape: var(--orange);
-    --tape-type: var(--ink);
-    --dot: var(--ink);
-  }
-
-  .wordmark {
-    position: absolute;
-    display: block;
+    background: var(--ink);
+    color: var(--white);
   }
 
   .h1 {
@@ -67,212 +52,76 @@
     white-space: nowrap;
   }
 
-  .black .h1 em {
-    font-style: normal;
-    color: var(--orange);
-  }
-
-  .h1 em {
-    font-style: normal;
-    color: var(--white);
-  }
-
-  .url {
-    position: absolute;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5em;
-    padding: 0 0.85em;
-    border-radius: 999px;
-    background: var(--type);
-    color: var(--ground);
-    font-family: var(--display);
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-  }
-
-  .url svg {
-    width: 0.8em;
-    height: 0.8em;
-  }
-
-  /* THE TAPE: a ticker along the bottom that the puppy hangs its paws over.
-     It says only what the page says: the steps, and the claims the site
-     already makes (no gas, no SOL, it sniffs every coin first). */
-  .tape {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: var(--ledge);
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    background: var(--tape);
-    color: var(--tape-type);
-    font-family: var(--mono);
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .tape > * {
-    flex: none;
-  }
-
-  .tape i {
-    display: inline-block;
-    width: 0.55em;
-    height: 0.55em;
-    margin: 0 1.1em;
-    border-radius: 50%;
-    background: var(--dot);
-  }
-
-  /* The puppy's ledge (the line its paws hang over) sits 12.31% of its height
-     above the drawing's bottom edge (PUPPY_LEDGE_FROM_BOTTOM), and the
-     drawing is 1.5149 times as wide as it is tall (PUPPY_ASPECT). */
+  /* The puppy sits on the bottom edge, paws and all, as it does in the icon.
+     The drawing is 1.5149 times as wide as it is tall (PUPPY_ASPECT). */
   .pup {
     position: absolute;
+    bottom: 0;
     width: var(--pup-w);
     height: calc(var(--pup-w) / 1.5149);
-    top: calc(var(--ledge) - (1 - 0.1231) * var(--pup-w) / 1.5149);
     overflow: visible;
   }
 
   /* ---------- X / Twitter header, 1500 x 500 ----------
      The avatar covers a half-circle about 335px wide at the bottom left, so
-     nothing that has to be read sits below y 330 on the left third. */
+     the line sits above y 330 and the puppy goes right. */
   .x {
     --w: 1500px;
     --h: 500px;
-    --ledge: 412px;
-    --pup-w: 470px;
-  }
-
-  .x .wordmark {
-    left: 96px;
-    top: 62px;
-    height: 40px;
-  }
-
-  .x .url {
-    right: 80px;
-    top: 56px;
-    height: 52px;
-    font-size: 25px;
+    --pup-w: 440px;
   }
 
   .x .h1 {
-    left: 90px;
-    top: 140px;
-    font-size: 100px;
-  }
-
-  .x .tape {
-    font-size: 22px;
+    left: 96px;
+    top: 128px;
+    font-size: 88px;
   }
 
   .x .pup {
-    right: 72px;
+    right: 110px;
   }
 
   /* ---------- LinkedIn cover, 1584 x 396 ----------
-     The photo sits over the bottom left from a little under half the height,
-     so the headline runs on one line above it and the address hangs under
-     the headline's end, like the button it is. */
+     The photo comes up to a little under half the height on the left, so the
+     line runs on one row above it. */
   .li {
     --w: 1584px;
     --h: 396px;
-    --ledge: 316px;
-    --pup-w: 380px;
-  }
-
-  .li .wordmark {
-    left: 84px;
-    top: 48px;
-    height: 36px;
+    --pup-w: 360px;
   }
 
   .li .h1 {
-    left: 80px;
-    top: 114px;
-    font-size: 68px;
-  }
-
-  .li .url {
-    left: 80px;
-    top: 214px;
-    height: 54px;
-    font-size: 26px;
-    transform: translateX(var(--url-x, 0px));
-  }
-
-  .li .tape {
-    font-size: 20px;
+    left: 96px;
+    top: 104px;
+    font-size: 64px;
   }
 
   .li .pup {
-    right: 56px;
+    right: 110px;
   }
 </style>
 </head>
 <body>
 
 <section class="board x" id="x-header">
-  <img class="wordmark" src="../../public/spot-wordmark-black.svg" alt="Spot">
-  <span class="url">usespot.fun<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
-  <h1 class="h1">The buy button<br><em>for every app.</em></h1>
-  <div class="tape" data-tape></div>
-  <svg class="pup" data-face="Hp" data-halo></svg>
+  <h1 class="h1">The buy button<br>for every app.</h1>
+  <svg class="pup" data-face=""></svg>
 </section>
 
 <section class="board x black" id="x-header-black">
-  <img class="wordmark" src="../../public/spot-wordmark-white.svg" alt="Spot">
-  <span class="url">usespot.fun<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
-  <h1 class="h1">The buy button<br><em>for every app.</em></h1>
-  <div class="tape" data-tape></div>
+  <h1 class="h1">The buy button<br>for every app.</h1>
   <svg class="pup" data-face="" data-halo></svg>
 </section>
 
 <section class="board li" id="linkedin-cover">
-  <img class="wordmark" src="../../public/spot-wordmark-black.svg" alt="Spot">
-  <span class="url">usespot.fun<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
-  <h1 class="h1">The buy button <em>for every app.</em></h1>
-  <div class="tape" data-tape></div>
-  <svg class="pup" data-face="Hp" data-halo></svg>
+  <h1 class="h1">The buy button for every app.</h1>
+  <svg class="pup" data-face=""></svg>
 </section>
 
 <section class="board li black" id="linkedin-cover-black">
-  <img class="wordmark" src="../../public/spot-wordmark-white.svg" alt="Spot">
-  <span class="url">usespot.fun<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
-  <h1 class="h1">The buy button <em>for every app.</em></h1>
-  <div class="tape" data-tape></div>
+  <h1 class="h1">The buy button for every app.</h1>
   <svg class="pup" data-face="" data-halo></svg>
 </section>
 
-<script>
-  /* The tape's words, repeated until they run off the edge. Starts mid-phrase
-     so it reads as a ticker already moving. */
-  const TAPE = ["See it in your feed", "Share it", "Tap Spot", "Confirm", "Done", "No gas", "No SOL", "Just dollars", "Sniffs every coin first"];
-  for (const el of document.querySelectorAll("[data-tape]")) {
-    const run = [...TAPE, ...TAPE, ...TAPE].map((t) => `<span>${t}</span><i></i>`).join("");
-    el.innerHTML = run;
-    el.style.textIndent = "0";
-    el.firstElementChild.style.marginLeft = el.dataset.offset || "-120px";
-  }
-
-  /* On LinkedIn the address sits under the end of the headline, measured
-     once the fonts are in. render.cjs waits for this. */
-  window.laidOut = document.fonts.ready.then(() => {
-    for (const b of document.querySelectorAll(".board.li")) {
-      const h1 = b.querySelector(".h1").getBoundingClientRect();
-      const url = b.querySelector(".url");
-      url.style.setProperty("--url-x", `${h1.width - url.getBoundingClientRect().width}px`);
-    }
-  });
-</script>
 </body>
 </html>
