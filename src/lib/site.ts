@@ -20,8 +20,12 @@ export const OPERATOR = "Poppin Social, Inc.";
 /** Where people can write about their data. Required before launch; the privacy page omits the line until it is set. */
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
 
-/** Spot on X: the header links to it and social cards credit it. */
-export const X_HANDLE = "getspotfun";
+/**
+ * Spot on X: the header and the pass link to it, a post shared from the pass
+ * ends "via @handle", and social cards credit it. It was @getspotfun until
+ * the account was renamed; that handle is free now, so nothing may point at it.
+ */
+export const X_HANDLE = "usespotdotfun";
 export const X_URL = `https://x.com/${X_HANDLE}`;
 
 export const TAGLINE = "Ape from any app.";
