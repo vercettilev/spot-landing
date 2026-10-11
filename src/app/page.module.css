@@ -21,7 +21,7 @@
 .h2 {
   font-family: var(--font-display-stack);
   font-weight: 900;
-  font-size: clamp(30px, 7.6vw, 40px);
+  font-size: clamp(32px, 8.4vw, 46px);
   line-height: 1;
   letter-spacing: -0.025em;
   text-wrap: balance;
@@ -138,7 +138,7 @@
     padding: 104px 0 120px;
   }
   .trustGrid {
-    grid-template-columns: minmax(0, 520px) minmax(0, 440px);
+    grid-template-columns: minmax(0, 560px) minmax(0, 480px);
     justify-content: space-between;
     align-items: start;
     gap: 64px;
@@ -147,7 +147,7 @@
 
 /* The angry puppy stands on the report the way the calm one holds the phone. */
 .sniff {
-  --pup-w: 200px;
+  --pup-w: 220px;
   position: relative;
   margin-top: 36px;
   padding-top: calc(var(--pup-w) / 1.5149 * 0.877);
@@ -175,7 +175,7 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono-stack);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #5a554c;
@@ -187,7 +187,7 @@
   border-bottom: 1.5px dashed #bdb7ab;
   font-family: var(--font-display-stack);
   font-weight: 900;
-  font-size: 32px;
+  font-size: 38px;
   letter-spacing: -0.02em;
 }
 
@@ -202,9 +202,9 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 13px 0;
+  padding: 15px 0;
   border-bottom: 1px solid #eee9df;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -217,10 +217,10 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px 4px 8px;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -250,7 +250,7 @@
   color: #c7372b;
   font-family: var(--font-display-stack);
   font-weight: 900;
-  font-size: 32px;
+  font-size: 36px;
   letter-spacing: 0.05em;
   transform: rotate(-13deg);
 }
@@ -265,11 +265,11 @@
 
 .receipt {
   --tooth: 10px;
-  padding: 30px 26px calc(30px + var(--tooth));
+  padding: 32px 28px calc(32px + var(--tooth));
   background: var(--white);
   color: #1a1a1a;
   font-family: var(--font-mono-stack);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.7;
   -webkit-mask:
     linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth) + 1px) no-repeat,
@@ -287,12 +287,12 @@
 }
 
 .receiptTop img {
-  width: 84px;
+  width: 96px;
   height: auto;
 }
 
 .receiptKind {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #5a554c;
@@ -322,7 +322,7 @@
 .thanks {
   margin-top: 22px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #5a554c;
@@ -379,7 +379,7 @@
 /* ---------- after the buy: notifications, drawn ---------- */
 .notice {
   position: relative;
-  max-width: 400px;
+  max-width: 440px;
   margin-top: 48px;
   margin-left: 16px;
 }
@@ -393,10 +393,10 @@
 
 .noticeCard {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.96);
   color: var(--ink);
@@ -404,7 +404,7 @@
 }
 
 .noticeCard img {
-  width: 38px;
+  width: 44px;
   height: auto;
 }
 
@@ -412,14 +412,14 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   color: #6e6a62;
 }
 
 .noticeText {
   margin-top: 2px;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.35;
 }
 
@@ -428,17 +428,17 @@
 }
 
 .noticeAction {
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 999px;
   background: var(--ink);
   color: var(--white);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .curious {
   margin-top: 28px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
 }
 

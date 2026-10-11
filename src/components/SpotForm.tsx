@@ -44,8 +44,7 @@ const setMood = (mood: Mood) => window.dispatchEvent(new CustomEvent<Mood>("spot
 
 /**
  * THE ONE THING ON THE PAGE THAT ASKS FOR SOMETHING: an address. One field,
- * one button, and under them the number that is next in line, so the reader
- * sees what they are about to get.
+ * one button, and under them the one way up the line: friends.
  *
  * The phone is read from the device when it can be told (an iPhone or an
  * Android says so) and sent along. A desktop cannot tell, so it sends none
@@ -62,7 +61,6 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
   const [mode, setMode] = useState<PassMode>("new");
   const [lastRank, setLastRank] = useState<number | null>(null);
   const [invitedBy, setInvitedBy] = useState<string | null>(null);
-  const [next, setNext] = useState<number | null>(null);
   const [typing, setTyping] = useState(false);
   const [thud, setThud] = useState(false);
   const slot = useRef<HTMLDivElement>(null);
@@ -72,15 +70,6 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/i.test(ua)) setPlatform((p) => p ?? "iphone");
     else if (/Android/i.test(ua)) setPlatform((p) => p ?? "android");
-
-    /* The number a newcomer would get. Cached at the edge, so it is cheap, and
-       the line under the form reads fine without it. */
-    fetch("/api/waitlist?next")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { next?: number } | null) => {
-        if (data && typeof data.next === "number") setNext(data.next);
-      })
-      .catch(() => {});
 
     /* A shared link lands here as /?r=CODE. Keep the code, then take it off
        the address bar so this page's own URL is not passed on with it. */
@@ -262,12 +251,11 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
             </p>
           ) : (
             <p className={styles.helper}>
-              {next !== null && (
-                <>
-                  You&apos;ll be <b>#{next.toLocaleString("en-US")}</b> in line.{" "}
-                </>
-              )}
-              Friends who join move you up {REF_BONUS} spots.
+              <svg className={styles.up} viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                <circle cx="12" cy="12" r="12" fill="currentColor" />
+                <path d="M12 17.5V7M7.5 11.5 12 7l4.5 4.5" fill="none" stroke="#0b0b0c" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Friends who join move you up {REF_BONUS}&nbsp;spots.
             </p>
           )}
         </form>

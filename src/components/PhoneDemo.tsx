@@ -61,7 +61,7 @@ export function PhoneDemo() {
                   <polyline pathLength={1} points="0,80 20,74 40,77 60,60 80,66 100,48 120,53 140,32 160,37 180,16 200,8" />
                 </svg>
                 <b className={styles.handle}>@ana.trades</b>
-                <span className={styles.postText}>$EXAMPLE just broke out. Thoughts?</span>
+                <span className={styles.postText}>$EXAMPLE breaking out. CA in replies.</span>
               </div>
               <div className={styles.rail}>
                 <Icon d={HEART} />
@@ -83,7 +83,7 @@ export function PhoneDemo() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/spot-icon.svg" alt="" />
                 <div>
-                  <b>Bought $EXAMPLE</b>
+                  <b>Aped $EXAMPLE</b>
                   <br />
                   25 USDC · from @ana.trades
                 </div>
@@ -153,16 +153,16 @@ export function PhoneDemo() {
                 <span>50</span>
               </div>
               <div className={styles.tp}>
-                <span>Sell half at 2×</span>
+                <span>TP 50% at 2x</span>
                 <i className={styles.toggle}>
                   <i className={`${styles.tap} ${styles.tap4}`} />
                 </i>
               </div>
               <div className={styles.checks}>
-                <span className={styles.sniffing}>Sniffing it first…</span>
+                <span className={styles.sniffing}>Sniffing the CA…</span>
                 <span className={styles.passed}>
                   <Icon d={CHECK} size={16} />
-                  Four checks passed
+                  4/4 checks passed
                 </span>
               </div>
               <div className={styles.confirm}>

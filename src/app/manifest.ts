@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Spot",
     short_name: "Spot",
-    description: "The buy button for every app.",
+    description: "Ape from any app.",
     start_url: "/",
     display: "browser",
     background_color: "#0b0b0c",

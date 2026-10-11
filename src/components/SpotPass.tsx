@@ -163,8 +163,8 @@ export function SpotPass({
 
   const link = spot ? referralLink(shareUrl, spot.code) : shareUrl;
   const tweet = spot
-    ? "Got my spot in line for Spot, the buy button for every app. See a stock or coin on TikTok, Reddit or X and buy or sell it without leaving the app."
-    : "Spot: the buy button for every app. See a stock or coin on TikTok, Reddit or X, buy or sell it without leaving the app.";
+    ? "Got my spot in line for Spot: ape any CA from any app, in USDC, no SOL needed."
+    : "Spot: ape any CA from any app. Buy or sell in USDC, no SOL needed.";
   const copy = () => {
     navigator.clipboard?.writeText(link).then(() => {
       setCopied(true);

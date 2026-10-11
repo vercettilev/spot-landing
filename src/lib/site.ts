@@ -24,6 +24,6 @@ export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
 export const X_HANDLE = "getspotfun";
 export const X_URL = `https://x.com/${X_HANDLE}`;
 
-export const TAGLINE = "The buy button for every app.";
+export const TAGLINE = "Ape from any app.";
 export const DESCRIPTION =
-  "Saw a stock or a coin on TikTok, Reddit or X? Buy or sell it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
+  "See a CA on X, TikTok or Telegram? Share it to Spot and buy or sell in USDC without leaving the app. No SOL, no gas. Coming soon to iPhone, Android and Solana Seeker.";
