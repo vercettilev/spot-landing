@@ -317,6 +317,29 @@
   color: #3a3a40;
 }
 
+/* Spot on X: the pass's last line, quieter than the two ways to share. */
+.follow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.follow b {
+  font-weight: 800;
+}
+
+.follow:hover span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .notYou {
   display: block;
   margin: 16px auto 0;

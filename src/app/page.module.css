@@ -40,12 +40,33 @@
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 72px;
 }
 
 .wordmark {
   width: 76px;
   height: auto;
+}
+
+/* Spot on X, across from the wordmark: a quiet pill, so the field stays the
+   one thing on the page that asks. */
+.follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.follow:hover {
+  border-color: var(--white);
 }
 
 /* ---------- hero: black ---------- */

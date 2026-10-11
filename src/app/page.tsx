@@ -3,7 +3,8 @@ import { PhoneDemo } from "@/components/PhoneDemo";
 import { Reveal } from "@/components/Reveal";
 import { SpotForm } from "@/components/SpotForm";
 import { SpotPuppy } from "@/components/SpotPuppy";
-import { OPERATOR, SITE_URL } from "@/lib/site";
+import { XMark } from "@/components/XMark";
+import { OPERATOR, SITE_URL, X_HANDLE, X_URL } from "@/lib/site";
 import styles from "./page.module.css";
 
 /* Only the checks the engine actually runs. Top-holder share is NOT one of
@@ -38,6 +39,12 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className={styles.wordmark} src="/spot-wordmark-white.svg" alt="" width={76} height={31} />
         </Link>
+        {X_URL && (
+          <a className={styles.follow} href={X_URL} target="_blank" rel="noopener noreferrer" aria-label={`Follow @${X_HANDLE} on X`}>
+            <XMark size={14} />
+            Follow
+          </a>
+        )}
       </header>
 
       <main>
@@ -129,6 +136,14 @@ export default function Home() {
           <p className={styles.small}>
             Spot is coming soon. Tokenized stocks are issued by third parties and aren&apos;t available everywhere,
             including the US. Example data. Not financial advice. Run by {OPERATOR} <Link href="/privacy">Privacy</Link>
+            {X_URL && (
+              <>
+                {" "}
+                <a href={X_URL} target="_blank" rel="noopener noreferrer">
+                  @{X_HANDLE} on X
+                </a>
+              </>
+            )}
           </p>
         </div>
       </footer>
