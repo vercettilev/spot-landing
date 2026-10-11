@@ -1,0 +1,222 @@
+<!doctype html>
+<!--
+  SPOT'S PROFILE HEADER FOR X, 1500 x 500, Apple-style (made with the apple-design skill).
+
+  Three looks from one file that work as a set:
+    banner.html               orange: the brand field, white headline, ink for everything supporting
+    banner.html?theme=dark    dark:   the site's ink field, white headline, orange for "every app." and the action
+    banner.html?theme=light   light:  a product still life on light gray; ink carries every word and the
+                                      only orange is the product, the buy button the puppy hangs on to
+
+  All three follow one recipe (eyebrow, hero headline, one line of support, one CTA,
+  the puppy alone on a flat field) and share the copy column, so they read as a set.
+
+  X safe zones: nothing at x < 420 below y = 320 (profile photo); no copy at
+  x < 200 or x > 1300 above y = 90 (the mobile app's back, search and menu buttons).
+  Render at a 1500 x 500 viewport, with deviceScaleFactor 2 for the @2x files.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spot banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Rubik and Inter by name, never the system stack, so SF never ends up in the artwork. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Rubik:wght@700&display=block" rel="stylesheet">
+<style>
+
+  :root {
+    /* Spot brand (src/app/globals.css) */
+    --orange: #fc4e02;
+    --ink: #0b0b0c;
+    --white: #ffffff;
+    --dim: rgb(255 255 255 / .72);   /* the site's lede colour on ink */
+
+    --font-display: "Rubik", sans-serif;
+    --font-text: "Inter", sans-serif;
+
+    /* Geometry, shared by both themes */
+    --copy-x: 440px;                 /* clears the profile photo (x < 420) */
+    --copy-y: 73px;                  /* copy ink runs 73-415, centred at 244: just above the middle, where it looks centred */
+    /* The puppy drawing: its ink spans x 24-418 and y 114-370 in a viewBox of 8 98 426 288
+       (widened by 10 units a side so the halo's sticker edge is never clipped). */
+    --u: calc(440px / 406);          /* one drawing unit: the ink comes out 427 x 277px */
+    --pup-margin: 30px;              /* canvas right edge to the right ear */
+    --pup-overhang: 6px;             /* the paws hang over the bottom edge: a clean cut, not a near-tangent */
+  }
+
+  /* Orange (default): white says it, ink backs it up. White on orange is 3.4:1, so white is used
+     only at 80px; ink on orange is 5.8:1 and carries everything small. */
+  .banner {
+    --field: var(--orange);
+    --headline: var(--white);
+    --em: var(--ink);
+    --text: var(--ink);
+    --strong: var(--ink);
+    --cta-bg: var(--ink);
+    --cta-fg: var(--white);
+  }
+  /* Dark: the site's own palette. Orange marks "every app." (as on the site) and the one action;
+     the pill label is ink (5.8:1), because white on orange is only 3.4:1. */
+  .banner.dark {
+    --field: var(--ink);
+    --headline: var(--white);
+    --em: var(--orange);
+    --text: var(--dim);
+    --strong: var(--white);
+    --cta-bg: var(--orange);
+    --cta-fg: var(--ink);
+  }
+
+  /* Light: Apple's product-on-light-gray still life. The headline says "buy button" and the
+     picture is one: an orange capsule the puppy hangs on to. Being the only orange, it is the
+     product; the CTA is ink so the two capsules never compete. Brand ink, not Apple's #1d1d1f,
+     so the words and the puppy's outline are one black. */
+  .banner.light {
+    --field: #f5f5f7;
+    --headline: var(--ink);
+    --em: var(--ink);
+    --text: rgb(11 11 12 / .64);     /* about 6:1 on the field */
+    --strong: var(--ink);
+    --cta-bg: var(--ink);
+    --cta-fg: var(--white);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--ink); }
+  body { font-synthesis: none; font-feature-settings: "kern"; -webkit-font-smoothing: antialiased; }
+  h1, p { margin: 0; }
+  strong { font-weight: 600; }
+
+  .banner {
+    position: relative;
+    width: 1500px;
+    height: 500px;
+    overflow: hidden;
+    background: var(--field);
+  }
+
+  /* Copy column: eyebrow, headline, one line of support, one CTA */
+  .copy {
+    position: absolute;
+    left: var(--copy-x);
+    top: var(--copy-y);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Eyebrow: the product name, as the wordmark (shown once) */
+  .wordmark { display: block; height: 32px; width: auto; }
+  .wordmark.on-dark, .dark .wordmark.on-orange { display: none; }
+  .dark .wordmark.on-dark { display: block; }
+
+  /* Hero headline: the 80px row (line-height 1.05, tracking -0.015em). Rubik 700 is the
+     lightest weight the brand loads (700/800/900); the site's headline is 900. */
+  h1 {
+    margin-top: 6px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 80px;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    color: var(--headline);
+  }
+  h1 em { font-style: normal; color: var(--em); }
+
+  /* Support: the 28px row (line-height 1.1429, tracking 0.007em), 400 with the payoff at 600 */
+  .support {
+    margin-top: 24px;
+    font-family: var(--font-text);
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.1429;
+    letter-spacing: 0.007em;
+    color: var(--text);
+  }
+  .support strong { color: var(--strong); }
+
+  /* One CTA: a capsule, the 21px row (tracking 0.011em), label 400 with the address at 600 */
+  .cta {
+    margin-top: 30px;
+    display: inline-flex;
+    align-items: center;
+    height: 50px;
+    padding: 0 26px;
+    border-radius: 980px;
+    background: var(--cta-bg);
+    color: var(--cta-fg);
+    font-family: var(--font-text);
+    font-weight: 400;
+    font-size: 21px;
+    line-height: 1;
+    letter-spacing: 0.011em;
+    white-space: nowrap;
+  }
+
+  /* The mascot alone on the field. The banner's bottom edge is the ledge: the paws rest on it. */
+  .puppy {
+    position: absolute;
+    right: calc(var(--pup-margin) - var(--u) * 16);           /* 16 = viewBox right (434) - ink right (418) */
+    bottom: calc(0px - var(--u) * 16 - var(--pup-overhang));  /* 16 = viewBox bottom (386) - paws (370) */
+    display: block;
+    width: calc(var(--u) * 426);
+    height: auto;
+  }
+  .puppy.on-dark, .dark .puppy.on-orange { display: none; }
+  .dark .puppy.on-dark { display: block; }   /* the halo version: its sticker edge keeps the black ears off the ink */
+
+  /* Light only: the button and the smaller puppy hanging on to it. The button's bottom shares the
+     CTA's bottom (y 415), and the puppy's ledge line (drawing y 343, 245 units below the widened
+     viewBox top) sits on the button's top edge, the way the logo holds its ledge. */
+  .light {
+    --lu: calc(340px / 406);         /* one drawing unit: the ink comes out 330 x 214px */
+    --btn-x: 1052px;
+    --btn-w: 400px;                  /* 48px from the right edge */
+    --btn-h: 56px;
+    --btn-over: 30px;                /* the button reaches past the puppy on each side */
+    --base: 415px;
+  }
+  .button-ledge, .puppy.on-light { display: none; }
+  .light .button-ledge, .light .puppy.on-light { display: block; }
+  .light .puppy.on-orange { display: none; }
+  .button-ledge {
+    position: absolute;
+    left: var(--btn-x);
+    top: calc(var(--base) - var(--btn-h));
+    width: var(--btn-w);
+    height: var(--btn-h);
+    border-radius: 980px;
+    background: var(--orange);
+  }
+  .puppy.on-light {
+    right: auto;
+    bottom: auto;
+    left: calc(var(--btn-x) + var(--btn-over) - var(--lu) * 10);    /* 10 = drawing left (18) - viewBox left (8) */
+    top: calc(var(--base) - var(--btn-h) - var(--lu) * 245);
+    width: calc(var(--lu) * 426);
+  }
+</style>
+</head>
+<body>
+<div class="banner" id="banner" role="img"
+     aria-label="Spot. The buy button for every app. Saw a stock or a coin? Buy it on the spot. Get early access at usespot.fun">
+  <div class="copy">
+    <img class="wordmark on-orange" src="assets/spot-wordmark-ink.svg" alt="">
+    <img class="wordmark on-dark" src="assets/spot-wordmark-white.svg" alt="">
+    <h1>The buy button<br>for <em>every app.</em></h1>
+    <p class="support">Saw a stock or a coin? <strong>Buy it on the spot.</strong></p>
+    <span class="cta">Get early access at&nbsp;<strong>usespot.fun</strong></span>
+  </div>
+  <img class="puppy on-orange" src="assets/puppy-Hp.svg" alt="">
+  <img class="puppy on-dark" src="assets/puppy-halo-Hp.svg" alt="">
+  <div class="button-ledge"></div>
+  <img class="puppy on-light" src="assets/puppy-Hp.svg" alt="">
+</div>
+<script>
+  /* ?theme=dark or ?theme=light switches to a companion look. */
+  const theme = new URLSearchParams(location.search).get("theme");
+  if (theme === "dark" || theme === "light") document.getElementById("banner").classList.add(theme);
+</script>
+</body>
+</html>

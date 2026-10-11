@@ -16,6 +16,7 @@ src/components/puppyArt.ts    the logo traced and split into ears, jaw, head and
 public/                       the 23-second film, its poster, the bark and growl, logo files
 scripts/waitlist.ts           counts per phone, or a CSV of the list
 brand/banner/                 the X profile banner (orange and dark, 1500x500 and @2x) and the page it is rendered from
+brand/banner/apple/           a quieter, Apple-style set of the same banner (orange, dark and light), from one page
 .claude/skills/apple-design/  a Claude Code skill for Apple-style design (/apple-design), kept here so every session on this repo has it
 ```
 
