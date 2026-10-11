@@ -45,21 +45,36 @@
   height: 72px;
 }
 
-/* Spot on X: the logo and the handle, quiet until pointed at. */
+/* Follow on X: a sticker slapped on a little crooked, on its orange shadow.
+   It straightens up when pointed at and presses in when tapped. White, so it
+   never competes with the one orange button that matters. */
 .xLink {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 14px 0 16px;
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
   font-size: 15px;
-  font-weight: 600;
-  color: var(--white);
+  letter-spacing: -0.01em;
   text-decoration: none;
-  transition: color 0.15s;
+  box-shadow: 3px 3px 0 var(--orange);
+  transform: rotate(-3deg);
+  transition: transform 0.18s cubic-bezier(0.3, 0.7, 0.4, 1.5), box-shadow 0.18s;
 }
 
 .xLink:hover {
-  color: var(--orange);
+  transform: rotate(0deg) translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--orange);
+}
+
+.xLink:active {
+  transform: rotate(0deg) translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--orange);
 }
 
 .wordmark {
