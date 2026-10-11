@@ -3,7 +3,7 @@ import { PhoneDemo } from "@/components/PhoneDemo";
 import { Reveal } from "@/components/Reveal";
 import { SpotForm } from "@/components/SpotForm";
 import { SpotPuppy } from "@/components/SpotPuppy";
-import { OPERATOR, SITE_URL } from "@/lib/site";
+import { OPERATOR, SITE_URL, X_HANDLE, X_URL } from "@/lib/site";
 import styles from "./page.module.css";
 
 /* Only the checks the engine actually runs. Top-holder share is NOT one of
@@ -65,6 +65,12 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className={styles.wordmark} src="/spot-wordmark-white.svg" alt="" width={76} height={31} />
         </Link>
+        <a className={styles.xLink} href={X_URL} target="_blank" rel="noopener noreferrer" aria-label={`Spot on X, @${X_HANDLE}`}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <span>@{X_HANDLE}</span>
+        </a>
       </header>
 
       <main>
@@ -160,10 +166,6 @@ export default function Home() {
 
       <footer className={styles.footer}>
         <div className={`${styles.wrap} ${styles.footerInner}`}>
-          <div className={styles.serving} aria-hidden="true">
-            <span>Now serving</span>
-            <b>000</b>
-          </div>
           <p className={styles.small}>
             Spot is coming soon. Tokenized stocks are issued by third parties and aren&apos;t available everywhere,
             including the US. Example data. Not financial advice. Run by {OPERATOR} <Link href="/privacy">Privacy</Link>

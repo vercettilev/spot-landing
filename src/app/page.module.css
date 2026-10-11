@@ -40,7 +40,26 @@
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   height: 72px;
+}
+
+/* Spot on X: the logo and the handle, quiet until pointed at. */
+.xLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.xLink:hover {
+  color: var(--orange);
 }
 
 .wordmark {
@@ -222,7 +241,7 @@
 
 .grrr {
   position: absolute;
-  right: -12px;
+  right: -8px;
   bottom: -22px;
   padding: 4px 14px;
   border: 3.5px solid #c7372b;
@@ -450,42 +469,11 @@
 }
 
 .footerInner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28px 56px;
   padding-top: 40px;
   padding-bottom: 48px;
 }
 
-.serving {
-  padding: 14px 20px 16px;
-  border: 2px solid #2a2a2e;
-  border-radius: 12px;
-  background: var(--ink-2);
-  font-family: var(--font-mono-stack);
-}
-
-.serving span {
-  display: block;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.serving b {
-  display: block;
-  margin-top: 6px;
-  font-size: 44px;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.08em;
-  color: var(--orange);
-}
-
 .small {
-  flex: 1 1 420px;
   max-width: 640px;
   font-size: 13px;
   line-height: 1.55;

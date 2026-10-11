@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Rubik, Schibsted_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { DESCRIPTION, SITE_URL } from "@/lib/site";
+import { DESCRIPTION, SITE_URL, X_HANDLE } from "@/lib/site";
 import "./globals.css";
 
 /* Rubik Black for display type: the closest free face to the wordmark's
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   /* Images come from opengraph-image.png and twitter-image.png beside this
      file, so the card and the page cannot drift apart. */
   openGraph: { type: "website", siteName: "Spot", title: TITLE, description: DESCRIPTION, url: "/" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", site: `@${X_HANDLE}`, title: TITLE, description: DESCRIPTION },
 };
 
 export const viewport: Viewport = {

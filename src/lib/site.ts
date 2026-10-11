@@ -20,6 +20,10 @@ export const OPERATOR = "Poppin Social, Inc.";
 /** Where people can write about their data. Required before launch; the privacy page omits the line until it is set. */
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
 
+/** Spot on X: the header links to it and social cards credit it. */
+export const X_HANDLE = "getspotfun";
+export const X_URL = `https://x.com/${X_HANDLE}`;
+
 export const TAGLINE = "The buy button for every app.";
 export const DESCRIPTION =
   "Saw a stock or a coin on TikTok, Reddit or X? Buy or sell it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
