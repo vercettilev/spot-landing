@@ -21,6 +21,7 @@ src/components/SpotPuppy.tsx  the mascot; press it and it barks, the angry one g
 src/components/puppyArt.ts    the logo traced and split into ears, jaw, head and paws (generated)
 public/                       the 23-second film, its poster, the bark and growl, logo files
 scripts/waitlist.ts           counts per phone, or a CSV of the list
+brand/banners/                X and LinkedIn headers, orange and black, at 1x and 2x, and their source
 ```
 
 ## Run it
@@ -63,4 +64,5 @@ With the Redis variables in `.env.local` as well (connect it to Development too)
 - **Claims.** The sniff report lists only checks the trading engine actually runs: a sell route, mint authority, freeze authority and holder count. Top-holder share is not one of them, so it is not promised. Keep the page and the film in step with the product.
 - **The film** (`public/spot-promo.mp4`, with `public/spot-promo-poster.jpg`) is no longer on the page; the phone demo shows the same steps. It is kept at its address for posts, and it uses example data.
 - **The line.** A newcomer gets the next number; each friend who joins through their link subtracts 10 (and a half, so they pass ten people rather than tie with the tenth). Ties go to whoever came first. A repeat of an address, however it is typed (`j.doe+x@gmail.com` is `jdoe@gmail.com`), keeps its place and credits nobody, and one network can give 5 referral credits a day. `REF_BONUS` in `src/lib/referral.ts` sets both the move and the "10 spots" the page promises.
+- **The banners.** `brand/banners/banners.html` is the source and `render.cjs` makes the PNGs (`npm i -g playwright` once, then `NODE_PATH="$(npm root -g)" node brand/banners/render.cjs`). The puppy is read from `puppyArt.ts`, so a new rig shows up on the next render. Nothing readable sits where X and LinkedIn put the profile photo (bottom left); the tape is the only thing under it. Upload the plain file; the `@2x` one is for a sharper result where a platform takes the larger size.
 - **Who commits.** If a deployment ever shows as Blocked, check who authored the newest commit: on a Hobby team with a private repo, Vercel deploys only the owner's commits.
