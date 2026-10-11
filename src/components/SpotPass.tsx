@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { REF_BONUS, displayLink, referralLink, type Spot } from "@/lib/referral";
-import { PLATFORM_LABEL, type Platform } from "@/lib/waitlist";
+import { PLATFORM_LABEL, PLATFORMS, type Platform } from "@/lib/waitlist";
 import styles from "./SpotPass.module.css";
 
 const PHONE_NAME: Record<Platform, string> = { iphone: "your iPhone", android: "your Android phone", seeker: "your Seeker" };
@@ -105,9 +105,34 @@ function Odometer({ value, from, roll }: { value: number; from: number; roll: bo
 }
 
 /**
+ * THE PHONE, ASKED AFTER JOINING: three taps to pick from when the page could
+ * not tell (a desktop), or one to say an Android is a Seeker.
+ */
+function PhoneAsk({ platform, onPick }: { platform: Platform | null; onPick: (p: Platform) => void }) {
+  if (platform === "android") {
+    return (
+      <button type="button" className={styles.seeker} onClick={() => onPick("seeker")}>
+        On a Solana Seeker?
+      </button>
+    );
+  }
+  if (platform) return null;
+  return (
+    <div className={styles.phones}>
+      {PLATFORMS.map((p) => (
+        <button key={p} type="button" className={styles.phone} onClick={() => onPick(p)}>
+          {p === "seeker" ? "Seeker" : PLATFORM_LABEL[p]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
  * WHAT A READER SEES ONCE THEY ARE ON THE LIST: their place, the link that
  * moves them up, and the stamp that says it took. `spot` is null when the
  * line is not running; then it is the plain thank-you with a share link.
+ * `onPlatform`, when given, lets them name their phone right here.
  */
 export function SpotPass({
   spot,
@@ -116,6 +141,7 @@ export function SpotPass({
   lastRank,
   shareUrl,
   onReset,
+  onPlatform,
 }: {
   spot: Spot | null;
   mode: PassMode;
@@ -123,6 +149,7 @@ export function SpotPass({
   lastRank: number | null;
   shareUrl: string;
   onReset: () => void;
+  onPlatform?: (p: Platform) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
@@ -150,14 +177,19 @@ export function SpotPass({
   const entering = mode !== "back" && motion;
   const title = mode === "already" ? "You're already on the list." : mode === "back" ? "Welcome back." : "You're on the list.";
   const moved = spot && lastRank && lastRank > spot.rank ? lastRank - spot.rank : 0;
+  const ask = mode !== "back" && onPlatform ? <PhoneAsk platform={platform} onPick={onPlatform} /> : null;
   const note =
     mode === "back"
       ? moved
         ? `Up ${moved} ${moved === 1 ? "spot" : "spots"} since you last looked.`
         : null
-      : mode === "already"
-        ? platform && `We've noted ${PLATFORM_LABEL[platform]} as your phone.`
-        : platform && `We'll email you when Spot is ready for ${PHONE_NAME[platform]}.`;
+      : !platform
+        ? onPlatform
+          ? "Which phone do you use? We'll email you when Spot is ready for it."
+          : null
+        : mode === "already"
+          ? `We've noted ${PLATFORM_LABEL[platform]} as your phone.`
+          : `We'll email you when Spot is ready for ${PHONE_NAME[platform]}.`;
 
   return (
     <div className={`${styles.pass} ${entering ? styles.enter : ""}`} role="status">
@@ -175,7 +207,12 @@ export function SpotPass({
               </p>
               <Stamp slam={entering} />
             </div>
-            {note && <p className={styles.note}>{note}</p>}
+            {note && (
+              <div className={styles.note}>
+                <p>{note}</p>
+                {ask}
+              </div>
+            )}
           </div>
 
           <div className={styles.moveUp}>
@@ -216,7 +253,12 @@ export function SpotPass({
       ) : (
         <div className={styles.plain}>
           <Stamp slam={entering} />
-          {note && <p className={styles.note}>{note}</p>}
+          {note && (
+            <div className={styles.note}>
+              <p>{note}</p>
+              {ask}
+            </div>
+          )}
           <p className={styles.moveTitle}>Know someone who trades from their feed?</p>
           <div className={`${styles.shareRow} ${styles.two}`}>
             <a

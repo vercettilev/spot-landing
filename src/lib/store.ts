@@ -32,6 +32,9 @@ export type SignupRecord = {
   updated_at?: string;
 };
 
+/** The phone on a record when the page could not tell it and nobody has picked one yet. */
+export const UNKNOWN_PLATFORM = "unknown";
+
 export type RecordResult =
   | { stored: true; isNew: boolean }
   /** The store could not take it. The caller falls back to mailing ourselves. */
@@ -50,7 +53,7 @@ async function readRecord(pathname: string): Promise<SignupRecord | null> {
 
 export async function recordSignup(
   email: string,
-  platform: string,
+  platform: string | null,
   line: { code?: string; referredBy?: string } = {},
 ): Promise<RecordResult> {
   const pathname = pathFor(email);
@@ -72,19 +75,21 @@ export async function recordSignup(
   const now = new Date().toISOString();
   let record: SignupRecord;
   if (isNew) {
-    record = { email, platform, created_at: now, source: "landing" };
+    record = { email, platform: platform ?? UNKNOWN_PLATFORM, created_at: now, source: "landing" };
     if (line.code) record.code = line.code;
     if (line.referredBy) record.referred_by = line.referredBy;
   } else {
     /* A REPEAT KEEPS ITS HISTORY: when they first came and whose link brought
-       them stay; the phone changes if they picked another, and a code arrives
-       if the first visit came while the line was down. A record that cannot
-       be read is left as it is rather than overwritten blind. */
+       them stay; the phone changes if they named another (a visit that could
+       not tell keeps the one on file), and a code arrives if the first visit
+       came while the line was down. A record that cannot be read is left as
+       it is rather than overwritten blind. */
     const before = await readRecord(pathname);
     if (!before) return { stored: true, isNew: false };
     const code = before.code ?? line.code;
-    if (before.platform === platform && before.code === code) return { stored: true, isNew: false };
-    record = { ...before, platform, updated_at: now };
+    const phone = platform ?? before.platform;
+    if (before.platform === phone && before.code === code) return { stored: true, isNew: false };
+    record = { ...before, platform: phone, updated_at: now };
     if (code) record.code = code;
   }
   try {

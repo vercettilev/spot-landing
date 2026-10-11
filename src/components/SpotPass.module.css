@@ -180,6 +180,43 @@
   color: #3a3a40;
 }
 
+/* The phone, asked on the pass: three buttons, or one line for a Seeker. */
+.phones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.phone {
+  height: 44px;
+  border: 1.5px solid var(--paper-line);
+  border-radius: 12px;
+  background: var(--white);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.phone:hover {
+  border-color: var(--ink);
+}
+
+.seeker {
+  margin-top: 4px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* ---------- moving up ---------- */
 
 .moveUp {

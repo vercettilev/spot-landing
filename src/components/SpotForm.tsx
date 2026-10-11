@@ -2,13 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { REF_BONUS, parseCode, type Spot } from "@/lib/referral";
-import { PLATFORM_LABEL, PLATFORMS, type Platform } from "@/lib/waitlist";
+import { looksLikeEmail, type Platform } from "@/lib/waitlist";
 import { SpotPass, type PassMode } from "./SpotPass";
 import styles from "./SpotForm.module.css";
 
 const ERRORS: Record<string, string> = {
   invalid_email: "That address doesn't look right.",
-  invalid_platform: "Pick your phone.",
+  invalid_platform: "Something went wrong. Please try again.",
   rate_limited: "Too many tries. Give it a minute.",
   forbidden: "We couldn't verify this browser. Please try again.",
 };
@@ -37,14 +37,20 @@ const recall = (key: string) => {
    0.46s). The card dips and the puppy barks on it. */
 const IMPACT_MS = 990;
 
+/* The puppy on the phone watches the field: ears up while someone types, a
+   grin once the address looks right (SpotPuppy listens). */
+type Mood = "rest" | "alert" | "happy";
+const setMood = (mood: Mood) => window.dispatchEvent(new CustomEvent<Mood>("spot:mood", { detail: mood }));
+
 /**
- * THE ONE THING ON THE PAGE THAT ASKS FOR SOMETHING: an address and a phone,
- * on a ticket, with a stub at its foot and a notch cut on each side.
+ * THE ONE THING ON THE PAGE THAT ASKS FOR SOMETHING: an address. One field,
+ * one button, and under them the number that is next in line, so the reader
+ * sees what they are about to get.
  *
- * The phone is preselected from the device when it can be told (an iPhone
- * says so; a Seeker reads as Android, so Seeker owners pick it themselves),
- * because the answer decides which build ships first and a default the
- * reader has to fix is better than a blank they skip.
+ * The phone is read from the device when it can be told (an iPhone or an
+ * Android says so) and sent along. A desktop cannot tell, so it sends none
+ * and the pass asks after joining, one tap, once the question no longer
+ * stands between anyone and the list.
  */
 export function SpotForm({ shareUrl }: { shareUrl: string }) {
   const [email, setEmail] = useState("");
@@ -56,15 +62,25 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
   const [mode, setMode] = useState<PassMode>("new");
   const [lastRank, setLastRank] = useState<number | null>(null);
   const [invitedBy, setInvitedBy] = useState<string | null>(null);
+  const [next, setNext] = useState<number | null>(null);
+  const [typing, setTyping] = useState(false);
   const [thud, setThud] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const card = useRef<HTMLDivElement>(null);
+  const slot = useRef<HTMLDivElement>(null);
   const morphFrom = useRef<number | null>(null);
 
   useEffect(() => {
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/i.test(ua)) setPlatform((p) => p ?? "iphone");
     else if (/Android/i.test(ua)) setPlatform((p) => p ?? "android");
+
+    /* The number a newcomer would get. Cached at the edge, so it is cheap, and
+       the line under the form reads fine without it. */
+    fetch("/api/waitlist?next")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { next?: number } | null) => {
+        if (data && typeof data.next === "number") setNext(data.next);
+      })
+      .catch(() => {});
 
     /* A shared link lands here as /?r=CODE. Keep the code, then take it off
        the address bar so this page's own URL is not passed on with it. */
@@ -86,7 +102,7 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((data: { spot?: Spot }) => {
         if (!data.spot) return;
-        morphFrom.current = card.current?.getBoundingClientRect().height ?? null;
+        morphFrom.current = slot.current?.getBoundingClientRect().height ?? null;
         setLastRank(last);
         setSpot(data.spot);
         setMode("back");
@@ -98,10 +114,16 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
       });
   }, []);
 
-  /* THE CARD CHANGES HEIGHT SMOOTHLY between the form and the pass, instead
+  const valid = looksLikeEmail(email);
+  useEffect(() => {
+    if (status === "done") return;
+    setMood(valid ? "happy" : typing ? "alert" : "rest");
+  }, [valid, typing, status]);
+
+  /* THE SLOT CHANGES HEIGHT SMOOTHLY between the form and the pass, instead
      of jumping: measured before the swap, animated to the new height after. */
   useLayoutEffect(() => {
-    const el = card.current;
+    const el = slot.current;
     const from = morphFrom.current;
     morphFrom.current = null;
     if (!el || from === null || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -126,41 +148,30 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!platform) {
-      setStatus("error");
-      setError(ERRORS.invalid_platform);
-      return;
-    }
     setStatus("sending");
     setError("");
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, platform, website, ref: invitedBy ?? undefined }),
+        body: JSON.stringify({ email, platform: platform ?? undefined, website, ref: invitedBy ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         const already = Boolean(data.already_registered);
         const got: Spot | null = data.spot ?? null;
-        const moving = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        morphFrom.current = card.current?.getBoundingClientRect().height ?? null;
-        /* The form fades out over the pass as it arrives (a cross-fade), so
-           the card is never empty in between. */
-        if (moving) {
-          setLeaving(true);
-          setTimeout(() => setLeaving(false), 260);
-        }
+        morphFrom.current = slot.current?.getBoundingClientRect().height ?? null;
         setSpot(got);
         setMode(already ? "already" : "new");
         setLastRank(null);
         setStatus("done");
+        setMood("rest");
         remember(SAW_REF, null);
         if (got) {
           remember(MY_CODE, got.code);
           remember(MY_LAST, String(got.rank));
         }
-        if (moving) {
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           setThud(true);
           window.dispatchEvent(new CustomEvent("spot:cheer", { detail: { at: IMPACT_MS } }));
         }
@@ -174,89 +185,92 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
     }
   }
 
+  /* The phone, picked on the pass after joining: the same address again with
+     the phone named, which the list files as an update. Best-effort. */
+  function savePlatform(p: Platform) {
+    setPlatform(p);
+    fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, platform: p, website }),
+    }).catch(() => {});
+  }
+
   function reset() {
     remember(MY_CODE, null);
     remember(MY_LAST, null);
-    morphFrom.current = card.current?.getBoundingClientRect().height ?? null;
+    morphFrom.current = slot.current?.getBoundingClientRect().height ?? null;
     setSpot(null);
     setEmail("");
     setThud(false);
     setStatus("idle");
   }
 
-  const form = (ghost: boolean) => (
-    <form onSubmit={submit} aria-hidden={ghost || undefined} inert={ghost || undefined}>
-      <h2 className={styles.title}>Take a number.</h2>
-      {invitedBy && <p className={styles.invited}>A friend sent you. Joining moves them up the line.</p>}
-
-      <label className={styles.label} htmlFor="spot-email">
-        Email
-      </label>
-      <input
-        id="spot-email"
-        className={styles.input}
-        type="email"
-        required
-        autoComplete="email"
-        inputMode="email"
-        placeholder="you@email.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-
-      <fieldset className={styles.fieldset}>
-        <legend className={styles.label}>Your phone</legend>
-        <div className={styles.platforms}>
-          {PLATFORMS.map((p) => (
-            <label key={p} className={`${styles.platform} ${platform === p ? styles.platformOn : ""}`}>
-              <input
-                type="radio"
-                name="platform"
-                value={p}
-                checked={platform === p}
-                onChange={() => setPlatform(p)}
-              />
-              <span>{PLATFORM_LABEL[p]}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <input
-        className={styles.honeypot}
-        type="text"
-        name="website"
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        value={website}
-        onChange={(e) => setWebsite(e.target.value)}
-      />
-
-      <button className={styles.submit} type="submit" disabled={status === "sending" || ghost}>
-        {status === "sending" || ghost ? "Adding you…" : "Take a number"}
-      </button>
-      {status === "error" && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
-      <p className={styles.stub}>
-        <span aria-hidden="true">No. ______</span>
-        <span>Bring a friend, move up {REF_BONUS}</span>
-      </p>
-    </form>
-  );
-
   return (
-    <div ref={card} className={`${styles.card} ${thud && status === "done" ? styles.thud : ""}`}>
+    <div ref={slot} className={styles.slot}>
       {status === "done" ? (
-        <>
-          <SpotPass spot={spot} mode={mode} platform={platform} lastRank={lastRank} shareUrl={shareUrl} onReset={reset} />
-          {leaving && <div className={styles.ghost}>{form(true)}</div>}
-        </>
+        <div className={`${styles.card} ${thud ? styles.thud : ""}`}>
+          <SpotPass
+            spot={spot}
+            mode={mode}
+            platform={platform}
+            lastRank={lastRank}
+            shareUrl={shareUrl}
+            onReset={reset}
+            onPlatform={mode !== "back" && email ? savePlatform : undefined}
+          />
+        </div>
       ) : (
-        form(false)
+        <form onSubmit={submit} className={styles.form}>
+          {invitedBy && <p className={styles.invited}>A friend sent you. Joining moves them up the line.</p>}
+          <div className={styles.row}>
+            <label className={styles.sr} htmlFor="spot-email">
+              Email
+            </label>
+            <input
+              id="spot-email"
+              className={styles.input}
+              type="email"
+              required
+              autoComplete="email"
+              inputMode="email"
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setTyping(true)}
+              onBlur={() => setTyping(false)}
+            />
+            <button className={styles.submit} type="submit" disabled={status === "sending"}>
+              {status === "sending" ? "Saving…" : "Save my spot"}
+            </button>
+          </div>
+
+          <input
+            className={styles.honeypot}
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+
+          {status === "error" ? (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          ) : (
+            <p className={styles.helper}>
+              {next !== null && (
+                <>
+                  You&apos;ll be <b>#{next.toLocaleString("en-US")}</b> in line.{" "}
+                </>
+              )}
+              Friends who join move you up {REF_BONUS} spots.
+            </p>
+          )}
+        </form>
       )}
     </div>
   );

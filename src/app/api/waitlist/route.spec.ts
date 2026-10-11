@@ -93,6 +93,25 @@ describe("POST /api/waitlist", () => {
     expect(blob.put).not.toHaveBeenCalled();
   });
 
+  it("takes an address without a phone, and files it as unknown", async () => {
+    const { POST } = await import("./route");
+    const res = await POST(ask({ email: "reader@example.com" }));
+    expect(res.status).toBe(200);
+    expect(stored()).toMatchObject({ email: "reader@example.com", platform: "unknown" });
+    expect(send.mock.calls[0]![0].subject).toBe("New Spot signup: reader@example.com (unknown)");
+  });
+
+  it("keeps the phone on file when a repeat names none", async () => {
+    blob.head.mockResolvedValue({ pathname: "x" });
+    blob.get.mockResolvedValue(
+      blobOf({ email: "reader@example.com", platform: "iphone", created_at: "2026-10-01T00:00:00.000Z", source: "landing" }),
+    );
+    const { POST } = await import("./route");
+    const res = await POST(ask({ email: "reader@example.com", platform: "" }));
+    expect((await res.json()).already_registered).toBe(true);
+    expect(blob.put).not.toHaveBeenCalled();
+  });
+
   it("refuses a phone the form does not offer, and stores nothing", async () => {
     const { POST } = await import("./route");
     const res = await POST(ask({ email: "reader@example.com", platform: "blackberry" }));
@@ -224,6 +243,20 @@ describe("GET /api/waitlist", () => {
     const res = await GET(lookup(code.toLowerCase()));
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toEqual({ success: true, spot: { code, rank: 1, referrals: 0 } });
+  });
+
+  it("says the number a newcomer would get, the same for everyone", async () => {
+    const kv = memoryKv();
+    line.kv = kv;
+    await join(kv, personFor("one@example.com"));
+    await join(kv, personFor("two@example.com"));
+    const { GET } = await import("./route");
+    const ask = () => new Request("https://example.com/api/waitlist?next", { headers: { "x-real-ip": `10.2.0.${++ip}` } });
+    const res = await GET(ask());
+    expect(await res.json()).toEqual({ success: true, next: 3 });
+    expect(res.headers.get("cache-control")).toBe("public, s-maxage=30, stale-while-revalidate=120");
+    line.kv = null;
+    expect((await GET(ask())).status).toBe(503);
   });
 
   it("answers an unknown code, a malformed one, and a missing line apart", async () => {

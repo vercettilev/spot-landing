@@ -20,15 +20,16 @@ export default function Privacy() {
         <Link href="/">← Spot</Link>
       </p>
       <h1>Privacy</h1>
-      <p className={styles.updated}>Last updated 10 October 2026</p>
+      <p className={styles.updated}>Last updated 11 October 2026</p>
 
       <h2>Who we are</h2>
       <p>This site is run by {OPERATOR}, which makes Spot.</p>
 
       <h2>What we collect</h2>
       <p>
-        When you ask for early access we keep your email address, the phone you picked (iPhone, Android or Solana
-        Seeker) and the time you signed up. That is all the form takes.
+        When you ask for early access we keep your email address, the time you signed up and, when we know it, your
+        phone (iPhone, Android or Solana Seeker): the page reads it from your browser, or you pick it after joining.
+        That is all we take.
       </p>
       <p>
         You also get a place in line and a personal link with a code in it. When someone joins through your link we

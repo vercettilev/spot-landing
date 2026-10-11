@@ -1,0 +1,535 @@
+/* THE CLOCK. Every moving part runs for --t on the same loop, started --d in
+   so the first frame is the feed rather than the end of the last loop.
+   Phases: 0–22% see it, 22–48% share, 48–78% confirm, 78–100% done.
+   Without motion everything rests on the confirm screen (the base styles). */
+.demo {
+  --t: 12s;
+  --d: -0.45s;
+  --phone-w: min(268px, 70vw);
+  --pup-w: calc(var(--phone-w) * 0.72);
+  position: relative;
+  width: var(--phone-w);
+  margin: 0 auto;
+  padding-top: calc(var(--pup-w) / 1.5149 * 0.877);
+}
+
+@media (min-width: 960px) {
+  .demo {
+    --phone-w: 284px;
+    margin: 0;
+  }
+}
+
+.pup {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--pup-w);
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.device {
+  container-type: inline-size;
+}
+
+.phone {
+  --u: calc(100cqw / 270);
+  display: flex;
+  aspect-ratio: 9 / 18.5;
+  padding: calc(9 * var(--u));
+  border-radius: calc(40 * var(--u));
+  background: #232327;
+  box-shadow: inset 0 0 0 calc(1.5 * var(--u)) rgba(255, 255, 255, 0.14);
+  font-size: calc(12 * var(--u));
+  line-height: 1.35;
+}
+
+.screen {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: calc(31 * var(--u));
+  overflow: hidden;
+  isolation: isolate;
+  background: #141416;
+  color: var(--white);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- the feeds ---------- */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: calc(16 * var(--u));
+  padding-top: calc(26 * var(--u));
+  font-weight: 600;
+}
+
+.dim {
+  color: #8e8b85;
+}
+
+.post {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: calc(8 * var(--u));
+  margin: calc(14 * var(--u)) calc(12 * var(--u)) calc(64 * var(--u));
+  padding: calc(14 * var(--u)) calc(48 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u));
+  border-radius: calc(16 * var(--u));
+  background: #26262b;
+}
+
+.postWarm {
+  background: #2b2a26;
+}
+
+.chart {
+  position: absolute;
+  left: calc(14 * var(--u));
+  top: calc(34 * var(--u));
+  width: calc(100% - 28 * var(--u));
+  height: calc(90 * var(--u));
+  overflow: visible;
+}
+
+.chart polyline {
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.handle {
+  font-weight: 700;
+}
+
+.postText {
+  color: #e6e3dd;
+}
+
+.rail {
+  position: absolute;
+  right: calc(20 * var(--u));
+  bottom: calc(110 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(18 * var(--u));
+}
+
+.shareRing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(38 * var(--u));
+  height: calc(38 * var(--u));
+  border: calc(2.5 * var(--u)) solid var(--orange);
+  border-radius: 50%;
+}
+
+.feedD {
+  opacity: 0;
+}
+
+.banner {
+  position: absolute;
+  left: calc(10 * var(--u));
+  right: calc(10 * var(--u));
+  top: calc(44 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  padding: calc(10 * var(--u)) calc(12 * var(--u));
+  border-radius: calc(14 * var(--u));
+  background: var(--white);
+  color: var(--ink);
+  font-size: calc(11 * var(--u));
+  box-shadow: 0 calc(10 * var(--u)) calc(24 * var(--u)) rgba(0, 0, 0, 0.4);
+  transform: translateY(-180%);
+}
+
+.banner img {
+  flex: none;
+  width: calc(28 * var(--u));
+  height: auto;
+}
+
+/* ---------- the sheets ---------- */
+.shade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0.55;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: calc(22 * var(--u)) calc(22 * var(--u)) 0 0;
+  color: var(--ink);
+}
+
+.grab {
+  width: calc(36 * var(--u));
+  height: calc(4 * var(--u));
+  margin: 0 auto;
+  border-radius: calc(2 * var(--u));
+  background: #c9c6c0;
+}
+
+.shareSheet {
+  padding: calc(12 * var(--u)) calc(14 * var(--u)) calc(24 * var(--u));
+  background: #f4f3f1;
+  transform: translateY(105%);
+}
+
+.shareSheet .grab {
+  margin-bottom: calc(14 * var(--u));
+}
+
+.sheetTitle {
+  margin-bottom: calc(12 * var(--u));
+  font-weight: 700;
+}
+
+.apps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(6 * var(--u));
+  text-align: center;
+  font-size: calc(10 * var(--u));
+  line-height: 1.2;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6 * var(--u));
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(42 * var(--u));
+  height: calc(42 * var(--u));
+  border-radius: calc(12 * var(--u));
+  background: #dedcd7;
+}
+
+.appSpot {
+  font-weight: 700;
+}
+
+.tileSpot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
+  margin: calc(-2 * var(--u));
+  border-radius: calc(14 * var(--u));
+  outline: calc(2.5 * var(--u)) solid var(--orange);
+  outline-offset: calc(2 * var(--u));
+}
+
+.tileSpot img {
+  width: calc(44 * var(--u));
+  height: auto;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6 * var(--u));
+  margin-top: calc(16 * var(--u));
+  font-size: calc(11 * var(--u));
+}
+
+.actions div {
+  padding: calc(10 * var(--u)) calc(12 * var(--u));
+  border-radius: calc(10 * var(--u));
+  background: var(--white);
+}
+
+.buySheet {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12 * var(--u));
+  padding: calc(12 * var(--u)) calc(14 * var(--u)) calc(22 * var(--u));
+  background: var(--white);
+}
+
+.buySheet .grab {
+  margin-bottom: calc(2 * var(--u));
+}
+
+.buyHead {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: calc(15 * var(--u));
+}
+
+.buyHead img {
+  width: calc(24 * var(--u));
+  height: auto;
+}
+
+.amount {
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: calc(36 * var(--u));
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.amount span {
+  font-size: calc(15 * var(--u));
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(6 * var(--u));
+  text-align: center;
+  font-weight: 600;
+}
+
+.chips span {
+  padding: calc(7 * var(--u)) 0;
+  border: calc(1.5 * var(--u)) solid #e2dfd9;
+  border-radius: calc(9 * var(--u));
+}
+
+.chips .chipOn {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
+}
+
+.checks {
+  display: grid;
+  font-size: calc(11 * var(--u));
+  font-weight: 600;
+}
+
+.checks > span {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: calc(6 * var(--u));
+}
+
+.sniffing {
+  color: #8a8780;
+  opacity: 0;
+}
+
+.passed {
+  color: #1f6b45;
+}
+
+.passed svg {
+  stroke-width: 2.6;
+}
+
+.confirm {
+  position: relative;
+  display: grid;
+  padding: calc(12 * var(--u)) 0;
+  border-radius: calc(12 * var(--u));
+  background: var(--ink);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.confirm > span {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8 * var(--u));
+}
+
+.doneLabel {
+  opacity: 0;
+}
+
+/* A finger on the glass: grey with a white rim, so it shows on dark and light. */
+.tap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(34 * var(--u));
+  height: calc(34 * var(--u));
+  margin: calc(-17 * var(--u)) 0 0 calc(-17 * var(--u));
+  border-radius: 50%;
+  background: rgba(120, 120, 128, 0.5);
+  box-shadow: 0 0 0 calc(2 * var(--u)) rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- the caption: four bars and the step in words ---------- */
+.caption {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  width: 64%;
+}
+
+.bars i {
+  position: relative;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bars i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--orange);
+  transform-origin: left;
+}
+
+.bar4::after {
+  transform: scaleX(0);
+}
+
+.says {
+  display: grid;
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.says > span {
+  grid-area: 1 / 1;
+  text-align: center;
+  opacity: 0;
+}
+
+.says > .say3 {
+  opacity: 1;
+}
+
+/* ---------- the loop ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .feedA { animation: feedA var(--t) var(--d) infinite ease; }
+  .feedD { animation: feedD var(--t) var(--d) infinite ease; }
+  .chart polyline { animation: chart var(--t) var(--d) infinite ease-out; }
+  .banner { animation: banner var(--t) var(--d) infinite cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+  .shade { animation: shade var(--t) var(--d) infinite ease; }
+  .shareSheet { animation: shareSheet var(--t) var(--d) infinite cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .buySheet { animation: buySheet var(--t) var(--d) infinite cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .shareRing { animation: ring var(--t) var(--d) infinite ease; }
+  .tileSpot { animation: tile var(--t) var(--d) infinite ease; }
+  .confirm { animation: press var(--t) var(--d) infinite ease; }
+  .tap1 { animation: tap1 var(--t) var(--d) infinite ease-out; }
+  .tap2 { animation: tap2 var(--t) var(--d) infinite ease-out; }
+  .tap3 { animation: tap3 var(--t) var(--d) infinite ease-out; }
+  .sniffing { animation: sniffing var(--t) var(--d) infinite ease; }
+  .passed { animation: passed var(--t) var(--d) infinite ease; }
+  .faceLabel { animation: faceLabel var(--t) var(--d) infinite ease; }
+  .doneLabel { animation: doneLabel var(--t) var(--d) infinite ease; }
+  .says > .say1 { animation: say1 var(--t) var(--d) infinite ease; }
+  .says > .say2 { animation: say2 var(--t) var(--d) infinite ease; }
+  .says > .say3 { animation: say3 var(--t) var(--d) infinite ease; }
+  .says > .say4 { animation: say4 var(--t) var(--d) infinite ease; }
+  .bar1::after { animation: bar1 var(--t) var(--d) infinite linear; }
+  .bar2::after { animation: bar2 var(--t) var(--d) infinite linear; }
+  .bar3::after { animation: bar3 var(--t) var(--d) infinite linear; }
+  .bar4::after { animation: bar4 var(--t) var(--d) infinite linear; }
+}
+
+@keyframes feedA { 0% { opacity: 0; } 3% { opacity: 1; } 78% { opacity: 1; } 81% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes feedD { 0% { opacity: 1; } 3% { opacity: 0; } 78% { opacity: 0; } 81% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes chart { 0%, 3% { stroke-dashoffset: 1; } 16% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }
+@keyframes banner {
+  0%, 3% { transform: none; }
+  4% { transform: translateY(-180%); }
+  81% { transform: translateY(-180%); }
+  85% { transform: none; }
+  100% { transform: none; }
+}
+@keyframes shade { 0%, 20% { opacity: 0; } 24% { opacity: 0.55; } 75% { opacity: 0.55; } 79% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes shareSheet {
+  0%, 20% { transform: translateY(105%); }
+  25% { transform: none; }
+  46% { transform: none; }
+  50% { transform: translateY(105%); }
+  100% { transform: translateY(105%); }
+}
+@keyframes buySheet {
+  0%, 48% { transform: translateY(105%); }
+  53% { transform: none; }
+  75% { transform: none; }
+  79% { transform: translateY(105%); }
+  100% { transform: translateY(105%); }
+}
+@keyframes ring { 0%, 15% { transform: scale(1); } 17% { transform: scale(0.84); } 20% { transform: scale(1); } 100% { transform: scale(1); } }
+@keyframes tile { 0%, 38% { transform: scale(1); } 40% { transform: scale(0.88); } 43% { transform: scale(1); } 100% { transform: scale(1); } }
+@keyframes press { 0%, 64% { transform: scale(1); } 66% { transform: scale(0.95); } 69% { transform: scale(1); } 100% { transform: scale(1); } }
+@keyframes tap1 {
+  0%, 14% { opacity: 0; transform: scale(0.4); }
+  16% { opacity: 0.9; transform: scale(0.75); }
+  21% { opacity: 0; transform: scale(1.6); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes tap2 {
+  0%, 37% { opacity: 0; transform: scale(0.4); }
+  39% { opacity: 0.9; transform: scale(0.75); }
+  44% { opacity: 0; transform: scale(1.6); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes tap3 {
+  0%, 63% { opacity: 0; transform: scale(0.4); }
+  65% { opacity: 0.9; transform: scale(0.75); }
+  70% { opacity: 0; transform: scale(1.6); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes sniffing { 0% { opacity: 1; } 58% { opacity: 1; } 61% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes passed { 0% { opacity: 0; } 58% { opacity: 0; } 61% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes faceLabel { 0% { opacity: 1; } 69% { opacity: 1; } 71% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes doneLabel { 0% { opacity: 0; } 69% { opacity: 0; } 71% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes say1 { 0% { opacity: 0; } 3% { opacity: 1; } 20% { opacity: 1; } 23% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes say2 { 0%, 20% { opacity: 0; } 23% { opacity: 1; } 46% { opacity: 1; } 49% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes say3 { 0%, 46% { opacity: 0; } 49% { opacity: 1; } 75% { opacity: 1; } 78% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes say4 { 0% { opacity: 1; } 3% { opacity: 0; } 75% { opacity: 0; } 78% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes bar1 { 0% { transform: scaleX(0); } 22% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
+@keyframes bar2 { 0%, 22% { transform: scaleX(0); } 48% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
+@keyframes bar3 { 0%, 48% { transform: scaleX(0); } 78% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
+@keyframes bar4 { 0%, 78% { transform: scaleX(0); } 100% { transform: scaleX(1); } }

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { PhoneSteps } from "@/components/PhoneSteps";
-import { SpotFilm } from "@/components/SpotFilm";
+import { PhoneDemo } from "@/components/PhoneDemo";
+import { Reveal } from "@/components/Reveal";
 import { SpotForm } from "@/components/SpotForm";
 import { SpotPuppy } from "@/components/SpotPuppy";
 import { OPERATOR, SITE_URL } from "@/lib/site";
@@ -25,6 +25,11 @@ function Mark({ tone }: { tone: (typeof SNIFF)[number]["tone"] }) {
   );
 }
 
+/**
+ * THE WHOLE PAGE, IN TWO GROUNDS AND A FOOTER. Black: what Spot is, the one
+ * field, and Spot doing its thing on a phone. Orange: the two reasons to
+ * trust it, as paper. Black again: the small print.
+ */
 export default function Home() {
   return (
     <div className={styles.page}>
@@ -33,41 +38,25 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className={styles.wordmark} src="/spot-wordmark-white.svg" alt="" width={76} height={31} />
         </Link>
-        <a className={styles.headerCta} href="#take">
-          Take a number
-        </a>
       </header>
 
       <main>
         <section className={`${styles.wrap} ${styles.hero}`}>
-          <div className={styles.heroText}>
+          <div>
             <h1 className={styles.h1}>The buy button for every app.</h1>
-            <p className={styles.lede}>See it in a feed. Buy it without leaving.</p>
-            <SpotFilm />
-          </div>
-          <div className={styles.formWrap} id="take">
-            <div className={styles.puppySlot}>
-              <SpotPuppy halo cheer label="Spot the puppy. Press to make it bark." />
+            <p className={styles.lede}>See it in your feed. Buy it without leaving.</p>
+            <div className={styles.join}>
+              <SpotForm shareUrl={SITE_URL} />
             </div>
-            <SpotForm shareUrl={SITE_URL} />
           </div>
+          <PhoneDemo />
         </section>
 
-        <section className={styles.how} aria-labelledby="how-title">
-          <div className={styles.wrap}>
-            <h2 id="how-title" className={`${styles.h2} ${styles.howTitle}`}>
-              Inside the app you&apos;re already in.
-            </h2>
-            <PhoneSteps />
-            <p className={styles.example}>Example data.</p>
-          </div>
-        </section>
-
-        <section className={styles.papers}>
-          <div className={`${styles.wrap} ${styles.papersGrid}`}>
-            <div className={styles.paperCol}>
-              <h2 className={`${styles.h2} ${styles.paperTitle}`}>It sniffs every coin first.</h2>
-              <div className={styles.sniff}>
+        <section className={styles.trust}>
+          <div className={`${styles.wrap} ${styles.trustGrid}`}>
+            <div className={styles.col}>
+              <h2 className={styles.h2}>It sniffs every coin first.</h2>
+              <Reveal className={styles.sniff}>
                 <div className={styles.sniffPup}>
                   <SpotPuppy mood="angry" label="Spot growling at a scam coin. Press to hear it." />
                 </div>
@@ -93,12 +82,12 @@ export default function Home() {
                     <span className={styles.sr}>Spot growls at this one.</span>
                   </p>
                 </div>
-              </div>
+              </Reveal>
             </div>
 
-            <div className={`${styles.paperCol} ${styles.receiptCol}`}>
-              <h2 className={`${styles.h2} ${styles.paperTitle}`}>No gas. No&nbsp;SOL&nbsp;needed.</h2>
-              <div className={styles.receiptWrap}>
+            <div className={styles.col}>
+              <h2 className={styles.h2}>No gas. No&nbsp;SOL. Just&nbsp;dollars.</h2>
+              <Reveal className={styles.receiptWrap}>
                 <div className={styles.receipt}>
                   <div className={styles.receiptTop}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -111,21 +100,21 @@ export default function Home() {
                       <dd>25.00 USDC</dd>
                     </div>
                     <div>
-                      <dt>Network fee</dt>
-                      <dd>on Spot</dd>
-                    </div>
-                    <div>
-                      <dt>Spot fee</dt>
-                      <dd>shown before you buy</dd>
+                      <dt>Gas</dt>
+                      <dd>on us</dd>
                     </div>
                     <div>
                       <dt>SOL needed</dt>
                       <dd>0</dd>
                     </div>
+                    <div>
+                      <dt>Spot fee</dt>
+                      <dd>shown before you buy</dd>
+                    </div>
                   </dl>
                   <p className={styles.thanks}>Thank you · Woof</p>
                 </div>
-              </div>
+              </Reveal>
             </div>
           </div>
         </section>

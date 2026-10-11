@@ -1,7 +1,8 @@
 /**
- * THE EARLY-ACCESS LIST'S RULES. Nothing ships yet, so the page asks for two
- * things and promises one: an address, and which phone it should land on, so
- * the first build goes where the people are.
+ * THE EARLY-ACCESS LIST'S RULES. Nothing ships yet, so the page asks for one
+ * thing and promises one: an address. Which phone it should land on, so the
+ * first build goes where the people are, is read from the device when it can
+ * be and asked after joining when it cannot.
  */
 
 export const PLATFORMS = ["iphone", "android", "seeker"] as const;
@@ -14,7 +15,7 @@ export const PLATFORM_LABEL: Record<Platform, string> = {
 };
 
 /**
- * Only the three values the form offers. Anything else is refused rather than
+ * Only the three values the page offers. Anything else is refused rather than
  * stored, because this field decides which build comes first and a free-text
  * count is a count of typos.
  */

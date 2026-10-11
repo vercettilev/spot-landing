@@ -1,108 +1,102 @@
-/* A ticket: white card, paper fields, and a stub at the foot (see .stub). */
-.card {
-  --pad-x: 20px;
-  --pad-b: 20px;
+/* The slot holds the form, then the pass; its height morphs between them. */
+.slot {
   position: relative;
-  background: var(--white);
-  color: var(--ink);
-  border-radius: 22px;
-  padding: 26px var(--pad-x) var(--pad-b);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 520px;
 }
 
-@media (min-width: 400px) {
-  .card {
-    --pad-x: 26px;
+/* ---------- the form: one field, one button, one line ---------- */
+.row {
+  display: grid;
+  gap: 10px;
+}
+
+@media (min-width: 560px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
-}
-
-.title {
-  font-family: var(--font-display-stack);
-  font-weight: 800;
-  font-size: 28px;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  margin-bottom: 18px;
-}
-
-@media (min-width: 960px) {
-  .title {
-    font-size: 30px;
-  }
-}
-
-.label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 6px;
-  padding: 0;
 }
 
 .input {
   width: 100%;
-  height: 52px;
-  border-radius: 12px;
-  border: 1.5px solid var(--paper-line);
-  background: var(--paper);
-  padding: 0 16px;
-  font-size: 17px;
+  height: 60px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--white);
+  padding: 0 20px;
+  font-size: 18px;
   color: var(--ink);
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: inset 0 0 0 2px transparent;
+  transition: box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: #8e8a82;
 }
 
 .input:focus {
-  border-color: var(--ink);
-  background: var(--white);
+  box-shadow: inset 0 0 0 2px var(--orange);
 }
 
-.fieldset {
+.submit {
+  height: 60px;
+  padding: 0 28px;
   border: 0;
-  margin: 16px 0 0;
-  padding: 0;
-  min-width: 0;
+  border-radius: 14px;
+  background: var(--orange);
+  color: var(--ink);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #9e3000;
+  transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
 }
 
-.platforms {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+/* A key with travel: it sits on its own shadow and goes down when pressed. */
+.submit:hover {
+  background: #ff5f1a;
 }
 
-.platform {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 46px;
-  padding: 6px 8px;
-  border-radius: 12px;
-  border: 1.5px solid var(--paper-line);
-  background: var(--paper);
+.submit:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #9e3000;
+}
+
+.submit:disabled {
+  cursor: default;
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #9e3000;
+}
+
+.helper {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #a8a49c;
+}
+
+.helper b {
+  color: var(--white);
+  font-weight: 700;
+}
+
+.invited {
+  margin-bottom: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #ffb08a;
+}
+
+.error {
+  margin-top: 16px;
   font-size: 15px;
   font-weight: 600;
-  text-align: center;
-  line-height: 1.15;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.platform input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.platform:has(input:focus-visible) {
-  outline: 3px solid var(--orange);
-  outline-offset: 2px;
-}
-
-.platformOn {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--white);
+  color: #ff8a73;
 }
 
 .honeypot {
@@ -113,91 +107,31 @@
   opacity: 0;
 }
 
-.submit {
-  width: 100%;
-  height: 56px;
-  margin-top: 18px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--orange);
-  color: var(--ink);
-  font-family: var(--font-display-stack);
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  transition: transform 0.12s, background 0.15s;
-}
-
-.submit:hover {
-  background: #ff5f1a;
-}
-
-.submit:active {
-  transform: scale(0.98);
-}
-
-.submit:disabled {
-  opacity: 0.7;
-  cursor: default;
-}
-
-.error {
-  margin-top: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #c2362f;
-}
-
-/* The stub: across the card's foot, under a dashed tear line, with a notch
-   cut on each side. The notches are discs of the hero's own black. */
-.stub {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  margin: 22px calc(-1 * var(--pad-x)) calc(-1 * var(--pad-b));
-  padding: 15px var(--pad-x) 18px;
-  border-top: 2px dashed var(--paper-line);
-  font-family: var(--font-mono-stack);
-  font-size: 13px;
-  line-height: 1.35;
-  color: #5a554c;
-}
-
-.stub span:last-child {
-  text-align: right;
-}
-
-.stub::before,
-.stub::after {
-  content: "";
+.sr {
   position: absolute;
-  top: -14px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--ink);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.stub::before {
-  left: -13px;
+/* ---------- the pass, once in: a white ticket ---------- */
+.card {
+  --pad-x: 20px;
+  --pad-b: 20px;
+  position: relative;
+  max-width: 440px;
+  background: var(--white);
+  color: var(--ink);
+  border-radius: 22px;
+  padding: 24px var(--pad-x) var(--pad-b);
 }
 
-.stub::after {
-  right: -13px;
-}
-
-.invited {
-  margin: -6px 0 14px;
-  padding: 9px 12px;
-  border-radius: 12px;
-  background: #fff1ea;
-  color: #8a2c00;
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.35;
+@media (min-width: 400px) {
+  .card {
+    --pad-x: 26px;
+  }
 }
 
 /* The stamp hitting the paper (SpotPass) pushes the card down a hair. */
@@ -208,24 +142,5 @@
 @keyframes thud {
   30% {
     transform: translateY(3px);
-  }
-}
-
-/* The form, for a quarter second after joining: laid over the arriving pass
-   on the card's own padding, fading up and out. */
-.ghost {
-  position: absolute;
-  inset: 0;
-  padding: inherit;
-  background: var(--white);
-  border-radius: inherit;
-  pointer-events: none;
-  animation: ghost 0.24s ease-in both;
-}
-
-@keyframes ghost {
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
   }
 }

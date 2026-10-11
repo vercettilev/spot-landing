@@ -36,7 +36,9 @@ const SECOND_BARK = 0.29; // "woof woof", matched to woof.mp3
  * Drawn from the traced logo split into ears, a hidden jaw, head and paws
  * (puppyArt.ts). `halo` adds the white sticker edge its black ears need on a
  * dark ground. `cheer` makes it bark, silently, when someone joins the list
- * (a "spot:cheer" event from the form, timed to the stamp landing).
+ * (a "spot:cheer" event from the form, timed to the stamp landing), and lets
+ * the form set its mood while an address is typed ("spot:mood": ears up while
+ * typing, a grin once the address looks right).
  */
 export function SpotPuppy({
   mood = "calm",
@@ -58,8 +60,14 @@ export function SpotPuppy({
   const audio = useRef<HTMLAudioElement | null>(null);
   const [said, setSaid] = useState(0);
   const [growling, setGrowling] = useState(false);
+  const feeling = useRef<"rest" | "alert" | "happy">("rest");
 
-  const rest = useCallback((): Pose => (angry ? { hy: 0, ey: -4, face: "Ag" } : { hy: 0, ey: 0, face: "" }), [angry]);
+  const rest = useCallback((): Pose => {
+    if (angry) return { hy: 0, ey: -4, face: "Ag" };
+    if (feeling.current === "happy") return { hy: 0, ey: 5, face: "Hp" };
+    if (feeling.current === "alert") return { hy: 0, ey: 4, face: "" };
+    return { hy: 0, ey: 0, face: "" };
+  }, [angry]);
 
   /* The resting pose is baked into the markup, so the angry face is already
      angry in the server HTML instead of flashing calm until hydration. */
@@ -97,7 +105,7 @@ export function SpotPuppy({
     let timer: ReturnType<typeof setTimeout>;
     const next = () => {
       timer = setTimeout(() => {
-        if (!busy.current) {
+        if (!busy.current && feeling.current !== "happy") {
           apply({ ...rest(), face: "Bl" });
           setTimeout(() => !busy.current && apply(rest()), 130);
         }
@@ -152,6 +160,18 @@ export function SpotPuppy({
     };
     requestAnimationFrame(tick);
   }, [angry, apply, rest]);
+
+  useEffect(() => {
+    if (!cheer || angry) return;
+    const onMood = (e: Event) => {
+      const next = (e as CustomEvent<"rest" | "alert" | "happy">).detail;
+      if (next === feeling.current) return;
+      feeling.current = next;
+      if (!busy.current) apply(rest());
+    };
+    window.addEventListener("spot:mood", onMood);
+    return () => window.removeEventListener("spot:mood", onMood);
+  }, [cheer, angry, apply, rest]);
 
   useEffect(() => {
     if (!cheer || angry) return;

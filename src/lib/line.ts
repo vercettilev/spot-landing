@@ -149,6 +149,11 @@ export async function spotOf(kv: Kv, code: string): Promise<Spot | null> {
   return { code, rank: rank + 1, referrals };
 }
 
+/** The number a newcomer would get now: one past everyone in line. */
+export async function nextPlace(kv: Kv): Promise<number> {
+  return (Number(await kv.get(SEQ)) || 0) + 1;
+}
+
 /** Every code, front of the line first. For the export script. */
 export function lineOrder(kv: Kv): Promise<string[]> {
   return kv.zrange(LINE);
