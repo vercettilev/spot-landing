@@ -164,10 +164,9 @@ export function SpotPass({
   }, []);
 
   const link = spot ? referralLink(shareUrl, spot.code) : shareUrl;
-  /* The first words are the hook: their place, then the one-liner. */
   const tweet = spot
-    ? `I'm #${spot.rank.toLocaleString("en-US")} in line for Spot. Buy crypto from any post on mobile.`
-    : "Spot: buy crypto from any post on mobile.";
+    ? "Got my spot in line for Spot: ape any CA from any app, in USDC, no SOL needed."
+    : "Spot: ape any CA from any app. Buy or sell in USDC, no SOL needed.";
   /* "via @handle" on the post, so every share also points at Spot's account. */
   const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(link)}&via=${X_HANDLE}`;
   const copy = () => {

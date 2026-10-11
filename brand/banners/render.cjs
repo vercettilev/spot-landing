@@ -8,7 +8,7 @@
  * The puppy is not copied into the HTML: it is read from
  * src/components/puppyArt.ts here, so the banners draw the same rig as the
  * site and change when it does. Fonts come from Google Fonts, so this needs
- * the network. The link card also becomes the site's social image.
+ * the network.
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -16,10 +16,6 @@ const { chromium } = require("playwright");
 
 const ROOT = path.resolve(__dirname, "../..");
 const OUT = __dirname;
-
-/* The link card is also the site's social image: Next.js serves these two
-   files from src/app, so a new render replaces them too. */
-const CARD_COPIES = ["src/app/opengraph-image.png", "src/app/twitter-image.png"];
 
 function readArt() {
   const src = fs.readFileSync(path.join(ROOT, "src/components/puppyArt.ts"), "utf8");
@@ -74,11 +70,6 @@ async function main() {
     await page.close();
   }
   await browser.close();
-
-  for (const to of CARD_COPIES) {
-    fs.copyFileSync(path.join(OUT, "link-card.png"), path.join(ROOT, to));
-    console.log("wrote", to);
-  }
 }
 
 main().catch((err) => {

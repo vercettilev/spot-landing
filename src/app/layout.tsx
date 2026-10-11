@@ -12,7 +12,7 @@ const display = Rubik({ subsets: ["latin"], weight: ["700", "800", "900"], varia
 const body = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono", display: "swap" });
 
-const TITLE = "Spot: buy crypto from any post on mobile";
+const TITLE = "Spot: ape from any app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

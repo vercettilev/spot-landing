@@ -22,11 +22,12 @@ export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
 
 /**
  * Spot on X: the header and the pass link to it, a post shared from the pass
- * ends "via @handle", and social cards credit it.
+ * ends "via @handle", and social cards credit it. It was @getspotfun until
+ * the account was renamed; that handle is free now, so nothing may point at it.
  */
-export const X_HANDLE = "getspotfun";
+export const X_HANDLE = "usespotdotfun";
 export const X_URL = `https://x.com/${X_HANDLE}`;
 
-export const TAGLINE = "Buy crypto from any post on mobile.";
+export const TAGLINE = "Ape from any app.";
 export const DESCRIPTION =
-  "Saw a stock or a coin on TikTok, Reddit or X? Buy or sell it on the spot: share the post, tap Spot, confirm. Coming soon to iPhone, Android and Solana Seeker.";
+  "See a CA on X, TikTok or Telegram? Share it to Spot and buy or sell in USDC without leaving the app. No SOL, no gas. Coming soon to iPhone, Android and Solana Seeker.";

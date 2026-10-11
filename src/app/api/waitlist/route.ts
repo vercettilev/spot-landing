@@ -112,9 +112,10 @@ export async function POST(req: Request) {
  * friends moved them. A code is all it takes and all it reveals: a place and
  * a count, no address.
  *
- * ?next instead answers the number a newcomer would get, for the line under
- * the form. It is the same for every reader, so the CDN holds it for half a
- * minute and the database hears about it a couple of times a minute at most.
+ * ?next instead answers the number a newcomer would get, for a page that
+ * wants to show it (this one does not, for now). It is the same for every
+ * reader, so the CDN holds it for half a minute and the database hears about
+ * it a couple of times a minute at most.
  */
 export async function GET(req: Request) {
   if (!lookupLimit(getIp(req))) {

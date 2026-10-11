@@ -1,11 +1,10 @@
 import type { MetadataRoute } from "next";
-import { TAGLINE } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Spot",
     short_name: "Spot",
-    description: TAGLINE,
+    description: "Ape from any app.",
     start_url: "/",
     display: "browser",
     background_color: "#0b0b0c",

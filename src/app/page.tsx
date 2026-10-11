@@ -3,24 +3,24 @@ import { PhoneDemo } from "@/components/PhoneDemo";
 import { Reveal } from "@/components/Reveal";
 import { SpotForm } from "@/components/SpotForm";
 import { SpotPuppy } from "@/components/SpotPuppy";
-import { XMark } from "@/components/XMark";
-import { OPERATOR, SITE_URL, X_HANDLE, X_URL } from "@/lib/site";
+import { OPERATOR, SITE_URL, X_URL } from "@/lib/site";
 import styles from "./page.module.css";
 
-/* Only the checks the engine actually runs. Top-holder share is NOT one of
-   them (it was dropped because it blocked healthy tokens), so it is not
-   promised here or in the film. The answers are one example coin's, a coin
-   that fails, because that is the one Spot growls at. */
+/* Only the checks the engine actually runs: a sell route (what a honeypot
+   fails), mint authority, freeze authority and holder count. Top-holder share
+   is NOT one of them (it was dropped because it blocked healthy tokens), so it
+   is not promised here or in the film. The answers are one example coin's, a
+   coin that fails, because that is the one Spot growls at. */
 const SNIFF = [
-  { q: "Can you sell it?", a: "Yes", tone: "good" },
-  { q: "Can the creator print more?", a: "Yes", tone: "bad" },
-  { q: "Can it be frozen?", a: "No", tone: "good" },
-  { q: "Is anyone holding it?", a: "Barely", tone: "warn" },
+  { q: "Honeypot?", a: "No", tone: "good" },
+  { q: "Mint revoked?", a: "No", tone: "bad" },
+  { q: "Freeze revoked?", a: "Yes", tone: "good" },
+  { q: "Enough holders?", a: "Only 38", tone: "warn" },
 ] as const;
 
 function Mark({ tone }: { tone: (typeof SNIFF)[number]["tone"] }) {
   return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {tone === "good" ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : tone === "bad" ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M12 5v9M12 19h.01" />}
     </svg>
   );
@@ -66,17 +66,21 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className={styles.wordmark} src="/spot-wordmark-white.svg" alt="" width={76} height={31} />
         </Link>
-        <a className={styles.xLink} href={X_URL} target="_blank" rel="noopener noreferrer" aria-label={`Spot on X, @${X_HANDLE}`}>
-          <XMark size={18} />
-          <span>@{X_HANDLE}</span>
+        <a className={styles.xLink} href={X_URL} target="_blank" rel="noopener noreferrer" aria-label="Follow Spot on X">
+          Follow on
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
         </a>
       </header>
 
       <main>
         <section className={`${styles.wrap} ${styles.hero}`}>
           <div>
-            <h1 className={styles.h1}>Buy crypto from any post on mobile.</h1>
-            <p className={styles.lede}>Share the post, tap Spot, confirm. Sell&nbsp;the&nbsp;same&nbsp;way.</p>
+            <h1 className={styles.h1}>Ape from any&nbsp;app.</h1>
+            <p className={styles.lede}>
+              See a CA in your feed? Share&nbsp;it&nbsp;to&nbsp;Spot. Buy&nbsp;or&nbsp;sell in&nbsp;USDC without leaving the&nbsp;app.
+            </p>
             <div className={styles.join}>
               <SpotForm shareUrl={SITE_URL} />
             </div>
@@ -87,7 +91,7 @@ export default function Home() {
         <section className={styles.trust}>
           <div className={`${styles.wrap} ${styles.trustGrid}`}>
             <div className={styles.col}>
-              <h2 className={styles.h2}>Sniffs before you buy. Keeps watching&nbsp;after.</h2>
+              <h2 className={styles.h2}>Sniffs before you ape. Watches your bag&nbsp;after.</h2>
               <Reveal className={styles.sniff}>
                 <div className={styles.sniffPup}>
                   <SpotPuppy mood="angry" label="Spot growling at a scam coin. Press to hear it." />
@@ -116,18 +120,18 @@ export default function Home() {
                 </div>
               </Reveal>
               <Reveal className={styles.notice}>
-                <Notice title="GRRR." text="The creator just sold 40% of $EXAMPLE. Sell?" action="Sell" />
+                <Notice title="GRRR." text="Dev just dumped 40% of $EXAMPLE. Sell?" action="Sell" />
               </Reveal>
-              <p className={styles.curious}>Just curious? Share it for a sniff. No wallet needed.</p>
+              <p className={styles.curious}>Just curious? Share the CA for a free sniff. No wallet needed.</p>
             </div>
 
             <div className={styles.col}>
-              <h2 className={styles.h2}>No gas. No&nbsp;SOL. Just&nbsp;dollars.</h2>
+              <h2 className={styles.h2}>No gas. No&nbsp;SOL. Just&nbsp;USDC.</h2>
               <Reveal className={styles.receiptWrap}>
                 <div className={styles.receipt}>
                   <div className={styles.receiptTop}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/spot-wordmark-black.svg" alt="Spot" width={84} height={34} />
+                    <img src="/spot-wordmark-black.svg" alt="Spot" width={96} height={39} />
                     <p className={styles.receiptKind}>Buy · Example</p>
                   </div>
                   <dl className={styles.receiptRows}>
@@ -145,18 +149,18 @@ export default function Home() {
                     </div>
                     <div>
                       <dt>Spot fee</dt>
-                      <dd>shown before you buy</dd>
+                      <dd>shown up front</dd>
                     </div>
                     <div>
-                      <dt>Take profit</dt>
-                      <dd>half at 2×</dd>
+                      <dt>TP</dt>
+                      <dd>50% at 2x</dd>
                     </div>
                   </dl>
                   <p className={styles.thanks}>Thank you · Woof</p>
                 </div>
               </Reveal>
               <Reveal className={`${styles.notice} ${styles.noticeOver}`}>
-                <Notice title="$EXAMPLE doubled." text="Sold half, so your $25 is back." />
+                <Notice title="$EXAMPLE hit 2x." text="Sold half. Initials back: 25 USDC." />
               </Reveal>
             </div>
           </div>

@@ -73,15 +73,20 @@
 }
 
 .helper {
-  margin-top: 16px;
-  font-size: 15px;
-  line-height: 1.45;
-  color: #a8a49c;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--white);
+  text-wrap: balance;
 }
 
-.helper b {
-  color: var(--white);
-  font-weight: 700;
+.up {
+  flex: none;
+  color: var(--orange);
 }
 
 .invited {

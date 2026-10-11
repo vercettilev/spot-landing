@@ -15,7 +15,7 @@
 
 @media (min-width: 960px) {
   .demo {
-    --phone-w: 284px;
+    --phone-w: 300px;
     margin: 0;
   }
 }

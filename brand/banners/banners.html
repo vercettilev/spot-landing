@@ -127,58 +127,14 @@
   .li .pup {
     right: 110px;
   }
-
-  /* ---------- Link card, 1200 x 630 ----------
-     What a link to the site shows on X and elsewhere. render.cjs copies it to
-     src/app/opengraph-image.png and twitter-image.png. */
-  .card {
-    --w: 1200px;
-    --h: 630px;
-    --pup-w: 330px;
-  }
-
-  .card .wordmark {
-    position: absolute;
-    left: 84px;
-    top: 72px;
-    height: 44px;
-  }
-
-  .card .h1 {
-    left: 80px;
-    top: 168px;
-    font-size: 92px;
-  }
-
-  .card .apps {
-    left: 84px;
-    top: 392px;
-    --apps-size: 44px;
-    --apps-gap: 30px;
-  }
-
-  .card .soon {
-    position: absolute;
-    left: 84px;
-    bottom: 64px;
-    margin: 0;
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: 24px;
-    color: #cfcac1;
-  }
-
-  .card .pup {
-    right: 72px;
-  }
 </style>
 </head>
 <body>
 
 <!-- The line is the pitch: what you get (crypto), the twist (from any post)
-     and where (on mobile: Spot is a phone app and nothing else). The site
-     says the same (TAGLINE in src/lib/site.ts, the h1 in src/app/page.tsx);
-     change them together. -->
+     and where (on mobile: Spot is a phone app and nothing else). It is not
+     the site's headline (TAGLINE in src/lib/site.ts); when one changes,
+     decide whether the other should. -->
 <section class="board x" id="x-header">
   <h1 class="h1">Buy crypto from<br>any post on mobile.</h1>
   <div class="apps" data-apps></div>
@@ -196,14 +152,6 @@
 
 <section class="board li black" id="linkedin-cover-black">
   <h1 class="h1">Buy crypto from any post on mobile.</h1>
-  <svg class="pup" data-face="" data-halo></svg>
-</section>
-
-<section class="board card black" id="link-card">
-  <img class="wordmark" src="../../public/spot-wordmark-white.svg" alt="Spot">
-  <h1 class="h1">Buy crypto from<br>any post on mobile.</h1>
-  <div class="apps" data-apps></div>
-  <p class="soon">Coming soon to iPhone, Android and Solana Seeker.</p>
   <svg class="pup" data-face="" data-halo></svg>
 </section>
 

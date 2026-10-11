@@ -1,4 +1,4 @@
-/** The X logo in one colour (currentColor), for the header and the pass. The mark is X Corp.'s. */
+/** The X logo in one colour (currentColor). The mark is X Corp.'s. */
 export function XMark({ size }: { size: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true" focusable="false">
