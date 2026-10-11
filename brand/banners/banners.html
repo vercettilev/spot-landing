@@ -63,22 +63,28 @@
   }
 
   /* ---------- X / Twitter header, 1500 x 500 ----------
-     The avatar covers a half-circle about 335px wide at the bottom left, so
-     the line sits above y 330 and the puppy goes right. */
+     Laid out for the phone, where most people see it. In the X app the
+     header runs the full width of the screen, about 3.8 banner pixels to a
+     point, and the app draws over three parts of it: the status bar and the
+     Dynamic Island across the top (to about y 190), the back, search and
+     menu buttons at the left and right edges (x under 190 and over 1160,
+     from about y 240 down) and the photo over the bottom left (x under 380,
+     from about y 340). So the line and the puppy keep to the middle, low,
+     and nothing sits at the edges; on a desktop that reads as plain room. */
   .x {
     --w: 1500px;
     --h: 500px;
-    --pup-w: 440px;
+    --pup-w: 340px;
   }
 
   .x .h1 {
-    left: 96px;
-    top: 128px;
-    font-size: 88px;
+    left: 244px;
+    top: 206px;
+    font-size: 72px;
   }
 
   .x .pup {
-    right: 110px;
+    right: 370px;
   }
 
   /* ---------- LinkedIn cover, 1584 x 396 ----------
