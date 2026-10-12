@@ -30,4 +30,4 @@ export const X_URL = `https://x.com/${X_HANDLE}`;
 
 export const TAGLINE = "Ape from any app.";
 export const DESCRIPTION =
-  "See a CA on X, TikTok or Telegram? Share it to Spot and buy or sell in USDC without leaving the app. No SOL, no gas. Coming soon to iPhone, Android and Solana Seeker.";
+  "From your feed to your bag in three taps, with every coin sniffed for rugs first. No SOL, no gas. Coming soon to Android, iPhone and Solana Seeker.";

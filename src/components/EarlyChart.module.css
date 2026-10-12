@@ -1,0 +1,104 @@
+/* The chart keeps the drawing's proportions, so the HTML dots and labels,
+   placed in percentages, land on the line at any width. */
+.chart {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  aspect-ratio: 600 / 380;
+}
+
+.chart svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.line {
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The moment the CA drops: a quiet dashed line, labelled under the chart. */
+.drop {
+  stroke: #4a4743;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 6;
+  vector-effect: non-scaling-stroke;
+}
+
+.post {
+  position: absolute;
+  top: calc(100% + 12px);
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #8f8b84;
+  white-space: nowrap;
+}
+
+.dot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+}
+
+.you {
+  background: var(--orange);
+  box-shadow: 0 0 0 4px var(--ink), 0 0 0 6px var(--orange);
+}
+
+.them {
+  background: #3a3936;
+  box-shadow: 0 0 0 4px var(--ink), 0 0 0 6px #5d5a55;
+}
+
+.label {
+  position: absolute;
+  top: 50%;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+/* "You" reads under its dot, below the climb, clear of the line; "them" to
+   the left of theirs, at the top. */
+.you .label {
+  top: 36px;
+  left: 2px;
+  transform: none;
+  color: var(--white);
+}
+
+.them .label {
+  right: 30px;
+  color: #a8a49c;
+  font-weight: 600;
+}
+
+.tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6f6b65;
+}
+
+@media (min-width: 720px) {
+  .label {
+    font-size: 17px;
+  }
+  .post {
+    font-size: 15px;
+  }
+}
