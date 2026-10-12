@@ -223,7 +223,8 @@ export default function Home() {
         <div className={`${styles.wrap} ${styles.footerInner}`}>
           <p className={styles.small}>
             Spot is coming soon. Tokenized stocks are issued by third parties and aren&apos;t available everywhere,
-            including the US. Example data. Not financial advice. Run by {OPERATOR} <Link href="/privacy">Privacy</Link>
+            including the US. Example data. Not financial advice. Run by {OPERATOR} <Link href="/privacy">Privacy</Link>{" "}
+            <Link href="/terms">Terms</Link>
           </p>
         </div>
       </footer>

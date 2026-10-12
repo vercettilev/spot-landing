@@ -217,7 +217,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stats: {
         sniffed: s.history.length,
         dodged: s.history.filter((h) => h.level === "block").length,
-        apes: s.activity.filter((a) => a.kind === "ape").length,
+        apes: s.trades.filter((t) => t.side === "buy").length,
       },
     };
   }, [state, ready, save, addActivity]);
