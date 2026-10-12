@@ -1,12 +1,13 @@
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import type { CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorLine } from "../api";
 import { Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Title } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { amount as fmtAmount, money, pct, usd } from "../logic";
+import { ago, amount as fmtAmount, money, pct, usd } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
+import { books, gain, pnlOf, since, sinceLine, tradeLine } from "../pnl";
 import { useStore } from "../store";
 import { color, font, space, type } from "../theme";
 import { short } from "../wallet/base58";
@@ -14,14 +15,18 @@ import { short } from "../wallet/base58";
 type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Bag">, NativeStackScreenProps<RootParams>>;
 
 /**
- * THE BAG: what the wallet is worth, then what it is made of. The total is
- * the one loud thing; cash (USDC, the digital dollar Spot buys with, and
- * SOL) and the coins sit under it as quiet lists, each coin one tap from
- * its page with the Sell side ready.
+ * THE BAG: what the wallet is worth, then what it is made of, then what
+ * Spot did with it. The total is the one loud thing; under it, in one
+ * colour, what your apes made. Cash (USDC, the digital dollar Spot buys
+ * with, and SOL) and the coins sit below as quiet lists, each coin one tap
+ * from its page with the Sell side ready and its own gain since you aped;
+ * then every trade, each a tap from Solscan.
  */
 export function BagScreen({ navigation }: Props) {
-  const { wallet } = useStore();
+  const { wallet, trades } = useStore();
   const bag = useHoldings(wallet?.address ?? null);
+  const mine = trades.filter((t) => t.owner === wallet?.address);
+  const ledger = books(mine);
 
   if (!wallet) {
     return (
@@ -38,6 +43,8 @@ export function BagScreen({ navigation }: Props) {
   }
 
   const b = bag.value;
+  const pnl = b ? pnlOf(mine, b.positions) : null;
+  const onChain = mine.some((t) => t.signature);
   return (
     <ScrollView
       contentContainerStyle={styles.scroll}
@@ -72,6 +79,9 @@ export function BagScreen({ navigation }: Props) {
           <Text style={styles.totalNote}>
             {b.positions.length === 0 ? "No coins yet" : `${b.positions.length} coin${b.positions.length === 1 ? "" : "s"}`} and {usd(b.usdc.usd)} ready to ape
           </Text>
+          {pnl && pnl.trades > 0 && (
+            <Text style={[styles.pnl, { color: pnl.all < 0 ? color.red : color.green }]}>Your apes: {gain(pnl.all)} all-time</Text>
+          )}
           <View style={styles.actions}>
             <Button label="Add cash" kind="quiet" onPress={() => navigation.navigate("Deposit")} style={styles.action} />
             <Button label="Sniff a coin" kind="go" onPress={() => navigation.navigate("Sniff")} style={styles.action} />
@@ -89,14 +99,18 @@ export function BagScreen({ navigation }: Props) {
           ) : (
             <Group>
               {b.positions.map((p) => {
-                const up = (p.token.change24hPct ?? 0) >= 0;
+                /* Your own gain where Spot bought it; the coin's day where it did not. */
+                const book = ledger.get(p.token.mint);
+                const s = book ? since(book, p) : null;
+                const under = s ? sinceLine(s) : `${pct(p.token.change24hPct)} today`;
+                const down = (s ? s.usd : (p.token.change24hPct ?? 0)) < 0;
                 return (
                   <Row
                     key={p.token.mint}
                     left={<CoinFace uri={p.token.icon} symbol={p.token.symbol} size={40} />}
                     title={`$${p.token.symbol}`}
                     subtitle={`${fmtAmount(p.amount)} ${p.token.symbol}`}
-                    right={<Value value={usd(p.usd)} under={pct(p.token.change24hPct)} tint={up ? color.green : color.red} />}
+                    right={<Value value={usd(p.usd)} under={under} tint={down ? color.red : color.green} />}
                     onPress={() => navigation.navigate("Coin", { candidate: { token: p.token, via: "link" }, source: null, share: null, others: [] })}
                     label={`$${p.token.symbol}, ${usd(p.usd)}`}
                   />
@@ -105,6 +119,29 @@ export function BagScreen({ navigation }: Props) {
             </Group>
           )}
           {b.hidden > 0 && <Text style={styles.hidden}>Plus {b.hidden} tiny coin{b.hidden === 1 ? "" : "s"}, too small to show.</Text>}
+
+          {mine.length > 0 && (
+            <>
+              <Section>Trades</Section>
+              <Group>
+                {mine.slice(0, 50).map((t) => {
+                  const what = `${t.side === "buy" ? "Aped" : "Sold"} $${t.symbol}`;
+                  return (
+                    <Row
+                      key={t.id}
+                      left={<CoinFace uri={t.icon} symbol={t.symbol} size={40} />}
+                      title={what}
+                      subtitle={tradeLine(t)}
+                      right={<Text style={styles.ago}>{ago(t.at)}</Text>}
+                      onPress={t.signature ? () => void Linking.openURL(`https://solscan.io/tx/${t.signature}`).catch(() => {}) : undefined}
+                      label={`${what}, ${tradeLine(t)}`}
+                    />
+                  );
+                })}
+              </Group>
+              {onChain && <Text style={styles.hidden}>Tap a trade to see it on Solscan.</Text>}
+            </>
+          )}
         </>
       ) : null}
     </ScrollView>
@@ -138,6 +175,8 @@ const styles = StyleSheet.create({
   emptyButton: { alignSelf: "stretch", marginTop: 28 },
   total: { marginTop: 18, fontFamily: font.display, fontSize: 56, lineHeight: 60, letterSpacing: -2, color: color.white },
   totalNote: { marginTop: 6, fontFamily: font.bodySemi, fontSize: type.body, color: color.dim },
+  pnl: { marginTop: 4, fontFamily: font.bodyBold, fontSize: type.body },
+  ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
   actions: { flexDirection: "row", gap: 10, marginTop: 22 },
   action: { flex: 1 },
   cash: { width: 40, height: 40, borderRadius: 20, backgroundColor: color.ink3, alignItems: "center", justifyContent: "center" },

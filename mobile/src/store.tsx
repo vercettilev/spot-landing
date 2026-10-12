@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { setHaptics } from "./components/ui";
+import type { Trade } from "./pnl";
 import type { Level, Sniff, TokenCard } from "./types";
 
 /**
@@ -58,6 +59,8 @@ interface State {
   history: SniffRecord[];
   watch: WatchItem[];
   activity: ActivityItem[];
+  /** Every trade made through Spot, newest first (see pnl.ts). */
+  trades: Trade[];
   wallet: Wallet | null;
 }
 
@@ -66,6 +69,7 @@ const KEY = {
   history: "spot:history",
   watch: "spot:watch",
   activity: "spot:activity",
+  trades: "spot:trades",
   wallet: "spot:wallet",
 } as const;
 
@@ -74,11 +78,13 @@ const fresh = (): State => ({
   history: [],
   watch: [],
   activity: [],
+  trades: [],
   wallet: null,
 });
 
 const MAX_HISTORY = 100;
 const MAX_ACTIVITY = 200;
+const MAX_TRADES = 500;
 
 interface Store extends State {
   ready: boolean;
@@ -88,6 +94,7 @@ interface Store extends State {
   toggleWatch: (token: TokenCard) => void;
   setAlert: (mint: string, kind: AlertKind, on: boolean) => void;
   addActivity: (item: Omit<ActivityItem, "id" | "at">) => void;
+  addTrade: (trade: Trade) => void;
   setWallet: (wallet: Wallet | null) => void;
   stats: { sniffed: number; dodged: number; apes: number };
 }
@@ -131,6 +138,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           history: parseList<SniffRecord>(got[KEY.history]),
           watch: parseList<WatchItem>(got[KEY.watch]),
           activity: parseList<ActivityItem>(got[KEY.activity]),
+          trades: parseList<Trade>(got[KEY.trades]),
           wallet,
         });
         if (!got[KEY.settings]) void AsyncStorage.setItem(KEY.settings, JSON.stringify(settings)).catch(() => {});
@@ -198,6 +206,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           latest.current.watch.map((w) => (w.mint === mint ? { ...w, alerts: { ...w.alerts, [kind]: on } } : w)),
         ),
       addActivity,
+      addTrade: (trade) => {
+        if (latest.current.trades.some((t) => t.id === trade.id)) return;
+        save("trades", [trade, ...latest.current.trades].slice(0, MAX_TRADES));
+      },
       setWallet: (wallet) => {
         save("wallet", wallet);
         if (wallet) addActivity({ kind: "connect", mint: null, symbol: null, text: wallet.kind === "mwa" ? "Wallet connected" : "Tracking a wallet" });

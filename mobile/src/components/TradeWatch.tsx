@@ -20,10 +20,27 @@ export function TradeWatch() {
 
   useEffect(() => {
     void restore();
-    return subscribe((p, fate) => {
-      /* A trade that had landed was announced when it did; only the bag was waited for. */
-      if (!fate || p.landed) return;
+    return subscribe((p, fate, fill) => {
+      if (!fate) return;
       const s = latest.current;
+      if (fate === "landed") {
+        const f = fill ?? { ...p.quote, exact: false };
+        s.addTrade({
+          id: p.signature ?? `${p.owner}-${p.mint}-${p.until}`,
+          at: new Date().toISOString(),
+          owner: p.owner,
+          mint: p.mint,
+          symbol: p.token.symbol,
+          icon: p.token.icon,
+          side: p.side,
+          usdc: f.usdc,
+          amount: f.amount,
+          exact: f.exact,
+          signature: p.signature,
+        });
+      }
+      /* A trade that had landed was announced when it did; only the bag was waited for. */
+      if (p.landed) return;
       if (fate === "landed") {
         s.addActivity({ kind: p.side === "buy" ? "ape" : "sell", mint: p.mint, symbol: p.token.symbol, text: p.text, signature: p.signature });
         if (p.side === "buy" && !s.isWatched(p.mint)) s.toggleWatch(p.token);

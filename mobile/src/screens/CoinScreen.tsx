@@ -28,9 +28,13 @@ interface Confirm {
   before: Snapshot | null;
   text: string;
   builtAt: number;
+  quote: { usdc: number; amount: number };
   line: string;
   label: string;
 }
+
+/* Raw base units, in whole coins or dollars. */
+const units = (raw: string, decimals: number) => (/^\d+$/.test(raw) ? Number(raw) / 10 ** decimals : 0);
 
 /* A quote on a thin pool goes stale fast: after this, a yes asks for a new one. */
 const CONFIRM_FRESH_MS = 25_000;
@@ -210,11 +214,12 @@ export function CoinScreen({ navigation, route }: Props) {
     try {
       /* The wallet as it is right now, read while the order is built: what
          a trade that may still land is checked against. */
+      const sellRaw = shareOf(position?.raw ?? "0", sellPct);
       const [order, fresh] = await Promise.all([
         placeOrder(
           buying
             ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
-            : { mint: coin.mint, side, taker: wallet.address, amountRaw: shareOf(position?.raw ?? "0", sellPct) },
+            : { mint: coin.mint, side, taker: wallet.address, amountRaw: sellRaw },
         ),
         fetchHoldings(wallet.address),
       ]);
@@ -227,6 +232,9 @@ export function CoinScreen({ navigation, route }: Props) {
       const text = buying
         ? `Aped $${amount} of $${coin.symbol}${AUTO_SELL && tp ? ". Half sells at 2x" : ""}`
         : `Sold ${sellPct === 100 ? "all" : `${sellPct}%`} of $${coin.symbol}`;
+      const quote = buying
+        ? { usdc: amount, amount: units(order.value.outAmount, coin.decimals) }
+        : { usdc: units(order.value.outAmount, 6), amount: units(sellRaw, coin.decimals) };
       const short = shortFill(buying ? amount : sellUsd, quoteUsd(side, order.value, coin));
       if (short) {
         feel("warning");
@@ -236,6 +244,7 @@ export function CoinScreen({ navigation, route }: Props) {
           before,
           text,
           builtAt,
+          quote,
           line: buying
             ? `Thin pool. Your $${amount} only buys about ${usd(short.gotUsd)} of it.`
             : `Thin pool. You'd get ${usd(short.gotUsd)} back, not ${usd(short.expectedUsd)}.`,
@@ -243,7 +252,7 @@ export function CoinScreen({ navigation, route }: Props) {
         });
         return;
       }
-      await send(wallet, order.value, side, before, text, builtAt);
+      await send(wallet, order.value, side, before, text, builtAt, quote);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -264,7 +273,7 @@ export function CoinScreen({ navigation, route }: Props) {
     inFlight.current = true;
     setBusy(true);
     try {
-      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt);
+      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -273,12 +282,20 @@ export function CoinScreen({ navigation, route }: Props) {
     }
   }
 
-  async function send(w: Extract<Wallet, { kind: "mwa" }>, order: Order, sideNow: Side, before: Snapshot | null, text: string, builtAt: number) {
+  async function send(
+    w: Extract<Wallet, { kind: "mwa" }>,
+    order: Order,
+    sideNow: Side,
+    before: Snapshot | null,
+    text: string,
+    builtAt: number,
+    quote: { usdc: number; amount: number },
+  ) {
     const signed = await signTransaction(order.transaction, w.authToken, w.address);
     if (signed.authToken !== w.authToken) store.setWallet({ ...w, authToken: signed.authToken });
     const res = await executeOrder(order.requestId, signed.signed);
     const signature = res.ok ? res.value.signature : null;
-    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, before, text, signature };
+    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, before, text, signature, quote };
     switch (settled(res)) {
       case "landed":
         finish(w.address, sideNow, text, signature);
