@@ -56,7 +56,7 @@ export function ConnectScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <TopBar title="Wallet" onBack={() => navigation.goBack()} />
         <Text style={styles.h1}>Connect wallet.</Text>
-        <Text style={styles.lede}>Spot asks your wallet to approve each trade. Your coins and keys never leave it.</Text>
+        <Text style={styles.lede}>Ape in two taps from any post. Your wallet approves every trade, and your keys never leave it.</Text>
 
         <Card style={styles.card}>
           <View style={styles.cardHead}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionFor, ago, amount, chipsFor, clampAmount, count, fromPaste, fromShare, money, ordered, pct, price, readablePath, shareOf, sourceLine, usd, verdictWord } from "./logic";
+import { actionFor, ago, amount, chipsFor, clampAmount, count, fromPaste, fromShare, money, ordered, pct, price, readablePath, shareOf, sourceLine, usd, verdictLine, verdictWord } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -141,5 +141,27 @@ describe("a shared screenshot", () => {
     expect(readablePath("file:///data/user/0/fun.usespot.app/cache/Screenshot_1.png", "android")).toBe("/data/user/0/fun.usespot.app/cache/Screenshot_1.png");
     expect(readablePath("content://media/external/images/media/42", "android")).toBe("content://media/external/images/media/42");
     expect(readablePath("file:///var/mobile/shot.png", "ios")).toBe("file:///var/mobile/shot.png");
+  });
+});
+
+describe("the line under the verdict", () => {
+  const card = { kind: "coin" } as never;
+  const c = (id: string, status: string, extra: Record<string, unknown> = {}) => ({ id, status, blocks: false, note: null, ...extra }) as never;
+
+  it("says what a clean coin means for the bag", () => {
+    expect(verdictLine({ level: "ok", checks: [], token: card })).toBe("No rug tricks found. You can sell it back anytime.");
+  });
+
+  it("lists why a coin growls, in plain words and the report's order", () => {
+    const checks = [c("age", "warn"), c("holders", "warn"), c("honeypot", "good"), c("liquidity", "warn")];
+    expect(verdictLine({ level: "warn", checks, token: card })).toBe("Few holders, a small pool and brand new.");
+    expect(verdictLine({ level: "warn", checks: [c("mint", "warn")], token: card })).toBe("The dev can print more.");
+  });
+
+  it("gives the reason Spot won't buy", () => {
+    const checks = [c("honeypot", "bad", { blocks: true, note: "There's no way to sell it." })];
+    expect(verdictLine({ level: "block", checks, token: card })).toBe("You could buy it, but you'd never get out.");
+    const odd = [c("hook", "bad", { blocks: true, note: "Something odd." })];
+    expect(verdictLine({ level: "block", checks: odd, token: card })).toBe("Something odd.");
   });
 });

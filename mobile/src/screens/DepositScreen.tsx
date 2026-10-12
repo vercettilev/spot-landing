@@ -48,7 +48,7 @@ export function DepositScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <TopBar title="Add cash" onBack={() => navigation.goBack()} />
         <Text style={styles.h1}>Add cash.</Text>
-        <Text style={styles.lede}>Spot buys with USDC, digital dollars on Solana. Send USDC to this address: it lands in your wallet, not in Spot.</Text>
+        <Text style={styles.lede}>Load USDC, digital dollars on Solana, and ape anything you see. It goes to your own wallet, not to Spot.</Text>
         {wallet.kind === "watch" ? (
           <Card style={styles.watch}>
             <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
@@ -64,7 +64,7 @@ export function DepositScreen({ navigation }: Props) {
             {"\n"}
             {address.slice(Math.ceil(address.length / 2))}
           </Text>
-          <Text style={styles.network}>Solana · USDC</Text>
+          <Text style={styles.network}>USDC on Solana</Text>
         </View>
 
         <View style={styles.actions}>

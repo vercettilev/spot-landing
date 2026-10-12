@@ -1,4 +1,4 @@
-import type { Check, CheckId, Level, Platform, Share, Source } from "./types";
+import type { Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
 
 /**
  * The decisions behind the screen, kept free of React Native so they can be
@@ -44,6 +44,55 @@ const ORDER: CheckId[] = ["route", "honeypot", "freeze", "mint", "holders", "del
 
 export function ordered(checks: Check[]): Check[] {
   return [...checks].sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
+}
+
+/* Why a coin growls, a few words a check. */
+const WHY: Partial<Record<CheckId, string>> = {
+  honeypot: "you'd lose some selling it back",
+  mint: "the dev can print more",
+  liquidity: "a small pool",
+  holders: "few holders",
+  age: "brand new",
+  tax: "a tax on trades",
+  hook: "code that could block sells",
+  flagged: "flagged as sus",
+};
+
+/* What a blocked coin would have done to the money, which is why Spot won't buy it. */
+const STUCK: Partial<Record<CheckId, string>> = {
+  route: "There's no way to buy it right now.",
+  honeypot: "You could buy it, but you'd never get out.",
+  freeze: "The dev could lock your coins the second you buy.",
+  delegate: "The dev could pull your coins right out of your wallet.",
+  tax: "Most of every buy and sell would go to the tax.",
+};
+
+/**
+ * The line under the verdict on the receipt: what it means for the bag, in
+ * one sentence, so the questions below are proof rather than homework.
+ */
+export function verdictLine(sniff: Pick<Sniff, "level" | "checks" | "token">): string {
+  switch (sniff.level) {
+    case "ok":
+      return sniff.token.kind === "stock"
+        ? "A stock coin: the issuer holds the keys, as it should. You can sell it back anytime."
+        : "No rug tricks found. You can sell it back anytime.";
+    case "warn": {
+      const why = ordered(sniff.checks)
+        .filter((c) => c.status === "warn")
+        .map((c) => WHY[c.id])
+        .filter((w): w is string => Boolean(w));
+      if (!why.length) return "Some checks didn't answer, so Spot keeps your buy small.";
+      const list = why.length === 1 ? why[0]! : `${why.slice(0, -1).join(", ")} and ${why[why.length - 1]}`;
+      return `${list[0]!.toUpperCase()}${list.slice(1)}.`;
+    }
+    case "block": {
+      const blocker = sniff.checks.find((c) => c.blocks && c.status === "bad");
+      return (blocker && STUCK[blocker.id]) ?? blocker?.note ?? "This coin can take your bag.";
+    }
+    default:
+      return "Some checks didn't answer. Sniff again in a moment.";
+  }
 }
 
 const SUB = "₀₁₂₃₄₅₆₇₈₉";
