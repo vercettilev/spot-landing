@@ -115,9 +115,13 @@ export const SETTLE_MS = 12_000;
 /**
  * A trade the button waits on: one that may still land, or one that has
  * landed and is not in the wallet's numbers yet (a sell of "50%" worked out
- * from the old bag would sell the wrong amount).
+ * from the old bag would sell the wrong amount). Held and watched in
+ * pending.ts, from outside any screen.
  */
 export interface Pending {
+  owner: string;
+  mint: string;
+  token: TokenCard;
   side: Side;
   /** Jupiter or the chain already said it landed: only the bag is behind. */
   landed: boolean;
@@ -130,11 +134,33 @@ export interface Pending {
   signature: string | null;
 }
 
-/* By wallet and coin, outside any screen: leaving a coin and coming back
-   must not unlock a second buy. */
-const pending = new Map<string, Pending>();
-const key = (owner: string, mint: string) => `${owner} ${mint}`;
+/** When the looking stops: a little after the window, for an RPC a block or two behind. */
+export const deadlineOf = (p: Pending): number => p.until + (p.landed ? 0 : LAST_LOOK_MS);
 
-export const pendingFor = (owner: string | null | undefined, mint: string): Pending | null => (owner ? (pending.get(key(owner, mint)) ?? null) : null);
-export const hold = (owner: string, mint: string, p: Pending) => void pending.set(key(owner, mint), p);
-export const release = (owner: string, mint: string) => void pending.delete(key(owner, mint));
+export const secondsLeft = (p: Pending, now: number): number => Math.max(0, Math.ceil((deadlineOf(p) - now) / 1000));
+
+/** What became of a pending trade: it landed, it never will, or the wallet could not be read to tell. */
+export type Fate = "landed" | "lost" | "unread";
+
+/**
+ * THE VERDICT ON A PENDING TRADE from one more look at the wallet; null
+ * means keep looking. A trade that already landed is only waiting for the
+ * bag, so its deadline ends the wait, never the trade.
+ */
+export function fateOf(p: Pending, after: Snapshot | null, now: number): Fate | null {
+  if (after && p.before && moved(p.side, p.before, after)) return "landed";
+  if (now <= deadlineOf(p)) return null;
+  if (p.landed) return "landed";
+  return after && p.before ? "lost" : "unread";
+}
+
+export function fateLine(p: Pending, fate: Fate): string {
+  switch (fate) {
+    case "landed":
+      return `${p.text}.`;
+    case "lost":
+      return `Didn't go through. Nothing was ${p.side === "buy" ? "bought" : "sold"}.`;
+    default:
+      return "Couldn't read your wallet. Check your bag before you go again.";
+  }
+}

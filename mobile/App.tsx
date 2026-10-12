@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { TradeWatch } from "./src/components/TradeWatch";
 import { Navigation } from "./src/navigation";
 import { StoreProvider, useStore } from "./src/store";
 import { color } from "./src/theme";
@@ -32,6 +33,7 @@ export default function App() {
         <WhenReady>
           <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
             <Navigation />
+            <TradeWatch />
           </SafeAreaView>
         </WhenReady>
       </StoreProvider>

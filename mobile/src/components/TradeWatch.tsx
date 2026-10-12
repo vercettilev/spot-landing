@@ -1,0 +1,40 @@
+import { useEffect, useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { isClaimed, restore, subscribe } from "../pending";
+import { useStore } from "../store";
+import { fateLine } from "../trade";
+import { feel, useToast } from "./ui";
+
+/**
+ * WHERE A TRADE'S VERDICT LANDS once the user has moved on: whichever
+ * screen is up gets the toast, the activity its line, the coin its watch,
+ * as if they had stayed. A coin screen that is showing says it itself
+ * (claim, in pending.ts). Mounted once, over the navigator.
+ */
+export function TradeWatch() {
+  const store = useStore();
+  const latest = useRef(store);
+  latest.current = store;
+  const insets = useSafeAreaInsets();
+  const [toastNode, toast] = useToast(80 + insets.bottom);
+
+  useEffect(() => {
+    void restore();
+    return subscribe((p, fate) => {
+      /* A trade that had landed was announced when it did; only the bag was waited for. */
+      if (!fate || p.landed) return;
+      const s = latest.current;
+      if (fate === "landed") {
+        s.addActivity({ kind: p.side === "buy" ? "ape" : "sell", mint: p.mint, symbol: p.token.symbol, text: p.text, signature: p.signature });
+        if (p.side === "buy" && !s.isWatched(p.mint)) s.toggleWatch(p.token);
+        feel("success");
+      } else if (fate === "lost") {
+        feel("error");
+      }
+      if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return toastNode;
+}
