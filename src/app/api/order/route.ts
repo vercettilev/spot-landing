@@ -4,6 +4,7 @@ import { isAddress } from "@/engine/address";
 import { getDeps } from "@/engine/deps";
 import { isRecord } from "@/engine/http";
 import { sniff } from "@/engine/sniff";
+import { mayTrade, tradingMode } from "@/engine/trade";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -17,7 +18,9 @@ const limit = makeRateLimiter(20);
  * warned one none above its cap. A sell is never refused: getting out is
  * always the user's call.
  *
- * CLOSED until SPOT_TRADING=1.
+ * CLOSED until SPOT_TRADING=1, and only for SPOT_TRADING_WALLETS when that
+ * is set (a wallet off the list hears trading_closed, like everyone does
+ * while it is closed).
  *
  *   200 { ok, requestId, transaction, inAmount, outAmount, priceImpactPct, gasless }
  *   400 bad_json | invalid_mint | invalid_side | invalid_taker | invalid_amount
@@ -25,7 +28,7 @@ const limit = makeRateLimiter(20);
  *   422 no_route | refused (with Jupiter's message)     503 lookup_failed | needs_key
  */
 export async function POST(req: Request) {
-  if (process.env.SPOT_TRADING !== "1") return fail(403, "trading_closed");
+  if (tradingMode(process.env).mode === "closed") return fail(403, "trading_closed");
   if (!limit(getIp(req))) return fail(429, "rate_limited");
   let body: unknown;
   try {
@@ -39,6 +42,7 @@ export async function POST(req: Request) {
   if (!isAddress(mint) || mint === USDC_MINT) return fail(400, "invalid_mint");
   if (b.side !== "buy" && b.side !== "sell") return fail(400, "invalid_side");
   if (!isAddress(taker)) return fail(400, "invalid_taker");
+  if (!mayTrade(process.env, taker)) return fail(403, "trading_closed");
   const deps = getDeps();
 
   let input: string;

@@ -19,6 +19,7 @@ export type ApiError =
   | "no_route"
   | "refused"
   | "needs_key"
+  | "pending"
   | "bad";
 
 const KNOWN = new Set<ApiError>([
@@ -32,6 +33,7 @@ const KNOWN = new Set<ApiError>([
   "no_route",
   "refused",
   "needs_key",
+  "pending",
 ]);
 
 /** A failed answer keeps whatever the API said with it: a headline, a cap, Jupiter's words. */
@@ -81,9 +83,9 @@ const post = <T>(path: string, body: unknown, timeoutMs: number) =>
 export const placeOrder = (o: { mint: string; side: "buy" | "sell"; taker: string; amountUsdc?: number; amountRaw?: string }) =>
   post<Order>("/api/order", o, 30_000);
 
-/** The signed transaction, landed through Jupiter. */
+/** The signed transaction, landed through Jupiter. Anything short of a final answer may still land (see trade.ts). */
 export const executeOrder = (requestId: string, signedTransaction: string) =>
-  post<Executed>("/api/execute", { requestId, signedTransaction }, 45_000);
+  post<Executed>("/api/execute", { requestId, signedTransaction }, 65_000);
 
 export function errorLine(e: ApiError): string {
   switch (e) {
@@ -113,6 +115,8 @@ export function errorLine(e: ApiError): string {
       return "Couldn't set up that trade. Try again.";
     case "needs_key":
       return "Trading isn't switched on yet.";
+    case "pending":
+      return "Still landing. Check your bag in a minute.";
     default:
       return "Something went wrong. Try again.";
   }

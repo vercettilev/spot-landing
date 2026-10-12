@@ -10,6 +10,25 @@ import type { JupiterConfig } from "./jupiter";
  * the decisions it waits on (the fee, the wallet, the legal read).
  */
 
+export type TradingMode = "closed" | "testing" | "open";
+
+/**
+ * WHO MAY TRADE. Closed unless SPOT_TRADING=1. With SPOT_TRADING_WALLETS
+ * set too (addresses, split by commas or spaces), only those wallets get an
+ * order: real money through the real deployment, on the team's own wallets,
+ * before anyone else's.
+ */
+export function tradingMode(env: Record<string, string | undefined>): { mode: TradingMode; wallets: ReadonlySet<string> } {
+  if (env.SPOT_TRADING?.trim() !== "1") return { mode: "closed", wallets: new Set() };
+  const wallets = new Set((env.SPOT_TRADING_WALLETS ?? "").split(/[\s,]+/).filter(Boolean));
+  return { mode: wallets.size > 0 ? "testing" : "open", wallets };
+}
+
+export function mayTrade(env: Record<string, string | undefined>, taker: string): boolean {
+  const { mode, wallets } = tradingMode(env);
+  return mode === "open" || (mode === "testing" && wallets.has(taker));
+}
+
 export interface OrderRequest {
   inputMint: string;
   outputMint: string;
@@ -106,8 +125,10 @@ export function makeExecutor(cfg: TradeConfig, opts: { fetchFn?: Fetch; pace?: (
   return async (signedTransaction, requestId) => {
     if (!cfg.apiKey) return { ok: false, reason: "needs_key" };
     await pace();
+    /* Jupiter answers once the transaction lands or cannot any more; a
+       slow answer is not a failed trade (see the route). */
     const res = await fetchText(fetchFn, `${cfg.base}${cfg.executePath}`, {
-      timeoutMs: opts.timeoutMs ?? 30_000,
+      timeoutMs: opts.timeoutMs ?? 40_000,
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-api-key": cfg.apiKey },
       body: JSON.stringify({ signedTransaction, requestId }),

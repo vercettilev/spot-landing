@@ -8,6 +8,7 @@ import { Button, Group, OutIcon, Pill, PuppyIcon, Row, Section, SettingRow, Titl
 import { useHoldings } from "../holdings";
 import { CHIPS, money } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
+import { AUTO_SELL } from "../soon";
 import { useStore } from "../store";
 import { color, font, space, type } from "../theme";
 import { short } from "../wallet/base58";
@@ -127,9 +128,11 @@ export function MeScreen({ navigation }: Props) {
               ))}
             </View>
           </View>
-          <SettingRow title="Never round-trip a 2x" note="Spot sells half at 2x on every new buy, so your money comes back.">
-            <Toggle label="Never round-trip a 2x" value={settings.tpDefault} onChange={(tpDefault) => store.setSettings({ tpDefault })} />
-          </SettingRow>
+          {AUTO_SELL && (
+            <SettingRow title="Never round-trip a 2x" note="Spot sells half at 2x on every new buy, so your money comes back.">
+              <Toggle label="Never round-trip a 2x" value={settings.tpDefault} onChange={(tpDefault) => store.setSettings({ tpDefault })} />
+            </SettingRow>
+          )}
           <SettingRow title="I'm in the US" note="Hides the buy on stock coins that can't be sold in the US.">
             <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson })} />
           </SettingRow>

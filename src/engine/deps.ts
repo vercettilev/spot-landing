@@ -1,5 +1,5 @@
 import { thresholdsFromEnv } from "@/core/safety/open-mint-gate";
-import { PUBLIC_RPC, makeAccountsReader, makeMintReader } from "./chain";
+import { PUBLIC_RPC, makeAccountsReader, makeMintReader, makeSignatureReader, type SignatureReader } from "./chain";
 import { makePairLookup } from "./dexscreener";
 import { jupiterConfig, makePacer, makeQuoter, makeSearch } from "./jupiter";
 import type { HoldingsDeps } from "./holdings";
@@ -8,7 +8,7 @@ import type { ResolveDeps } from "./resolve";
 import { DEFAULT_POLICY, type Policy, type SniffDeps } from "./sniff";
 import { makeExecutor, makeOrderer, tradeConfig, type Executor, type Orderer } from "./trade";
 
-export type Deps = ResolveDeps & SniffDeps & HoldingsDeps & { policy: Policy; order: Orderer; execute: Executor };
+export type Deps = ResolveDeps & SniffDeps & HoldingsDeps & { policy: Policy; order: Orderer; execute: Executor; readSignature: SignatureReader };
 
 /** The cap for warned coins, from the environment; a typo keeps the default. */
 function warnCap(raw: string | undefined): number {
@@ -28,6 +28,7 @@ export function depsFromEnv(env: Record<string, string | undefined> = process.en
     readAccounts: makeAccountsReader(rpc),
     order: makeOrderer(trade, { pace }),
     execute: makeExecutor(trade, { pace }),
+    readSignature: makeSignatureReader(rpc),
     readPost: makePostReader(),
     expand: makeExpander(),
     pairs: makePairLookup(),

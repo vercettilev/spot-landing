@@ -1,5 +1,5 @@
 import type { UltraOutcome, UltraSearchClient } from "@/core/resolve/ultra";
-import type { AccountsReader, MintFacts, MintReader, WalletAccounts } from "@/engine/chain";
+import type { AccountsReader, MintFacts, MintReader, SignatureReader, WalletAccounts } from "@/engine/chain";
 import type { Deps } from "@/engine/deps";
 import type { PairLookup } from "@/engine/dexscreener";
 import type { Outcome } from "@/engine/http";
@@ -174,6 +174,13 @@ export const fakeExecutor =
   async () =>
     answer;
 
+/** The chain's word on a signature: nowhere, unless told otherwise. */
+export const fakeSignatures =
+  (answer: Awaited<ReturnType<SignatureReader>> = { ok: true, value: "unknown" }): SignatureReader & { asked: string[] } => {
+    const asked: string[] = [];
+    return Object.assign(async (signature: string) => (asked.push(signature), answer), { asked });
+  };
+
 export function fakeDeps(over: Partial<Deps> = {}): Deps {
   return {
     search: fakeSearch([]),
@@ -182,6 +189,7 @@ export function fakeDeps(over: Partial<Deps> = {}): Deps {
     readAccounts: fakeAccounts(),
     order: fakeOrderer(),
     execute: fakeExecutor(),
+    readSignature: fakeSignatures(),
     readPost: fakePosts({}),
     expand: fakeExpand({}),
     pairs: noPairs,

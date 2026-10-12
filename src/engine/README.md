@@ -31,7 +31,9 @@ A wallet's bag for the app's Bag tab: `{ ok, owner, totalUsd, usdc, sol, positio
 
 ## `POST /api/order` and `POST /api/execute` (closed by default)
 
-The money path, built ahead of the decisions it waits on and **closed unless `SPOT_TRADING=1`** (`403 trading_closed` otherwise). `/api/order` takes `{ mint, side, taker, amountUsdc }` for a buy or `{ …, amountRaw }` for a sell and answers Jupiter Swap V2's transaction for the taker's wallet to sign, plus a `requestId`. A buy is sniffed again on the server, whatever the app showed: `409 blocked | unsniffed | over_cap` builds nothing. A sell is never refused. `/api/execute` takes `{ requestId, signedTransaction }` and lands it through Jupiter (`{ status, signature, error }`). Spot holds no key, adds nothing to the transaction and takes no fee yet. Needs `JUPITER_API_KEY` (`503 needs_key`).
+The money path, built ahead of the decisions it waits on and **closed unless `SPOT_TRADING=1`** (`403 trading_closed` otherwise). `/api/order` takes `{ mint, side, taker, amountUsdc }` for a buy or `{ …, amountRaw }` for a sell and answers Jupiter Swap V2's transaction for the taker's wallet to sign, plus a `requestId`. A buy is sniffed again on the server, whatever the app showed: `409 blocked | unsniffed | over_cap` builds nothing. A sell is never refused. `/api/execute` takes `{ requestId, signedTransaction }` and lands it through Jupiter (`{ status, signature, error, final }`). Spot holds no key, adds nothing to the transaction and takes no fee yet. Needs `JUPITER_API_KEY` (`503 needs_key`).
+
+A failed trade is only `final` when the chain says so: Jupiter's `Failed` with a signature is checked with `getSignatureStatuses` first (landed after all → `Success`; landed and failed → final; nowhere yet → not final, it can still land until its blockhash runs out). A Jupiter that does not answer in time is `504 pending`, never failed. The app treats everything that is not final as "may still land": it watches the wallet until the order's minute and a half is up, and offers no second buy until then. That is what stops a slow network from turning one ape into two.
 
 ## Settings
 
@@ -43,9 +45,10 @@ On the site's Vercel project, Settings → Environment Variables, for Production
 - `SPOT_WARN_CAP_USDC`: the most a warned coin can be bought for (default 50).
 - `JUPITER_RPS`: the Jupiter plan's requests per second. With a key it defaults to 1, the free plan, and calls queue a second apart, so a sniff (three calls) takes two to three seconds. Set 10 on Developer, and so on.
 - `SPOT_TRADING`: `1` opens `/api/order` and `/api/execute`. Leave it unset until the fee, the wallet and the legal read are settled.
+- `SPOT_TRADING_WALLETS`: with `SPOT_TRADING=1`, only these wallets (addresses, comma separated) get an order; everyone else hears `trading_closed`. For testing with real money on the team's wallets, on the real deployment. `/api/health` then says `trading: "testing"`.
 - `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`, `JUPITER_ORDER_PATH`, `JUPITER_EXECUTE_PATH`: overrides, rarely needed.
 
-After a deploy, `/api/health` says which host and quote path it chose, whether an RPC is set (`custom`) and whether trading is open; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
+After a deploy, `/api/health` says which host and quote path it chose, whether an RPC is set (`custom`) and whether trading is `closed`, `testing` or `open`; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
 
 ## `POST /api/resolve`
 
