@@ -4,9 +4,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorLine, executeOrder, placeOrder, sniffCoin } from "../api";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Button, CoinFace, Pill, Toggle, tap, useToast } from "../components/ui";
+import { Bell, Button, CoinFace, Pill, Toggle, tap, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
-import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, count, pct, price, shareOf, sourceLine, usd } from "../logic";
+import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, pct, price, shareOf, sourceLine, usd } from "../logic";
 import type { RootParams } from "../navigation";
 import { useStore } from "../store";
 import { color, font } from "../theme";
@@ -117,7 +117,7 @@ export function CoinScreen({ navigation, route }: Props) {
   function toggleWatch() {
     tap();
     store.toggleWatch(coin);
-    toast(watched ? `Stopped watching $${coin.symbol}.` : `Watching $${coin.symbol}. Find it in Alerts.`);
+    toast(watched ? `Stopped watching $${coin.symbol}.` : `Spot will bark if $${coin.symbol} turns. It's in Alerts.`);
   }
 
   async function trade() {
@@ -154,7 +154,7 @@ export function CoinScreen({ navigation, route }: Props) {
       forgetHoldings(wallet.address);
       void bag.refresh();
       const text = buying
-        ? `Aped $${amount} of $${coin.symbol}${tp ? " · sells half at 2x" : ""}`
+        ? `Aped $${amount} of $${coin.symbol}${tp ? ". Half sells at 2x" : ""}`
         : `Sold ${sellPct === 100 ? "all" : `${sellPct}%`} of $${coin.symbol}`;
       store.addActivity({ kind: buying ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature: landed.value.signature });
       if (buying && tp && !watched) store.toggleWatch(coin);
@@ -176,8 +176,8 @@ export function CoinScreen({ navigation, route }: Props) {
           <Text style={styles.source} numberOfLines={1}>
             {source && share ? sourceLine(source, share) : ""}
           </Text>
-          <Pressable onPress={toggleWatch} hitSlop={10} accessibilityRole="button" accessibilityLabel={watched ? "Stop watching" : "Watch this coin"}>
-            <Text style={[styles.star, watched && styles.starOn]}>{watched ? "★" : "☆"}</Text>
+          <Pressable onPress={toggleWatch} hitSlop={12} accessibilityRole="button" accessibilityLabel={watched ? "Stop watching" : "Watch this coin"}>
+            <Bell on={watched} />
           </Pressable>
         </View>
 
@@ -200,9 +200,7 @@ export function CoinScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        <Text style={styles.stats}>
-          {usd(coin.mcapUsd)} mcap · {count(coin.holders)} holders
-        </Text>
+        {coin.mcapUsd !== null && <Text style={styles.stats}>{usd(coin.mcapUsd)} market cap</Text>}
         {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
         {others.length > 0 && (
           <Pressable
@@ -249,8 +247,8 @@ export function CoinScreen({ navigation, route }: Props) {
         {buying && canPickAmount && (
           <View style={styles.tp}>
             <View style={styles.tpText}>
-              <Text style={styles.tpTitle}>Sell half at 2x</Text>
-              <Text style={styles.tpNote}>Your ${amount} back when it doubles. The rest rides.</Text>
+              <Text style={styles.tpTitle}>Never round-trip a 2x</Text>
+              <Text style={styles.tpNote}>At 2x, Spot sells half: your ${amount} comes back and the rest rides free.</Text>
             </View>
             <Toggle value={tp} onChange={setTp} label="Sell half at 2x" />
           </View>
@@ -284,8 +282,6 @@ const styles = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", gap: 14, height: 44 },
   back: { fontFamily: font.bodyBold, fontSize: 26, color: color.white, marginTop: -3 },
   source: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, color: color.dim },
-  star: { fontSize: 26, color: color.faint },
-  starOn: { color: color.orange },
   coin: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 14 },
   coinText: { flex: 1, minWidth: 0 },
   symbolRow: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -306,7 +302,7 @@ const styles = StyleSheet.create({
   priceCol: { alignItems: "flex-end" },
   price: { fontFamily: font.displayBold, fontSize: 18, color: color.white },
   change: { marginTop: 2, fontFamily: font.bodyBold, fontSize: 14 },
-  stats: { marginTop: 14, fontFamily: font.mono, fontSize: 13, color: color.faint },
+  stats: { marginTop: 12, fontFamily: font.bodySemi, fontSize: 14, color: color.faint },
   restricted: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 14, color: "#ffb08a" },
   notThis: { marginTop: 10, fontFamily: font.bodySemi, fontSize: 15, color: color.orange },
   side: {

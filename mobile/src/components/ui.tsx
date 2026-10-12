@@ -1,8 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Children, Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { SvgXml } from "react-native-svg";
+import Svg, { Path, SvgXml } from "react-native-svg";
 import { ICON_SVG, WORDMARK_SVG } from "../art";
 import { color, font, tone } from "../theme";
 import type { Status } from "../types";
@@ -22,6 +22,18 @@ export const tap = () => {
 
 export const thud = () => {
   if (haptics && Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+};
+
+/** The verdict, felt: a success tap for clean, a warning for GRRR, an error buzz for NOPE. */
+export const feel = (kind: "success" | "warning" | "error") => {
+  if (!haptics || Platform.OS === "web") return;
+  const type =
+    kind === "success"
+      ? Haptics.NotificationFeedbackType.Success
+      : kind === "warning"
+        ? Haptics.NotificationFeedbackType.Warning
+        : Haptics.NotificationFeedbackType.Error;
+  Haptics.notificationAsync(type).catch(() => {});
 };
 
 export function Wordmark({ width = 76 }: { width?: number }) {
@@ -223,17 +235,9 @@ const styles = StyleSheet.create({
   topBack: { fontFamily: font.bodyBold, fontSize: 26, color: color.white, marginTop: -3 },
   topTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, color: color.dim },
   title: { marginTop: 6, fontFamily: font.display, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: color.white },
-  section: {
-    marginTop: 30,
-    marginBottom: 10,
-    fontFamily: font.mono,
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    color: color.faint,
-  },
+  section: { marginTop: 32, marginBottom: 10, marginLeft: 4, fontFamily: font.bodySemi, fontSize: 15, color: color.faint },
   card: { padding: 16, borderRadius: 20, backgroundColor: color.ink2, borderWidth: 1, borderColor: color.line },
-  settingRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderColor: color.line },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 14, paddingHorizontal: 16 },
   settingText: { flex: 1 },
   settingTitle: { fontFamily: font.bodyBold, fontSize: 16, color: color.white },
   settingNote: { marginTop: 2, fontFamily: font.body, fontSize: 13.5, lineHeight: 18, color: color.faint },
@@ -312,5 +316,110 @@ export function Pill({ label, on, onPress, disabled }: { label: string; on?: boo
     >
       <Text style={[styles.pillText, on && styles.pillTextOn]}>{label}</Text>
     </Pressable>
+  );
+}
+
+/* ---- grouped lists ----
+   A list is one surface with hairlines between its rows, the way a phone's
+   own settings read; a card per row would make every line shout. */
+
+export function Group({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const rows = Children.toArray(children).filter(Boolean);
+  return (
+    <View style={[group.wrap, style]}>
+      {rows.map((row, i) => (
+        <Fragment key={i}>
+          {i > 0 ? <View style={group.hairline} /> : null}
+          {row}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+/** One line of a group: something on the left, a title and a line under it, something on the right. */
+export function Row({
+  left,
+  title,
+  subtitle,
+  right,
+  onPress,
+  chevron,
+  label,
+}: {
+  left?: ReactNode;
+  title: string;
+  subtitle?: string | null;
+  right?: ReactNode;
+  onPress?: () => void;
+  chevron?: boolean;
+  label?: string;
+}) {
+  const body = (
+    <>
+      {left}
+      <View style={group.text}>
+        <Text style={group.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={group.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {right}
+      {chevron ? <Chevron /> : null}
+    </>
+  );
+  if (!onPress) return <View style={group.row}>{body}</View>;
+  return (
+    <Pressable
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      style={({ pressed }) => [group.row, pressed && group.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={label ?? title}
+    >
+      {body}
+    </Pressable>
+  );
+}
+
+const group = StyleSheet.create({
+  wrap: { borderRadius: 20, backgroundColor: color.ink2, overflow: "hidden" },
+  hairline: { height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: color.line },
+  row: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 12, paddingHorizontal: 16 },
+  pressed: { backgroundColor: color.ink3 },
+  text: { flex: 1, minWidth: 0 },
+  title: { fontFamily: font.bodyBold, fontSize: 16, color: color.white },
+  subtitle: { marginTop: 2, fontFamily: font.body, fontSize: 14, color: color.faint },
+});
+
+/* ---- icons, drawn on one 24-unit grid with one stroke ---- */
+
+function Glyph({ d, size = 20, tint = color.faint, fill = "none" }: { d: string; size?: number; tint?: string; fill?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={tint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d={d} />
+    </Svg>
+  );
+}
+
+export const Chevron = ({ tint }: { tint?: string }) => <Glyph d="M9 6l6 6-6 6" size={18} tint={tint} />;
+
+export const OutIcon = ({ tint }: { tint?: string }) => <Glyph d="M8 16L16 8M9.5 8H16v6.5" size={18} tint={tint} />;
+
+/** The bell on a coin: outlined when Spot isn't watching it, filled orange when it is. */
+export function Bell({ on }: { on: boolean }) {
+  return (
+    <Glyph
+      d="M18 16.5V11a6 6 0 0 0-12 0v5.5L4.5 18h15L18 16.5zM10 20.5a2 2 0 0 0 4 0"
+      size={26}
+      tint={on ? color.orange : color.dim}
+      fill={on ? color.orange : "none"}
+    />
   );
 }

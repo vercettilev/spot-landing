@@ -54,7 +54,7 @@ export function Chooser({
               {c.token.name}
             </Text>
             <Text style={styles.stats}>
-              {usd(c.token.mcapUsd)} mcap · {count(c.token.holders)} holders
+              {usd(c.token.mcapUsd)} market cap, {count(c.token.holders)} holders
             </Text>
           </View>
         </Pressable>
@@ -98,6 +98,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   name: { marginTop: 1, fontFamily: font.body, fontSize: 14.5, color: color.dim },
-  stats: { marginTop: 6, fontFamily: font.mono, fontSize: 12, color: color.faint },
+  stats: { marginTop: 6, fontFamily: font.bodySemi, fontSize: 13, color: color.faint },
   foot: { marginTop: 10, fontFamily: font.body, fontSize: 14, lineHeight: 20, color: color.faint },
 });
