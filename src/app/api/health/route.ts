@@ -10,7 +10,7 @@ export function GET() {
   const jup = jupiterConfig(env);
   return json({
     ok: true,
-    jupiter: { host: new URL(jup.base).host, quote: jup.quotePath, key: Boolean(jup.apiKey) },
+    jupiter: { host: new URL(jup.base).host, quote: jup.quotePath, key: Boolean(jup.apiKey), rps: jup.rps },
     rpc: env.SOLANA_RPC_URL?.trim() ? "custom" : "public",
     commit: env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
   });

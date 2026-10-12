@@ -36,6 +36,8 @@ export interface JupiterConfig {
   base: string;
   quotePath: string;
   apiKey: string | undefined;
+  /** The plan's requests per second, or 0 to send as fast as asked. */
+  rps: number;
 }
 
 /**
@@ -49,15 +51,67 @@ export function jupiterConfig(env: Record<string, string | undefined>): JupiterC
   const apiKey = env.JUPITER_API_KEY?.trim() || undefined;
   const base = (env.JUPITER_BASE_URL?.trim() || (apiKey ? JUP_KEYED_BASE : JUP_LITE_BASE)).replace(/\/+$/, "");
   const quotePath = env.JUPITER_QUOTE_PATH?.trim() || (apiKey ? "/swap/v2/order" : "/swap/v1/quote");
-  return { base, quotePath, apiKey };
+  /* A key on Jupiter's free plan buys one request a second, and a sniff
+     makes three. Paced, they queue a second apart; unpaced, two of the
+     three come back 429 and the sniff can only say "try again". Set
+     JUPITER_RPS to the plan's rate when it changes (10 on Developer). */
+  const asked = Number(env.JUPITER_RPS);
+  const rps = env.JUPITER_RPS?.trim() && Number.isFinite(asked) && asked >= 0 ? asked : apiKey ? 1 : 0;
+  return { base, quotePath, apiKey, rps };
 }
 
-export function makeSearch(cfg: JupiterConfig, fetchFn?: Fetch): UltraSearchClient {
-  return new HttpUltraSearchClient({
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Turns for Jupiter, one instance's worth: each call starts at least
+ * 1/rps seconds after the one before it. Search and quotes share one
+ * pacer, because the plan's limit is the key's, not the endpoint's.
+ */
+export function makePacer(rps: number): () => Promise<void> {
+  if (!(rps > 0)) return async () => {};
+  const gap = 1000 / rps;
+  let next = 0;
+  return async () => {
+    const now = Date.now();
+    const at = Math.max(now, next);
+    next = at + gap;
+    if (at > now) await sleep(at - now);
+  };
+}
+
+/** Ultra search, paced, with one more paced try when Jupiter says 429. */
+export function makeSearch(
+  cfg: JupiterConfig,
+  opts: { fetchFn?: Fetch; pace?: () => Promise<void>; retryAfterMs?: number } = {},
+): UltraSearchClient {
+  const inner = new HttpUltraSearchClient({
     base: cfg.base,
     apiKey: cfg.apiKey,
-    ...(fetchFn ? { fetchFn } : {}),
+    ...(opts.fetchFn ? { fetchFn: opts.fetchFn } : {}),
   });
+  const pace = opts.pace ?? (async () => {});
+  return {
+    async search(query, callOpts) {
+      await pace();
+      const first = await inner.search(query, callOpts);
+      if (first.ok || first.reason !== "rate_limited") return first;
+      await sleep(opts.retryAfterMs ?? 1_000);
+      await pace();
+      return inner.search(query, callOpts);
+    },
+  };
+}
+
+/** How long a 429 asks to wait: Retry-After, else the window's reset, capped. */
+export function waitAfter429(headers: Headers, now = Date.now()): number {
+  const cap = (ms: number) => Math.min(Math.max(ms, 0), 1_500);
+  const after = headers.get("retry-after");
+  if (after !== null && after.trim() !== "" && Number.isFinite(Number(after))) return cap(Number(after) * 1000);
+  const reset = Number(headers.get("x-ratelimit-reset"));
+  if (headers.get("x-ratelimit-reset") && Number.isFinite(reset) && reset > 0) {
+    return cap(reset > 1e9 ? reset * 1000 - now : reset * 1000);
+  }
+  return 1_000;
 }
 
 export interface QuoteRequest {
@@ -87,18 +141,35 @@ export type Quoter = (q: QuoteRequest) => Promise<Outcome<Quote, QuoteFailure>>;
 const NO_ROUTE =
   /COULD_NOT_FIND_ANY_ROUTE|NO_ROUTES_FOUND|TOKEN_NOT_TRADABLE|ROUTE_PLAN_DOES_NOT_CONSUME_ALL_THE_AMOUNT|no routes? found|could not find any route|not tradable/i;
 
-export function makeQuoter(cfg: JupiterConfig, opts: { fetchFn?: Fetch; timeoutMs?: number } = {}): Quoter {
+export function makeQuoter(
+  cfg: JupiterConfig,
+  opts: { fetchFn?: Fetch; timeoutMs?: number; pace?: () => Promise<void> } = {},
+): Quoter {
   const fetchFn = bindFetch(opts.fetchFn ?? fetch);
   const timeoutMs = opts.timeoutMs ?? 2_500;
+  const pace = opts.pace ?? (async () => {});
   const v1 = cfg.quotePath.includes("/quote");
 
   return async ({ inputMint, outputMint, amount }) => {
     const qs = new URLSearchParams({ inputMint, outputMint, amount });
     if (v1) qs.set("slippageBps", "300");
-    const res = await fetchText(fetchFn, `${cfg.base}${cfg.quotePath}?${qs}`, {
-      timeoutMs,
-      headers: { accept: "application/json", ...(cfg.apiKey ? { "x-api-key": cfg.apiKey } : {}) },
-    });
+    const url = `${cfg.base}${cfg.quotePath}?${qs}`;
+    const headers = { accept: "application/json", ...(cfg.apiKey ? { "x-api-key": cfg.apiKey } : {}) };
+
+    /* One more try after a 429, if the wait it asks for still fits the
+       call's own clock; a quote that cannot arrive in time is not worth
+       waiting for. */
+    await pace();
+    const started = Date.now();
+    let res = await fetchText(fetchFn, url, { timeoutMs, headers });
+    if (res.ok && res.value.status === 429) {
+      const wait = waitAfter429(res.value.headers);
+      const left = timeoutMs - (Date.now() - started) - wait;
+      if (left < 500) return { ok: false, reason: "rate_limited" };
+      await sleep(wait);
+      await pace();
+      res = await fetchText(fetchFn, url, { timeoutMs: left, headers });
+    }
     if (!res.ok) return res;
     const { status, text } = res.value;
     if (status === 429) return { ok: false, reason: "rate_limited" };

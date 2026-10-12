@@ -33,6 +33,7 @@ On the site's Vercel project, Settings → Environment Variables, for Production
 - `SOLANA_RPC_URL`: a Helius, Triton or QuickNode endpoint. The public one rate-limits hard, and when the chain does not answer for a Token-2022 coin the sniff waits rather than guess (see below).
 - `SPOT_GATE_MIN_LIQUIDITY_USD`, `SPOT_GATE_MIN_HOLDERS`, `SPOT_GATE_MIN_POOL_AGE_HOURS`: where the warn line sits (defaults $7,500, 150, 2 hours).
 - `SPOT_WARN_CAP_USDC`: the most a warned coin can be bought for (default 50).
+- `JUPITER_RPS`: the Jupiter plan's requests per second. With a key it defaults to 1, the free plan, and calls queue a second apart, so a sniff (three calls) takes two to three seconds. Set 10 on Developer, and so on.
 - `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`: overrides, rarely needed.
 
 After a deploy, `/api/health` says which host and quote path it chose; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
@@ -109,6 +110,6 @@ The floors are spot-core's, calibrated on live mints in August 2026 to tell esta
 ## Things to know
 
 - Not yet run against the live upstreams. The specs fake every upstream, and the built server was run end to end against a stand-in for Jupiter and the RPC. The shapes come from spot-core's live measurements (Ultra search, quotes, through September 2026) and Jupiter's docs (Swap V2 `/order`, routing error codes, Tokens V2 `audit` flags); the first deploy should be checked against a handful of known coins, a known honeypot and a Token-2022 coin.
-- `/api/sniff` makes four upstream calls (search, mint, buy quote, sell quote), three of them at once. Without a key it runs on `lite-api.jup.ag` for as long as Jupiter keeps it up; Jupiter's keyless tier on `api.jup.ag` allows about 0.5 requests a second, which a few sniffs outrun.
+- `/api/sniff` makes four upstream calls (search, mint, buy quote, sell quote), three of them at once when the plan allows. Jupiter calls share one pacer per instance, and a 429 gets one more try at the time Jupiter names. Without a key it runs on `lite-api.jup.ag` for as long as Jupiter keeps it up; Jupiter's keyless tier on `api.jup.ag` allows about 0.5 requests a second, which a few sniffs outrun.
 - The limiters bound one function instance (30 resolves and 60 sniffs a minute per IP). For a fleet-wide limit, add a Vercel Firewall rate-limit rule on `/api/*`.
 - No keys, cookies or wallets here: everything the engine reads is public. Swaps, signing and take profit move money and hold a fee payer's key, so they get their own private backend rather than a home in the site.

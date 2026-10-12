@@ -1,7 +1,7 @@
 import { thresholdsFromEnv } from "@/core/safety/open-mint-gate";
 import { PUBLIC_RPC, makeMintReader } from "./chain";
 import { makePairLookup } from "./dexscreener";
-import { jupiterConfig, makeQuoter, makeSearch } from "./jupiter";
+import { jupiterConfig, makePacer, makeQuoter, makeSearch } from "./jupiter";
 import { makeExpander, makePostReader } from "./posts";
 import type { ResolveDeps } from "./resolve";
 import { DEFAULT_POLICY, type Policy, type SniffDeps } from "./sniff";
@@ -16,9 +16,10 @@ function warnCap(raw: string | undefined): number {
 
 export function depsFromEnv(env: Record<string, string | undefined> = process.env): Deps {
   const jup = jupiterConfig(env);
+  const pace = makePacer(jup.rps);
   return {
-    search: makeSearch(jup),
-    quote: makeQuoter(jup),
+    search: makeSearch(jup, { pace }),
+    quote: makeQuoter(jup, { pace }),
     readMint: makeMintReader(env.SOLANA_RPC_URL?.trim() || PUBLIC_RPC),
     readPost: makePostReader(),
     expand: makeExpander(),
