@@ -1,0 +1,62 @@
+# The Android app's APK, built on every push that touches mobile/.
+#
+# Release mode with the debug key Expo's template signs with: installable on
+# any phone that allows installs from outside a store, and not the key a
+# store listing will use. arm64 only, which is every phone Spot targets
+# (Solana Seeker included) and a third of the build time.
+name: Android APK
+
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+
+      # android/ is generated, never committed (Continuous Native Generation).
+      - run: npx expo prebuild --platform android --no-install
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+
+      - name: Name it
+        run: cp android/app/build/outputs/apk/release/app-release.apk "spot-$(node -p "require('./package.json').version")-${GITHUB_SHA::7}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spot-android
+          path: mobile/spot-*.apk
+          if-no-files-found: error
+          retention-days: 30
