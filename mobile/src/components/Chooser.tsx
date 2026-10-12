@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { count, usd, viaLine } from "../logic";
+import { count, usd } from "../logic";
 import { color, font } from "../theme";
 import type { Candidate } from "../types";
 import { CoinFace, tap } from "./ui";
@@ -54,13 +54,12 @@ export function Chooser({
               {c.token.name}
             </Text>
             <Text style={styles.stats}>
-              MC {usd(c.token.mcapUsd)} · Liq {usd(c.token.liquidityUsd)} · {count(c.token.holders)} holders
+              {usd(c.token.mcapUsd)} mcap · {count(c.token.holders)} holders
             </Text>
           </View>
-          <Text style={styles.via}>{viaLine(c.via)}</Text>
         </Pressable>
       ))}
-      <Text style={styles.foot}>Same name, different coin: check the CA in the post when you can.</Text>
+      <Text style={styles.foot}>Same name, different coins. If the post shows a CA, that one is the real one.</Text>
     </ScrollView>
   );
 }
@@ -100,6 +99,5 @@ const styles = StyleSheet.create({
   },
   name: { marginTop: 1, fontFamily: font.body, fontSize: 14.5, color: color.dim },
   stats: { marginTop: 6, fontFamily: font.mono, fontSize: 12, color: color.faint },
-  via: { maxWidth: 84, textAlign: "right", fontFamily: font.bodySemi, fontSize: 12.5, color: color.faint },
   foot: { marginTop: 10, fontFamily: font.body, fontSize: 14, lineHeight: 20, color: color.faint },
 });

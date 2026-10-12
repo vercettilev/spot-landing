@@ -51,17 +51,17 @@ describe("a clean coin", () => {
   it("answers the landing's four questions, and the size ones", () => {
     expect(answers(s)).toEqual({
       honeypot: "No (good)",
-      freeze: "Yes (good)",
-      mint: "Yes (good)",
-      liquidity: "Yes (good)",
-      holders: "Yes (good)",
+      freeze: "No (good)",
+      mint: "No (good)",
+      liquidity: "$250.0k (good)",
+      holders: "12k (good)",
       age: "30 days (good)",
     });
   });
 
   it("prices the round trip", () => {
     expect(s.roundTrip).toEqual({ inUsdc: 25, outUsdc: 24.5, lossPct: 2 });
-    expect(check(s, "honeypot")?.note).toBe("Round trip −2%.");
+    expect(check(s, "honeypot")?.note).toBeNull();
   });
 });
 
@@ -73,26 +73,26 @@ describe("a fresh coin", () => {
     expect(s.checks.some((c) => c.blocks && c.status === "bad")).toBe(false);
   });
 
-  it("says why in CT", () => {
+  it("says why in plain CT", () => {
     expect(answers(s)).toMatchObject({
       liquidity: "Only $4.2k (warn)",
       holders: "Only 38 (warn)",
       age: "12 min (warn)",
     });
-    expect(check(s, "age")?.note).toBe("Fresh launch.");
+    expect(check(s, "age")?.note).toBe("Just launched.");
   });
 
   it("is capped at 2% of its pool, never above the warn cap", () => {
     expect(s.maxBuyUsdc).toBe(50);
     expect(judge(facts(fresh(COIN_A, { liquidity: 900 }))).maxBuyUsdc).toBe(18);
     expect(judge(facts(fresh(COIN_A, { liquidity: 20 }))).maxBuyUsdc).toBe(1);
-    expect(s.headline).toBe("GRRR. Ape small: 50 USDC max.");
+    expect(s.headline).toBe("GRRR. Risky. Ape $50 max.");
   });
 
   it("with a dev who can still mint is a growl, not a wall", () => {
     const m = judge(facts(fresh(COIN_A), { mint: { mintAuthority: "Dev111" } }));
     expect(m.level).toBe("warn");
-    expect(check(m, "mint")).toMatchObject({ answer: "No", status: "warn", blocks: false, note: "Dev can still print more." });
+    expect(check(m, "mint")).toMatchObject({ answer: "Yes", status: "warn", blocks: false, note: "New coins can be printed and dumped on you." });
   });
 });
 
@@ -108,26 +108,27 @@ describe("what blocks", () => {
   it("a way out that hands back less than half", () => {
     const s = judge(facts(token(COIN_A), { back: 9 }));
     expect(s.level).toBe("block");
-    expect(check(s, "honeypot")?.note).toBe("Selling straight back returns only 36%.");
+    expect(check(s, "honeypot")?.note).toBe("Sell right after buying and you get only 36% back.");
   });
 
   it("a live freeze key, read from the chain", () => {
     const s = judge(facts(token(COIN_A), { mint: { freezeAuthority: "Dev111" } }));
     expect(s.level).toBe("block");
-    expect(s.headline).toBe("Dev can freeze your bag. Spot won't buy it.");
+    expect(s.headline).toBe("Dev can freeze it. Spot won't buy it.");
+    expect(check(s, "freeze")).toMatchObject({ label: "Dev can freeze it?", answer: "Yes", note: "The dev can lock your coins so you can't sell." });
   });
 
   it("a live freeze key, from Ultra when the chain did not answer", () => {
     const s = judge(facts(token(COIN_A, { freezeAuthority: "Dev111" }), { chain: { ok: false, reason: "timeout" } }));
-    expect(check(s, "freeze")).toMatchObject({ answer: "No", status: "bad", blocks: true });
+    expect(check(s, "freeze")).toMatchObject({ answer: "Yes", status: "bad", blocks: true });
   });
 
   it("a pause switch, a paused token, accounts that start frozen", () => {
     expect(check(judge(facts(token(COIN_A), { mint: { pause: { authority: "P111", paused: false } } })), "freeze")?.note).toBe(
-      "Dev can pause every transfer.",
+      "The dev can stop all trading.",
     );
     expect(judge(facts(token(COIN_A), { mint: { pause: { authority: null, paused: true } } })).headline).toBe(
-      "Transfers are paused right now. Spot won't buy it.",
+      "Dev can freeze it. Spot won't buy it.",
     );
     expect(judge(facts(token(COIN_A), { mint: { startsFrozen: true } })).level).toBe("block");
   });
@@ -135,24 +136,24 @@ describe("what blocks", () => {
   it("a permanent delegate", () => {
     const s = judge(facts(token(COIN_A), { mint: { program: "token-2022", permanentDelegate: "Del111" } }));
     expect(s.level).toBe("block");
-    expect(s.headline).toBe("Dev can take your bag. Spot won't buy it.");
+    expect(s.headline).toBe("Dev can take your coins. Spot won't buy it.");
   });
 
   it("a token that cannot move", () => {
     const s = judge(facts(token(COIN_A), { mint: { program: "token-2022", nonTransferable: true } }));
-    expect(check(s, "honeypot")).toMatchObject({ answer: "Yes", status: "bad", note: "This token can't be moved, so it can't be sold." });
+    expect(check(s, "honeypot")).toMatchObject({ answer: "Yes", status: "bad", note: "This coin can't be sent, so it can't be sold." });
   });
 
   it("a tax of half or more", () => {
     const s = judge(facts(token(COIN_A), { mint: { program: "token-2022", transferFeeBps: 6_000 } }));
     expect(s.level).toBe("block");
-    expect(s.headline).toBe("The tax eats the bag. Spot won't buy it.");
+    expect(s.headline).toBe("The tax eats your bag. Spot won't buy it.");
   });
 
   it("no route in at all", () => {
     const s = judge(facts(token(COIN_A), { buy: { ok: false, reason: "no_route" }, sell: null }));
     expect(s.level).toBe("block");
-    expect(s.headline).toBe("No route to buy this right now.");
+    expect(s.headline).toBe("Can't buy this one right now.");
     expect(check(s, "honeypot")).toMatchObject({ status: "unknown", blocks: false });
   });
 });
@@ -161,13 +162,13 @@ describe("what only growls", () => {
   it("a thin exit", () => {
     const s = judge(facts(token(COIN_A), { back: 20 }));
     expect(s.level).toBe("warn");
-    expect(check(s, "honeypot")).toMatchObject({ answer: "Exit −20%", status: "warn", blocks: false });
+    expect(check(s, "honeypot")).toMatchObject({ answer: "Kinda", status: "warn", blocks: false, note: "Sell right after buying and you lose 20%." });
   });
 
   it("a small transfer tax, and a transfer hook", () => {
     const s = judge(facts(token(COIN_A), { mint: { program: "token-2022", transferFeeBps: 300, transferHook: "Hook111" } }));
     expect(s.level).toBe("warn");
-    expect(answers(s)).toMatchObject({ tax: "3% (warn)", hook: "Yes (warn)" });
+    expect(answers(s)).toMatchObject({ tax: "3% (warn)", hook: "Maybe (warn)" });
   });
 
   it("Jupiter's own flag", () => {
@@ -178,7 +179,7 @@ describe("what only growls", () => {
     const big = token(COIN_A, { liquidity: 3_000_000, holderCount: 70_000, isVerified: true, organicScoreLabel: "high" });
     const s = judge(facts(big, { mint: { mintAuthority: "Bridge111" } }));
     expect(s.level).toBe("ok");
-    expect(check(s, "mint")).toMatchObject({ status: "info", note: "Big, old and verified: likely a bridge or a DAO." });
+    expect(check(s, "mint")).toMatchObject({ status: "info", note: "Normal for a big, old, verified coin." });
   });
 });
 
@@ -225,7 +226,7 @@ describe("an issued asset", () => {
 
   it("keeps its issuer's keys without a growl, shown as what they are", () => {
     expect(s.level).toBe("ok");
-    expect(answers(s)).toMatchObject({ freeze: "No (info)", delegate: "Issuer (info)", mint: "No (info)", liquidity: "Only $1.2k (info)" });
+    expect(answers(s)).toMatchObject({ freeze: "Issuer (info)", delegate: "Issuer (info)", mint: "Issuer (info)", liquidity: "Only $1.2k (info)" });
   });
 
   it("carries its issuer and who may not hold it", () => {

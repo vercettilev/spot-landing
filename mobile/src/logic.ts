@@ -1,4 +1,4 @@
-import type { Check, CheckId, Level, Platform, Share, Source, Via } from "./types";
+import type { Check, CheckId, Level, Platform, Share, Source } from "./types";
 
 /**
  * The decisions behind the screen, kept free of React Native so they can be
@@ -125,19 +125,8 @@ export function sourceLine(source: Source, share: Share): string {
       /* fall through */
     }
   }
-  return share.from === "paste" ? "from your paste" : "from your share";
+  return share.from === "paste" ? "from your paste" : share.from === "screenshot" ? "from your screenshot" : "from your share";
 }
-
-const VIA: Record<Via, string> = {
-  link: "the link's coin",
-  post: "named in the post",
-  text: "CA in the share",
-  pair: "the pool's coin",
-  cashtag: "cashtag",
-  name: "named in words",
-};
-
-export const viaLine = (via: Via) => VIA[via];
 
 export interface Action {
   label: string;
@@ -146,18 +135,17 @@ export interface Action {
 }
 
 /**
- * The one button. No wallet yet, so "Ape" says what it would do and the
- * line under it says why it cannot today; a blocked coin never gets a
- * button that looks pressable.
+ * The one button, in dollars (USDC is a dollar): "Ape $25". A blocked coin
+ * never gets a button that looks pressable.
  */
 export function actionFor(state: "loading" | "error" | Level, amount: number): Action {
   switch (state) {
     case "loading":
       return { label: "Sniffing…", enabled: false, tone: "wait" };
     case "ok":
-      return { label: `Ape ${amount} USDC`, enabled: true, tone: "go" };
+      return { label: `Ape $${amount}`, enabled: true, tone: "go" };
     case "warn":
-      return { label: `GRRR. Ape ${amount} USDC`, enabled: true, tone: "growl" };
+      return { label: `GRRR. Ape $${amount}`, enabled: true, tone: "growl" };
     case "block":
       return { label: "Spot won't buy this", enabled: false, tone: "stop" };
     default:

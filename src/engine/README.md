@@ -81,21 +81,23 @@ Body `{ "url"?: string, "text"?: string }`, exactly as the share sheet handed th
   "ok": true,
   "mint": "…",
   "level": "warn",
-  "headline": "GRRR. Ape small: 50 USDC max.",
+  "headline": "GRRR. Risky. Ape $50 max.",
   "token": { "…": "the same card resolve returns" },
   "checks": [
-    { "id": "honeypot", "label": "Honeypot?", "answer": "No", "status": "good", "blocks": false, "note": "Round trip −3%.", "observed": 0.03, "threshold": 0.5 },
-    { "id": "freeze", "label": "Freeze revoked?", "answer": "Yes", "status": "good", "blocks": false, "note": null, "observed": null, "threshold": null },
-    { "id": "mint", "label": "Mint revoked?", "answer": "Yes", "status": "good", "blocks": false, "note": null, "observed": null, "threshold": null },
-    { "id": "liquidity", "label": "Enough liquidity?", "answer": "Only $4.2k", "status": "warn", "blocks": false, "note": "Thin pool: a big buy moves the price.", "observed": 4200, "threshold": 7500 },
+    { "id": "honeypot", "label": "Honeypot?", "answer": "No", "status": "good", "blocks": false, "note": null, "observed": 0.03, "threshold": 0.5 },
+    { "id": "freeze", "label": "Dev can freeze it?", "answer": "No", "status": "good", "blocks": false, "note": null, "observed": null, "threshold": null },
+    { "id": "mint", "label": "Dev can print more?", "answer": "No", "status": "good", "blocks": false, "note": null, "observed": null, "threshold": null },
+    { "id": "liquidity", "label": "Big enough pool?", "answer": "Only $4.2k", "status": "warn", "blocks": false, "note": "Small pool: your buy moves the price.", "observed": 4200, "threshold": 7500 },
     { "id": "holders", "label": "Enough holders?", "answer": "Only 38", "status": "warn", "blocks": false, "note": null, "observed": 38, "threshold": 150 },
-    { "id": "age", "label": "How old?", "answer": "20 min", "status": "warn", "blocks": false, "note": "Fresh launch.", "observed": 1208434, "threshold": 7200000 }
+    { "id": "age", "label": "How old?", "answer": "20 min", "status": "warn", "blocks": false, "note": "Just launched.", "observed": 1208434, "threshold": 7200000 }
   ],
   "maxBuyUsdc": 50,
   "roundTrip": { "inUsdc": 25, "outUsdc": 24.25, "lossPct": 3 },
   "checkedAt": "2026-10-12T12:00:00.000Z"
 }
 ```
+
+Every question is asked so that "No" is the good answer, and every note says what it means for the bag in plain words.
 
 `level`: `ok` buy; `warn` GRRR, confirm twice, at most `maxBuyUsdc`; `block` Spot will not buy it; `unknown` a check that could block got no answer, so try again (never cached). `maxBuyUsdc` is `null` for no cap and `0` when the coin cannot be bought now. Errors: `400 invalid_mint | is_usdc | invalid_amount`, `404 not_found` (Jupiter has no record yet, often a coin minutes old) `| not_a_mint`, `429`, `503 lookup_failed`. Answers are shared through the CDN for 10 seconds.
 

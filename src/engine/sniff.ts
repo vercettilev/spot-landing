@@ -104,7 +104,8 @@ const pct = (share: number) => {
 const usd = (n: number) =>
   n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(1)}k` : `$${Math.round(n)}`;
 
-const count = (n: number) => n.toLocaleString("en-US");
+const count = (n: number) =>
+  n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}k` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(Math.round(n));
 
 export function age(ms: number): string {
   const min = Math.floor(ms / 60_000);
@@ -115,11 +116,14 @@ export function age(ms: number): string {
   return d < 730 ? `${d} days` : `${Math.floor(d / 365)} yrs`;
 }
 
+/* Every question is asked so that "No" is the good answer, and every note
+   says what it means for the bag in words a first-time ape follows. */
 const BLOCK_HEADLINE: Partial<Record<CheckId, string>> = {
-  route: "No route to buy this right now.",
+  route: "Can't buy this one right now.",
   honeypot: "Honeypot. Spot won't buy it.",
-  delegate: "Dev can take your bag. Spot won't buy it.",
-  tax: "The tax eats the bag. Spot won't buy it.",
+  freeze: "Dev can freeze it. Spot won't buy it.",
+  delegate: "Dev can take your coins. Spot won't buy it.",
+  tax: "The tax eats your bag. Spot won't buy it.",
 };
 
 export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
@@ -134,19 +138,19 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   /* ---- the way in, and the way out ---- */
   let roundTrip: Sniff["roundTrip"] = null;
   if (!f.buy.ok && f.buy.reason === "no_route") {
-    add({ id: "route", label: "Can Spot buy it?", answer: "No route", status: "bad", blocks: true, note: "No route from USDC to this coin right now.", observed: "no_route" });
+    add({ id: "route", label: "Can you buy it?", answer: "Not now", status: "bad", blocks: true, note: "There's no way to buy it with USDC right now.", observed: "no_route" });
   }
   const honeypot = (answer: string, status: Status, blocks: boolean, note: string | null, observed: Check["observed"]) =>
     add({ id: "honeypot", label: "Honeypot?", answer, status, blocks, note, observed, threshold: policy.honeypotLoss });
   if (chain?.nonTransferable) {
-    honeypot("Yes", "bad", true, "This token can't be moved, so it can't be sold.", "non_transferable");
+    honeypot("Yes", "bad", true, "This coin can't be sent, so it can't be sold.", "non_transferable");
   } else if (!f.buy.ok) {
     const noWayIn = f.buy.reason === "no_route";
-    honeypot("?", "unknown", !noWayIn, noWayIn ? "No way in, so no way out to test." : "Couldn't check the exit. Try again.", f.buy.reason);
+    honeypot("?", "unknown", !noWayIn, noWayIn ? "Can't buy it, so selling couldn't be tested." : "Couldn't test selling it. Try again.", f.buy.reason);
   } else if (!f.sell?.ok) {
     const reason = f.sell?.reason ?? "not_asked";
-    if (reason === "no_route") honeypot("Yes", "bad", true, "No route to sell it back to USDC.", "no_route");
-    else honeypot("?", "unknown", true, "Couldn't check the exit. Try again.", reason);
+    if (reason === "no_route") honeypot("Yes", "bad", true, "There's no way to sell it.", "no_route");
+    else honeypot("?", "unknown", true, "Couldn't test selling it. Try again.", reason);
   } else {
     const inRaw = Number(f.buy.value.inAmount);
     const outRaw = Number(f.sell.value.outAmount);
@@ -157,11 +161,11 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
       lossPct: Math.round(loss * 1000) / 10,
     };
     if (loss >= policy.honeypotLoss) {
-      honeypot("Yes", "bad", true, `Selling straight back returns only ${pct(1 - loss)}.`, loss);
+      honeypot("Yes", "bad", true, `Sell right after buying and you get only ${pct(1 - loss)} back.`, loss);
     } else if (loss >= policy.thinExitLoss) {
-      honeypot(`Exit −${pct(loss)}`, "warn", false, `Selling straight back loses ${pct(loss)}: a thin pool or a tax.`, loss);
+      honeypot("Kinda", "warn", false, `Sell right after buying and you lose ${pct(loss)}.`, loss);
     } else {
-      honeypot("No", "good", false, `Round trip −${pct(loss)}.`, loss);
+      honeypot("No", "good", false, null, loss);
     }
   }
 
@@ -172,13 +176,13 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   const freezeKey = chain ? chain.freezeAuthority : ultraAuthority(info, "freeze") === "retained" ? "retained" : null;
   const pauseKey = chain?.pause?.authority ?? null;
   const freeze = (answer: string, status: Status, blocks: boolean, note: string | null) =>
-    add({ id: "freeze", label: "Freeze revoked?", answer, status, blocks, note, observed: freezeKey ?? pauseKey });
-  if (chain?.pause?.paused) freeze("No", "bad", true, "Transfers are paused right now.");
-  else if (issued && (freezeKey || pauseKey)) freeze("No", "info", false, "The issuer keeps a freeze key, as tokenized assets do.");
-  else if (freezeKey) freeze("No", "bad", true, "Dev can freeze your bag.");
-  else if (pauseKey) freeze("No", "bad", true, "Dev can pause every transfer.");
-  else if (chain?.startsFrozen) freeze("No", "bad", true, "New holders start frozen.");
-  else freeze("Yes", "good", false, null);
+    add({ id: "freeze", label: "Dev can freeze it?", answer, status, blocks, note, observed: freezeKey ?? pauseKey });
+  if (chain?.pause?.paused) freeze("Yes", "bad", true, "Nobody can move this coin right now.");
+  else if (issued && (freezeKey || pauseKey)) freeze("Issuer", "info", false, "Normal for stock coins: the issuer can lock them.");
+  else if (freezeKey) freeze("Yes", "bad", true, "The dev can lock your coins so you can't sell.");
+  else if (pauseKey) freeze("Yes", "bad", true, "The dev can stop all trading.");
+  else if (chain?.startsFrozen) freeze("Yes", "bad", true, "New buyers get locked until the dev lets them out.");
+  else freeze("No", "good", false, null);
 
   /* A permanent delegate exists only on Token-2022. When the chain did not
      answer and the token is not known to be a classic SPL token, nobody
@@ -186,37 +190,37 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   if (chain?.permanentDelegate) {
     add(
       issued
-        ? { id: "delegate", label: "Can dev take it?", answer: "Issuer", status: "info", blocks: false, note: "The issuer can move holdings, as tokenized assets allow.", observed: chain.permanentDelegate }
-        : { id: "delegate", label: "Can dev take it?", answer: "Yes", status: "bad", blocks: true, note: "A permanent delegate can move or burn anyone's tokens.", observed: chain.permanentDelegate },
+        ? { id: "delegate", label: "Dev can take it?", answer: "Issuer", status: "info", blocks: false, note: "Normal for stock coins: the issuer can move them.", observed: chain.permanentDelegate }
+        : { id: "delegate", label: "Dev can take it?", answer: "Yes", status: "bad", blocks: true, note: "The dev can take or burn anyone's coins.", observed: chain.permanentDelegate },
     );
   } else if (!chain && info.tokenProgram !== TOKEN_PROGRAM && !issued) {
-    add({ id: "delegate", label: "Can dev take it?", answer: "?", status: "unknown", blocks: true, note: "Couldn't read this token's settings. Try again.", observed: f.chain.ok ? null : f.chain.reason });
+    add({ id: "delegate", label: "Dev can take it?", answer: "?", status: "unknown", blocks: true, note: "Couldn't read this coin's settings. Try again.", observed: f.chain.ok ? null : f.chain.reason });
   }
 
   const mintKey = chain ? chain.mintAuthority : ultraAuthority(info, "mint") === "retained" ? "retained" : null;
   const mint = (answer: string, status: Status, note: string | null) =>
-    add({ id: "mint", label: "Mint revoked?", answer, status, blocks: false, note, observed: mintKey });
-  if (!mintKey) mint("Yes", "good", null);
-  else if (issued) mint("No", "info", "The issuer mints it.");
-  else if (isEstablished(info)) mint("No", "info", "Big, old and verified: likely a bridge or a DAO.");
-  else mint("No", "warn", "Dev can still print more.");
+    add({ id: "mint", label: "Dev can print more?", answer, status, blocks: false, note, observed: mintKey });
+  if (!mintKey) mint("No", "good", null);
+  else if (issued) mint("Issuer", "info", "Normal for stock coins.");
+  else if (isEstablished(info)) mint("Yes", "info", "Normal for a big, old, verified coin.");
+  else mint("Yes", "warn", "New coins can be printed and dumped on you.");
 
   if (chain?.transferFeeBps) {
     const share = chain.transferFeeBps / 10_000;
     const ruinous = share >= policy.honeypotLoss;
     add({
       id: "tax",
-      label: "Transfer tax?",
+      label: "Tax on trades?",
       answer: pct(share),
       status: issued ? "info" : ruinous ? "bad" : "warn",
       blocks: ruinous && !issued,
-      note: ruinous ? "The tax takes half or more of every transfer." : `Every transfer pays ${pct(share)}.`,
+      note: ruinous ? "Half or more of every trade goes to tax." : `Every buy and sell pays ${pct(share)}.`,
       observed: chain.transferFeeBps,
       threshold: policy.honeypotLoss * 10_000,
     });
   }
   if (chain?.transferHook) {
-    add({ id: "hook", label: "Transfer hook?", answer: "Yes", status: issued ? "info" : "warn", blocks: false, note: "Custom code runs on every transfer and could stop a sell.", observed: chain.transferHook });
+    add({ id: "hook", label: "Can it block sells?", answer: "Maybe", status: issued ? "info" : "warn", blocks: false, note: "The coin runs its own code on every trade, which could stop a sell.", observed: chain.transferHook });
   }
 
   /* ---- size: only ever a growl ----
@@ -227,12 +231,12 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   const liq = num(info.liquidity);
   add({
     id: "liquidity",
-    label: "Enough liquidity?",
+    label: "Big enough pool?",
     ...(liq === undefined
       ? { answer: "?", status: issued ? "info" : "unknown", note: null }
       : liq >= t.minLiquidityUsd
-        ? { answer: "Yes", status: "good", note: null }
-        : { answer: `Only ${usd(liq)}`, status: small, note: "Thin pool: a big buy moves the price." }),
+        ? { answer: usd(liq), status: "good", note: null }
+        : { answer: `Only ${usd(liq)}`, status: small, note: "Small pool: your buy moves the price." }),
     blocks: false,
     observed: liq ?? null,
     threshold: t.minLiquidityUsd,
@@ -245,7 +249,7 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
     ...(holders === undefined
       ? { answer: "?", status: issued ? "info" : "unknown", note: null }
       : holders >= t.minHolderCount
-        ? { answer: "Yes", status: "good", note: null }
+        ? { answer: count(holders), status: "good", note: null }
         : { answer: `Only ${count(holders)}`, status: small, note: null }),
     blocks: false,
     observed: holders ?? null,
@@ -261,14 +265,14 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
       ? { answer: "?", status: issued ? "info" : "unknown", note: null }
       : ageMs >= t.minPoolAgeMs
         ? { answer: age(ageMs), status: "good", note: null }
-        : { answer: age(ageMs), status: small, note: "Fresh launch." }),
+        : { answer: age(ageMs), status: small, note: "Just launched." }),
     blocks: false,
     observed: ageMs,
     threshold: t.minPoolAgeMs,
   });
 
   if (info.audit?.isSus === true) {
-    add({ id: "flagged", label: "Jupiter flag?", answer: "Sus", status: "warn", blocks: false, note: "Jupiter's own scan flags this token.", observed: true });
+    add({ id: "flagged", label: "Flagged?", answer: "Sus", status: "warn", blocks: false, note: "Jupiter's scam scanner flags this coin.", observed: true });
   }
 
   /* ---- the verdict ---- */
@@ -294,7 +298,7 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
       : level === "unknown"
         ? "Couldn't finish the sniff. Try again."
         : level === "warn"
-          ? `GRRR. Ape small: ${maxBuyUsdc} USDC max.`
+          ? `GRRR. Risky. Ape $${maxBuyUsdc} max.`
           : "Nothing smells off.";
 
   return {

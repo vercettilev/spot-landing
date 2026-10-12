@@ -61,8 +61,8 @@ export async function signTransaction(transaction: string, authToken: string | n
 export function walletError(e: unknown): string {
   const code = (e as { code?: string })?.code ?? "";
   const message = String((e as Error)?.message ?? "");
-  if (code === "ERROR_WALLET_NOT_FOUND") return "No Solana wallet on this phone. Install Phantom or Solflare, or use Seed Vault on a Seeker.";
-  if (code === "ERROR_ASSOCIATION_CANCELLED" || /declin|reject|cancel/i.test(message)) return "Cancelled in the wallet.";
-  if (/linked|TurboModuleRegistry|could not be found/i.test(message)) return "This build of Spot can't reach wallets. Update the app.";
-  return "The wallet didn't answer. Try again.";
+  if (code === "ERROR_WALLET_NOT_FOUND") return "No wallet app on this phone. Get Phantom or Solflare (a Seeker already has one).";
+  if (code === "ERROR_ASSOCIATION_CANCELLED" || /declin|reject|cancel/i.test(message)) return "You cancelled in your wallet.";
+  if (/linked|TurboModuleRegistry|could not be found/i.test(message)) return "This version of Spot can't open wallets. Update the app.";
+  return "Your wallet didn't answer. Try again.";
 }

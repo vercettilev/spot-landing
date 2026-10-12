@@ -14,9 +14,9 @@ import { short } from "../wallet/base58";
 type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Bag">, NativeStackScreenProps<RootParams>>;
 
 /**
- * THE BAG: what the connected wallet holds, priced, biggest first. USDC is
- * what Spot buys with, SOL is shown as cash next to it, and every coin
- * opens on its own sheet with the Sell side ready.
+ * THE BAG: what the connected wallet holds, priced, biggest first. Cash
+ * (USDC, the digital dollar Spot buys with, and SOL) on top, then every
+ * coin, each opening on its own page with the Sell side ready.
  */
 export function BagScreen({ navigation }: Props) {
   const { wallet } = useStore();
@@ -28,11 +28,9 @@ export function BagScreen({ navigation }: Props) {
         <Title>Bag</Title>
         <Card style={styles.empty}>
           <PuppyIcon size={64} />
-          <Text style={styles.emptyTitle}>Nothing to sniff in here yet.</Text>
-          <Text style={styles.emptyLine}>
-            Connect the wallet on this phone (Seed Vault on a Seeker, Phantom, Solflare) to see your coins and sell from Spot. Or watch any address.
-          </Text>
-          <Button label="Connect a wallet" onPress={() => navigation.navigate("Connect")} style={styles.emptyButton} />
+          <Text style={styles.emptyTitle}>No bag yet.</Text>
+          <Text style={styles.emptyLine}>Connect the wallet on this phone to see your coins here.</Text>
+          <Button label="Connect wallet" onPress={() => navigation.navigate("Connect")} style={styles.emptyButton} />
         </Card>
       </ScrollView>
     );
@@ -48,7 +46,7 @@ export function BagScreen({ navigation }: Props) {
         <Title>Bag</Title>
         <Pressable onPress={() => navigation.navigate("Me")} hitSlop={8} accessibilityRole="button">
           <Text style={styles.addr}>
-            {wallet.kind === "watch" ? "Watching " : ""}
+            {wallet.kind === "watch" ? "Tracking " : ""}
             {short(wallet.address)}
           </Text>
         </Pressable>
@@ -57,11 +55,11 @@ export function BagScreen({ navigation }: Props) {
       {bag.status === "loading" && !b ? (
         <Breathing style={styles.loading}>
           <Text style={styles.total}>$…</Text>
-          <Text style={styles.totalNote}>Counting the bag…</Text>
+          <Text style={styles.totalNote}>Counting your bag…</Text>
         </Breathing>
       ) : bag.status === "error" && !b ? (
         <Card style={styles.empty}>
-          <Text style={styles.emptyTitle}>Couldn't count the bag.</Text>
+          <Text style={styles.emptyTitle}>Couldn't load your bag.</Text>
           <Text style={styles.emptyLine}>{bag.error ? errorLine(bag.error) : "Try again."}</Text>
           <Button label="Try again" kind="quiet" onPress={() => void bag.refresh()} style={styles.emptyButton} />
         </Card>
@@ -71,20 +69,20 @@ export function BagScreen({ navigation }: Props) {
             {money(b.totalUsd)}
           </Text>
           <Text style={styles.totalNote}>
-            {b.positions.length} coin{b.positions.length === 1 ? "" : "s"} · {usd(b.usdc.usd)} USDC ready to ape
+            {b.positions.length} coin{b.positions.length === 1 ? "" : "s"} · {usd(b.usdc.usd)} cash to ape with
           </Text>
           <View style={styles.actions}>
-            <Button label="Deposit" kind="quiet" onPress={() => navigation.navigate("Deposit")} style={styles.action} />
+            <Button label="Add cash" kind="quiet" onPress={() => navigation.navigate("Deposit")} style={styles.action} />
             <Button label="Sniff a coin" kind="go" onPress={() => navigation.navigate("Sniff")} style={styles.action} />
           </View>
 
           <Section>Cash</Section>
-          <Row symbol="USDC" name="Dollars, on Solana" amount={b.usdc.amount} value={b.usdc.usd} />
+          <Row symbol="USDC" name="Digital dollars" amount={b.usdc.amount} value={b.usdc.usd} />
           <Row symbol="SOL" name="Solana's own coin" amount={b.sol.amount} value={b.sol.usd} />
 
           <Section>Coins</Section>
           {b.positions.length === 0 ? (
-            <Text style={styles.none}>No coins yet. Share a post with a CA to Spot and ape from there.</Text>
+            <Text style={styles.none}>No coins yet. Share a post to Spot to ape your first one.</Text>
           ) : (
             b.positions.map((p) => (
               <Pressable
@@ -112,7 +110,7 @@ export function BagScreen({ navigation }: Props) {
               </Pressable>
             ))
           )}
-          {b.hidden > 0 && <Text style={styles.hidden}>+ {b.hidden} token{b.hidden === 1 ? "" : "s"} too small or without a price, not shown.</Text>}
+          {b.hidden > 0 && <Text style={styles.hidden}>+{b.hidden} tiny coin{b.hidden === 1 ? "" : "s"} hidden.</Text>}
         </>
       ) : null}
     </ScrollView>

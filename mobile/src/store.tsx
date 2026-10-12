@@ -197,7 +197,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addActivity,
       setWallet: (wallet) => {
         save("wallet", wallet);
-        if (wallet) addActivity({ kind: "connect", mint: null, symbol: null, text: wallet.kind === "mwa" ? "Wallet connected" : "Watching a wallet" });
+        if (wallet) addActivity({ kind: "connect", mint: null, symbol: null, text: wallet.kind === "mwa" ? "Wallet connected" : "Tracking a wallet" });
       },
       stats: {
         sniffed: s.history.length,

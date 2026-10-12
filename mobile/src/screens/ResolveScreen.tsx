@@ -14,8 +14,8 @@ function whichLine(r: ResolveResult, share: Share): string {
   if (symbols.size === 1 && r.candidates[0]?.via === "cashtag") {
     return `$${r.candidates[0].token.symbol} is ${r.candidates.length} different coins. Pick the one ${from.replace(/^from /, "")} meant.`;
   }
-  if (r.candidates.every((c) => c.via === "name")) return "Spot found a name, not a CA. Is it this one?";
-  return `${r.candidates.length} coins in that share, ${from}. Pick one.`;
+  if (r.candidates.every((c) => c.via === "name")) return "Spot found a name, not a CA. Is it one of these?";
+  return `${r.candidates.length} coins in there, ${from}. Pick one.`;
 }
 
 /**
@@ -63,7 +63,7 @@ export function ResolveScreen({ navigation, route }: Props) {
     return (
       <Status
         busy
-        title={share.from === "screenshot" ? "Reading the screenshot…" : share.url ? "Reading the post…" : "Sniffing out the coin…"}
+        title={share.from === "screenshot" ? "Reading the screenshot…" : share.url ? "Reading the post…" : "Finding the coin…"}
         line={share.url ?? share.text ?? null}
       />
     );
@@ -71,7 +71,7 @@ export function ResolveScreen({ navigation, route }: Props) {
   if (state.kind === "failed") {
     return (
       <Status
-        title="Spot couldn't ask."
+        title="Spot couldn't check that."
         line={errorLine(state.error)}
         primary={{ label: "Try again", onPress: () => void read() }}
         secondary={{ label: "Back", onPress: () => navigation.goBack() }}
@@ -85,9 +85,9 @@ export function ResolveScreen({ navigation, route }: Props) {
       line={
         state.unread
           ? screenshot
-            ? "Spot reads the text in a screenshot. Try one with the CA or the $cashtag in view."
-            : "It may be private or deleted. Paste the CA or the $cashtag instead."
-          : "Spot looks for a CA, a $cashtag or a coin's link. Paste one instead?"
+            ? "Spot reads the words in a screenshot. Use one where the CA or $ticker shows."
+            : "It may be private or deleted. Paste the CA or $ticker instead."
+          : "Spot looks for a CA, a $ticker or a coin link. Paste one instead?"
       }
       primary={{ label: "Paste one", onPress: () => navigation.goBack() }}
     />

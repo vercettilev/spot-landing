@@ -98,8 +98,8 @@ describe("where it came from", () => {
 
 describe("the button", () => {
   it("apes, growls, refuses, or asks again", () => {
-    expect(actionFor("ok", 25)).toEqual({ label: "Ape 25 USDC", enabled: true, tone: "go" });
-    expect(actionFor("warn", 18)).toEqual({ label: "GRRR. Ape 18 USDC", enabled: true, tone: "growl" });
+    expect(actionFor("ok", 25)).toEqual({ label: "Ape $25", enabled: true, tone: "go" });
+    expect(actionFor("warn", 18)).toEqual({ label: "GRRR. Ape $18", enabled: true, tone: "growl" });
     expect(actionFor("block", 25)).toMatchObject({ enabled: false, tone: "stop" });
     expect(actionFor("unknown", 25)).toMatchObject({ label: "Sniff again", enabled: true });
     expect(actionFor("loading", 25)).toMatchObject({ enabled: false });

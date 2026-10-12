@@ -11,8 +11,8 @@ import { color, font } from "../theme";
 type Props = NativeStackScreenProps<RootParams, "Deposit">;
 
 const NOTES = [
-  "USDC on Solana only. USDC sent over another network (Ethereum, Base, Tron) can be lost.",
-  "From an exchange: withdraw USDC and pick Solana as the network.",
+  "Only send USDC on Solana. USDC sent on another network (Ethereum, Base, Tron) can be lost.",
+  "From an exchange: withdraw USDC and choose Solana.",
 ];
 
 /**
@@ -28,10 +28,10 @@ export function DepositScreen({ navigation }: Props) {
     return (
       <View style={styles.fill}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <TopBar title="Deposit" onBack={() => navigation.goBack()} />
+          <TopBar title="Add cash" onBack={() => navigation.goBack()} />
           <Text style={styles.h1}>Connect first.</Text>
-          <Text style={styles.lede}>USDC goes to your own wallet, so Spot needs to know which one.</Text>
-          <Button label="Connect a wallet" onPress={() => navigation.replace("Connect")} style={styles.cta} />
+          <Text style={styles.lede}>Cash goes to your own wallet, so connect it first.</Text>
+          <Button label="Connect wallet" onPress={() => navigation.replace("Connect")} style={styles.cta} />
         </ScrollView>
       </View>
     );
@@ -40,18 +40,18 @@ export function DepositScreen({ navigation }: Props) {
   const address = wallet.address;
   async function copy() {
     await Clipboard.setStringAsync(address).catch(() => {});
-    toast("Address copied. Paste it in the exchange or wallet you send from.");
+    toast("Address copied. Paste it where you send from.");
   }
 
   return (
     <View style={styles.fill}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <TopBar title="Deposit" onBack={() => navigation.goBack()} />
-        <Text style={styles.h1}>Add USDC.</Text>
-        <Text style={styles.lede}>Send USDC to your wallet's address. It lands in your wallet, not in Spot.</Text>
+        <TopBar title="Add cash" onBack={() => navigation.goBack()} />
+        <Text style={styles.h1}>Add cash.</Text>
+        <Text style={styles.lede}>Spot buys with USDC, digital dollars on Solana. Send USDC to this address: it lands in your wallet, not in Spot.</Text>
         {wallet.kind === "watch" ? (
           <Card style={styles.watch}>
-            <Text style={styles.watchText}>You're watching this address. Deposits land in it, but trading needs the wallet that signs for it.</Text>
+            <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
           </Card>
         ) : null}
 

@@ -88,15 +88,15 @@ export const executeOrder = (requestId: string, signedTransaction: string) =>
 export function errorLine(e: ApiError): string {
   switch (e) {
     case "offline":
-      return "No connection. Check your internet and try again.";
+      return "No internet. Check your connection and try again.";
     case "timeout":
       return "That took too long. Try again.";
     case "busy":
-      return "Too many sniffs at once. Give it a few seconds.";
+      return "Too many sniffs at once. Wait a few seconds.";
     case "lookup_failed":
-      return "Jupiter didn't answer. Try again in a moment.";
+      return "Couldn't load this coin. Try again in a moment.";
     case "not_found":
-      return "Jupiter doesn't know this coin yet. Too fresh? Try again in a minute.";
+      return "Spot can't find this coin yet. Brand new? Try again in a minute.";
     case "not_a_mint":
       return "That address isn't a coin.";
     case "trading_closed":
@@ -104,15 +104,15 @@ export function errorLine(e: ApiError): string {
     case "blocked":
       return "Spot won't buy this one.";
     case "unsniffed":
-      return "The sniff didn't finish. Sniff again first.";
+      return "Sniff it first, then ape.";
     case "over_cap":
-      return "That's over this coin's cap.";
+      return "Too much for this coin. Pick a smaller amount.";
     case "no_route":
-      return "No route for this trade right now.";
+      return "Can't trade this coin right now.";
     case "refused":
-      return "Jupiter wouldn't build that trade.";
+      return "Couldn't set up that trade. Try again.";
     case "needs_key":
-      return "Trading isn't set up on the server yet.";
+      return "Trading isn't switched on yet.";
     default:
       return "Something went wrong. Try again.";
   }

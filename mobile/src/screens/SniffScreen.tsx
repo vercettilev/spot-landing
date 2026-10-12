@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { Answer, Button, CoinFace, PuppyIcon, Section, Wordmark, tap } from "../components/ui";
+import { Answer, Button, CoinFace, PuppyIcon, Section, Wordmark, tap, useToast } from "../components/ui";
 import { ago, fromPaste, verdictWord } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
 import { useStore } from "../store";
@@ -16,28 +16,37 @@ type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Sniff">, Nati
 const TRIES = ["$WIF", "$POPCAT", "$JUP"];
 
 const STEPS = [
-  { n: "1", title: "Share", line: "the post with the CA" },
-  { n: "2", title: "Pick Spot", line: "in the share sheet" },
-  { n: "3", title: "Sniffed", line: "before you ape" },
+  { n: "1", title: "Share", line: "any post with a coin" },
+  { n: "2", title: "Pick Spot", line: "from the list" },
+  { n: "3", title: "Sniffed", line: "scam or not, in seconds" },
 ];
 
 /**
- * THE FRONT DOOR. What Spot is, in the landing's words; a field for a CA,
- * a cashtag or a link, for posts that live somewhere without a Share
- * button; and the coins sniffed lately, one tap from their sniff again.
+ * THE FRONT DOOR. What Spot is, in the landing's words; one field and one
+ * button for a CA, a $ticker or a link (empty, the button pastes and
+ * sniffs in one tap); and the coins sniffed lately, one tap from their
+ * sniff again.
  */
 export function SniffScreen({ navigation }: Props) {
   const store = useStore();
+  const [toastNode, toast] = useToast();
   const [input, setInput] = useState("");
   const share = fromPaste(input);
   const recent = store.history.slice(0, 8);
 
-  async function paste() {
-    const text = await Clipboard.getStringAsync().catch(() => "");
-    if (!text.trim()) return;
-    setInput(text.trim());
+  async function go() {
+    if (share) {
+      navigation.navigate("Resolve", { share });
+      return;
+    }
+    const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
     const pasted = fromPaste(text);
-    if (pasted) navigation.navigate("Resolve", { share: pasted });
+    if (!pasted) {
+      toast("Nothing to paste. Copy a CA, $ticker or link first.");
+      return;
+    }
+    setInput(text);
+    navigation.navigate("Resolve", { share: pasted });
   }
 
   return (
@@ -49,7 +58,7 @@ export function SniffScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.h1}>Ape from{"\n"}any app.</Text>
-        <Text style={styles.lede}>See a CA in your feed? Share it to Spot. It sniffs the coin before you ape.</Text>
+        <Text style={styles.lede}>See a coin in a post? Share it to Spot. It sniffs out scams before you ape.</Text>
 
         <View style={styles.steps}>
           {STEPS.map((s) => (
@@ -65,20 +74,17 @@ export function SniffScreen({ navigation }: Props) {
         <TextInput
           value={input}
           onChangeText={setInput}
-          placeholder="A CA, a $cashtag or a link"
+          placeholder="A CA, $ticker or link"
           placeholderTextColor="#8e8a82"
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="go"
-          onSubmitEditing={() => share && navigation.navigate("Resolve", { share })}
+          onSubmitEditing={() => void go()}
           style={styles.input}
-          accessibilityLabel="CA, cashtag or link"
+          accessibilityLabel="CA, ticker or link"
         />
-        <View style={styles.row}>
-          <Button label="Paste" kind="quiet" onPress={() => void paste()} style={styles.half} />
-          <Button label="Sniff it" kind="go" disabled={!share} onPress={() => share && navigation.navigate("Resolve", { share })} style={styles.half} />
-        </View>
-        <Text style={styles.foot}>Free sniff. No wallet needed.</Text>
+        <Button label={share ? "Sniff it" : "Paste & sniff"} kind="go" onPress={() => void go()} style={styles.go} />
+        <Text style={styles.foot}>Free. No wallet needed.</Text>
 
         {recent.length > 0 ? (
           <>
@@ -112,7 +118,7 @@ export function SniffScreen({ navigation }: Props) {
           </>
         ) : (
           <>
-            <Section>Or try one</Section>
+            <Section>Try one</Section>
             <View style={styles.tries}>
               {TRIES.map((t) => (
                 <Pressable
@@ -131,6 +137,7 @@ export function SniffScreen({ navigation }: Props) {
           </>
         )}
       </ScrollView>
+      {toastNode}
     </KeyboardAvoidingView>
   );
 }
@@ -157,8 +164,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: color.ink,
   },
-  row: { flexDirection: "row", gap: 10, marginTop: 12 },
-  half: { flex: 1 },
+  go: { marginTop: 12 },
   foot: { marginTop: 14, textAlign: "center", fontFamily: font.bodySemi, fontSize: 14, color: color.faint },
   recent: {
     flexDirection: "row",

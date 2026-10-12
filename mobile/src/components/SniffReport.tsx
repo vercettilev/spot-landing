@@ -7,13 +7,16 @@ import { Answer, Breathing } from "./ui";
 
 export type SniffState = { status: "loading" } | { status: "done"; sniff: Sniff } | { status: "error"; error: ApiError };
 
-const WAITING = ["Honeypot?", "Freeze revoked?", "Mint revoked?", "Enough holders?"];
+const WAITING = ["Honeypot?", "Dev can freeze it?", "Dev can print more?", "Enough holders?"];
 
 /**
  * THE PAPER, as on the landing: a white report turned a hair off square,
  * the questions down the left, the answers on chips, and a stamp when the
  * puppy growls (GRRR) or refuses (NOPE).
  */
+/* $25 or $24.95: whole dollars stay whole. */
+const trip = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+
 export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: () => void }) {
   const time = state.status === "done" ? new Date(state.sniff.checkedAt) : null;
   return (
@@ -28,7 +31,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
       {state.status === "loading" && (
         <>
           <Breathing>
-            <Text style={styles.headline}>Sniffing the CA…</Text>
+            <Text style={styles.headline}>Sniffing for scams…</Text>
           </Breathing>
           {WAITING.map((label) => (
             <View key={label} style={styles.row}>
@@ -63,7 +66,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
           ))}
           {state.sniff.roundTrip && (
             <Text style={styles.trip}>
-              Round trip {state.sniff.roundTrip.inUsdc} → {state.sniff.roundTrip.outUsdc} USDC
+              Test trade: ${trip(state.sniff.roundTrip.inUsdc)} in, ${trip(state.sniff.roundTrip.outUsdc)} back
             </Text>
           )}
           {state.sniff.level === "warn" && <Text style={[styles.stamp, styles.grrr]}>GRRR</Text>}

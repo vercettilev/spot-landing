@@ -13,8 +13,8 @@ type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Alerts">, Nat
 
 const KINDS: { kind: AlertKind; label: string }[] = [
   { kind: "dev", label: "Dev dumps" },
-  { kind: "liquidity", label: "LP pulled" },
-  { kind: "tp", label: "TP 2x" },
+  { kind: "liquidity", label: "Rug pull" },
+  { kind: "tp", label: "Hits 2x" },
 ];
 
 /* Line icons drawn like the tab bar's, in the one orange. */
@@ -48,15 +48,15 @@ export function AlertsScreen({ navigation }: Props) {
       <Title>Alerts</Title>
 
       <Card style={styles.note}>
-        <Text style={styles.noteTitle}>GRRR when a coin turns.</Text>
+        <Text style={styles.noteTitle}>Spot barks when a coin turns.</Text>
         <Text style={styles.noteLine}>
-          Spot will watch the dev's wallet and the pool for every coin below, and ping you to sell. Pings land in an update soon; what you set now carries over.
+          Coming soon: a ping to sell when the dev dumps or the coin gets rugged. Pick your alerts now, they carry over.
         </Text>
       </Card>
 
-      <Section>Watching</Section>
+      <Section>Coins you watch</Section>
       {store.watch.length === 0 ? (
-        <Text style={styles.empty}>Tap ☆ on a coin to watch it. Every coin you ape is watched on its own.</Text>
+        <Text style={styles.empty}>Tap ☆ on any coin to watch it. Coins you ape get watched too.</Text>
       ) : (
         store.watch.map((w) => (
           <View key={w.mint} style={styles.watch}>
@@ -93,7 +93,7 @@ export function AlertsScreen({ navigation }: Props) {
 
       <Section>Activity</Section>
       {store.activity.length === 0 ? (
-        <Text style={styles.empty}>Sniffs, apes and sells land here.</Text>
+        <Text style={styles.empty}>Your apes, sells and watches show up here.</Text>
       ) : (
         store.activity.slice(0, 50).map((a) => (
           <View key={a.id} style={styles.activity}>

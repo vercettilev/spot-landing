@@ -55,43 +55,43 @@ export function ConnectScreen({ navigation }: Props) {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <TopBar title="Wallet" onBack={() => navigation.goBack()} />
-        <Text style={styles.h1}>Connect a wallet.</Text>
-        <Text style={styles.lede}>Your coins stay in your wallet. Spot asks it to sign each trade, in its own screen, and never sees a key.</Text>
+        <Text style={styles.h1}>Connect wallet.</Text>
+        <Text style={styles.lede}>Spot asks your wallet to approve each trade. Your coins and keys never leave it.</Text>
 
         <Card style={styles.card}>
           <View style={styles.cardHead}>
             <PuppyIcon size={40} />
             <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>The wallet on this phone</Text>
-              <Text style={styles.cardNote}>Seed Vault on a Seeker, Phantom, Solflare, Backpack.</Text>
+              <Text style={styles.cardTitle}>Wallet on this phone</Text>
+              <Text style={styles.cardNote}>Seeker's own wallet, Phantom, Solflare or Backpack.</Text>
             </View>
           </View>
           {MWA_AVAILABLE ? (
-            <Button label={busy ? "Waiting for the wallet…" : "Connect"} kind={busy ? "wait" : "go"} disabled={busy} onPress={() => void connect()} style={styles.cardButton} />
+            <Button label={busy ? "Waiting for your wallet…" : "Connect"} kind={busy ? "wait" : "go"} disabled={busy} onPress={() => void connect()} style={styles.cardButton} />
           ) : (
-            <Text style={styles.soon}>{Platform.OS === "ios" ? "On iPhone, Spot watches an address for now." : "Wallets connect in the Android app."}</Text>
+            <Text style={styles.soon}>{Platform.OS === "ios" ? "On iPhone you can only track a wallet for now." : "Wallets connect in the Android app."}</Text>
           )}
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </Card>
 
-        <Section>Or watch an address</Section>
-        <Text style={styles.line}>See any wallet's bag without connecting it. Watching can't trade.</Text>
+        <Section>Or just track a wallet</Section>
+        <Text style={styles.line}>Paste any wallet address to see its bag. You can't trade from it.</Text>
         <TextInput
           value={input}
           onChangeText={setInput}
-          placeholder="A Solana address"
+          placeholder="Wallet address"
           placeholderTextColor="#8e8a82"
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
           onSubmitEditing={() => valid && watch(address)}
           style={styles.input}
-          accessibilityLabel="Solana address to watch"
+          accessibilityLabel="Wallet address to track"
         />
-        {address && !valid ? <Text style={styles.error}>That isn't a Solana address.</Text> : null}
+        {address && !valid ? <Text style={styles.error}>That's not a Solana wallet address.</Text> : null}
         <View style={styles.row}>
           <Button label="Paste" kind="quiet" onPress={() => void paste()} style={styles.half} />
-          <Button label="Watch it" disabled={!valid} onPress={() => watch(address)} style={styles.half} />
+          <Button label="Track it" disabled={!valid} onPress={() => watch(address)} style={styles.half} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

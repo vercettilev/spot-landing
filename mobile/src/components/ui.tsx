@@ -116,7 +116,7 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
   );
 }
 
-/** An answer on the sniff report: "No", "Only 38", "Exit −23%". */
+/** An answer on the sniff report: "No", "Only 38", "Kinda". */
 export function Answer({ status, children }: { status: Status; children: ReactNode }) {
   const t = tone[status];
   return (
@@ -156,8 +156,8 @@ export function Breathing({ children, style }: { children: ReactNode; style?: St
   return <Animated.View style={[style, { opacity: v }]}>{children}</Animated.View>;
 }
 
-/** A line that rises from the bottom for a few seconds. */
-export function useToast(): [ReactNode, (message: string) => void] {
+/** A line that rises from the bottom for a few seconds; `bottom` lifts it over a screen's own bar. */
+export function useToast(bottom = 120): [ReactNode, (message: string) => void] {
   const [message, setMessage] = useState<string | null>(null);
   const v = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -176,7 +176,7 @@ export function useToast(): [ReactNode, (message: string) => void] {
     <Animated.View
       style={[
         styles.toast,
-        { pointerEvents: "none" },
+        { pointerEvents: "none", bottom },
         { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] },
       ]}
     >

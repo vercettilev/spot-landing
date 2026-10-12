@@ -47,7 +47,7 @@ export function MeScreen({ navigation }: Props) {
 
   function disconnect() {
     store.setWallet(null);
-    toast(wallet?.kind === "watch" ? "Stopped watching." : "Disconnected. Your coins stay in your wallet.");
+    toast(wallet?.kind === "watch" ? "Stopped tracking." : "Disconnected. Your coins stay in your wallet.");
   }
 
   return (
@@ -60,14 +60,14 @@ export function MeScreen({ navigation }: Props) {
           <View style={styles.profileText}>
             <Text style={styles.since}>Degen since {month(settings.since)}</Text>
             <Text style={styles.who} numberOfLines={1}>
-              {wallet ? `${wallet.kind === "watch" ? "Watching " : ""}${short(wallet.address)}${wallet.label ? ` · ${wallet.label}` : ""}` : "No wallet yet"}
+              {wallet ? `${wallet.kind === "watch" ? "Tracking " : ""}${short(wallet.address)}${wallet.label ? ` · ${wallet.label}` : ""}` : "No wallet yet"}
             </Text>
           </View>
         </View>
 
         <View style={styles.stats}>
           <Stat n={stats.sniffed} label="Sniffed" />
-          <Stat n={stats.dodged} label="Dodged" hot />
+          <Stat n={stats.dodged} label="Scams dodged" hot />
           <Stat n={stats.apes} label="Aped" />
         </View>
 
@@ -76,7 +76,7 @@ export function MeScreen({ navigation }: Props) {
           <Card>
             <View style={styles.walletHead}>
               <View style={styles.walletText}>
-                <Text style={styles.walletTitle}>{wallet.kind === "watch" ? "Watching an address" : (wallet.label ?? "Wallet on this phone")}</Text>
+                <Text style={styles.walletTitle}>{wallet.kind === "watch" ? "Tracking a wallet" : (wallet.label ?? "Your wallet")}</Text>
                 <Pressable onPress={() => void copy(wallet.address)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Copy address">
                   <Text style={styles.walletAddr}>{short(wallet.address)} · copy</Text>
                 </Pressable>
@@ -87,45 +87,45 @@ export function MeScreen({ navigation }: Props) {
               </Pressable>
             </View>
             {wallet.kind === "watch" ? (
-              <Text style={styles.walletNote}>Spot shows what it holds. To trade, connect the wallet that signs.</Text>
+              <Text style={styles.walletNote}>You can see its bag but not trade from it. Connect your own wallet to trade.</Text>
             ) : null}
-            <View style={styles.walletActions}>
+            <View style={wallet.kind === "watch" ? styles.walletActionsStacked : styles.walletActions}>
               {wallet.kind === "watch" ? (
-                <Button label="Connect" kind="go" onPress={() => navigation.navigate("Connect")} style={styles.walletAction} />
+                <Button label="Connect your wallet" kind="go" onPress={() => navigation.navigate("Connect")} />
               ) : (
-                <Button label="Deposit" kind="go" onPress={() => navigation.navigate("Deposit")} style={styles.walletAction} />
+                <Button label="Add cash" kind="go" onPress={() => navigation.navigate("Deposit")} style={styles.walletAction} />
               )}
-              <Button label={wallet.kind === "watch" ? "Stop" : "Disconnect"} kind="quiet" onPress={disconnect} style={styles.walletAction} />
+              <Button label={wallet.kind === "watch" ? "Stop tracking" : "Disconnect"} kind="quiet" onPress={disconnect} style={wallet.kind === "watch" ? undefined : styles.walletAction} />
             </View>
           </Card>
         ) : (
           <Card>
-            <Text style={styles.walletTitle}>Connect the wallet on this phone</Text>
-            <Text style={styles.walletNote}>Seed Vault on a Seeker, Phantom or Solflare. Spot asks it to sign each trade and never sees a key.</Text>
-            <Button label="Connect a wallet" onPress={() => navigation.navigate("Connect")} style={styles.connect} />
+            <Text style={styles.walletTitle}>Connect your wallet</Text>
+            <Text style={styles.walletNote}>The wallet on this phone: Seeker's own, Phantom or Solflare. Spot never sees your keys.</Text>
+            <Button label="Connect wallet" onPress={() => navigation.navigate("Connect")} style={styles.connect} />
           </Card>
         )}
 
         <Section>Buying</Section>
         <View style={styles.block}>
-          <Text style={styles.blockTitle}>Default buy</Text>
-          <Text style={styles.blockNote}>What the buy sheet starts at, in USDC.</Text>
+          <Text style={styles.blockTitle}>Starting amount</Text>
+          <Text style={styles.blockNote}>What Spot puts in when you ape. You can change it on each coin.</Text>
           <View style={styles.pills}>
             {CHIPS.map((c) => (
               <Pill key={c} label={`$${c}`} on={settings.defaultAmount === c} onPress={() => store.setSettings({ defaultAmount: c })} />
             ))}
           </View>
         </View>
-        <SettingRow title="Take profit on every buy" note="Sells half at 2x. Switch it off per buy on the sheet.">
-          <Toggle label="Take profit on every buy" value={settings.tpDefault} onChange={(tpDefault) => store.setSettings({ tpDefault })} />
+        <SettingRow title="Sell half at 2x" note="On for every new buy: your money back when it doubles. You can turn it off on each coin.">
+          <Toggle label="Sell half at 2x" value={settings.tpDefault} onChange={(tpDefault) => store.setSettings({ tpDefault })} />
         </SettingRow>
-        <SettingRow title="I'm a US person" note="Hides the buy on tokenized stocks whose issuers don't sell to US persons.">
-          <Toggle label="I'm a US person" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson })} />
+        <SettingRow title="I'm in the US" note="Hides the buy on stock coins that can't be sold to people in the US.">
+          <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson })} />
         </SettingRow>
 
         <Section>App</Section>
-        <SettingRow title="Haptics" note="A tap you can feel on every button.">
-          <Toggle label="Haptics" value={settings.haptics} onChange={(haptics) => store.setSettings({ haptics })} />
+        <SettingRow title="Vibrate on tap" note="A little buzz on every button.">
+          <Toggle label="Vibrate on tap" value={settings.haptics} onChange={(haptics) => store.setSettings({ haptics })} />
         </SettingRow>
         {LINKS.map((l) => (
           <Pressable
@@ -144,7 +144,7 @@ export function MeScreen({ navigation }: Props) {
 
         <Text style={styles.version}>
           Spot {version}
-          {build ? ` (${build})` : ""} · sniffs are free, Spot never holds your coins
+          {build ? ` (${build})` : ""} · sniffs are free · Spot never holds your coins
         </Text>
       </ScrollView>
       {toastNode}
@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
   walletBagLabel: { marginTop: 2, fontFamily: font.bodySemi, fontSize: 13, color: color.orange },
   walletNote: { marginTop: 10, fontFamily: font.body, fontSize: 14.5, lineHeight: 20, color: color.dim },
   walletActions: { flexDirection: "row", gap: 10, marginTop: 16 },
+  walletActionsStacked: { gap: 10, marginTop: 16 },
   walletAction: { flex: 1, height: 52 },
   connect: { marginTop: 16 },
   block: { paddingBottom: 14, borderBottomWidth: 1, borderColor: color.line },

@@ -17,18 +17,21 @@ type Props = NativeStackScreenProps<RootParams, "Coin">;
 const SELL_SHARES = [25, 50, 100];
 
 /**
- * A COIN: the landing's buy sheet, and its sell side when the wallet holds
- * it. The sniff fills in while Jupiter answers, and its fresh numbers
- * replace the ones the share came with. Buying goes through the wallet on
- * the phone (Seed Vault, Phantom): Spot asks the server for an order, the
- * wallet signs it in its own screen, Jupiter lands it. Until the server
- * opens trading, the button says so instead.
+ * A COIN, in the order a first-timer needs it: what it is, whether it is a
+ * scam (the sniff report), then how much and the button. The amounts sit
+ * right above the button, so a buy is two taps; the Sell side shows only
+ * when the wallet holds the coin, and stays open on a coin Spot blocks
+ * (Spot refuses the buy, never the way out of a bag already held).
+ *
+ * A trade goes through the wallet on the phone (Seed Vault, Phantom): Spot
+ * asks the server for an order, the wallet asks its owner to approve it,
+ * Jupiter lands it. Until the server opens trading, the button says so.
  */
 export function CoinScreen({ navigation, route }: Props) {
   const { candidate, source, share, others } = route.params;
   const store = useStore();
   const insets = useSafeAreaInsets();
-  const [toastNode, toast] = useToast();
+  const [toastNode, toast] = useToast(200 + insets.bottom);
   const [sniff, setSniff] = useState<SniffState>({ status: "loading" });
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState(store.settings.defaultAmount || DEFAULT_AMOUNT);
@@ -71,6 +74,12 @@ export function CoinScreen({ navigation, route }: Props) {
     };
   }, [sniffNow]);
 
+  /* Sold the last of it: back to buying. */
+  useEffect(() => {
+    if (!position && side === "sell") setSide("buy");
+  }, [position, side]);
+
+  const buying = side === "buy";
   const blocked = done?.level === "block";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
@@ -78,18 +87,41 @@ export function CoinScreen({ navigation, route }: Props) {
   const up = (coin.change24hPct ?? 0) >= 0;
   const watched = store.isWatched(coin.mint);
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
+  const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
 
   const action =
-    side === "sell"
-      ? { label: busy ? "Selling…" : `Sell ${sellPct}%${position ? ` · ~${usd(sellUsd)}` : ""}`, enabled: Boolean(position) && !busy, tone: "go" as const }
+    !buying
+      ? { label: busy ? "Selling…" : `Sell ${sellPct === 100 ? "all" : `${sellPct}%`} · ~${usd(sellUsd)}`, enabled: Boolean(position) && !busy, tone: "go" as const }
       : restricted
-        ? { label: "Not for US persons", enabled: false, tone: "stop" as const }
+        ? { label: "Not for US users", enabled: false, tone: "stop" as const }
         : busy
           ? { label: "Aping…", enabled: false, tone: "wait" as const }
           : actionFor(sniff.status === "done" ? sniff.sniff.level : sniff.status, amount);
 
+  const note = !buying
+    ? wallet?.kind === "mwa"
+      ? "Sells into USDC. Your wallet asks you to approve."
+      : "You're only tracking this wallet. Connect yours to sell."
+    : sniff.status === "loading"
+      ? "Checking it for scams…"
+      : blocked
+        ? "Share another post to sniff something else."
+        : restricted
+          ? "Coins like this aren't sold to people in the US."
+          : wallet?.kind === "mwa"
+            ? "Your wallet asks you to approve every trade."
+            : wallet
+              ? "You're only tracking this wallet. Connect yours to ape."
+              : "Free sniff. Connect a wallet to ape.";
+
+  function toggleWatch() {
+    tap();
+    store.toggleWatch(coin);
+    toast(watched ? `Stopped watching $${coin.symbol}.` : `Watching $${coin.symbol}. Find it in Alerts.`);
+  }
+
   async function trade() {
-    if (side === "buy" && (sniff.status === "error" || done?.level === "unknown")) {
+    if (buying && (sniff.status === "error" || done?.level === "unknown")) {
       void sniffNow();
       return;
     }
@@ -98,33 +130,34 @@ export function CoinScreen({ navigation, route }: Props) {
       return;
     }
     if (wallet.kind !== "mwa") {
-      toast("You're watching this wallet. Connect one that can sign to trade.");
+      toast("You're only tracking this wallet. Connect your own wallet to trade.");
       return;
     }
     setBusy(true);
     try {
       const order = await placeOrder(
-        side === "buy"
+        buying
           ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
           : { mint: coin.mint, side, taker: wallet.address, amountRaw: shareOf(position?.raw ?? "0", sellPct) },
       );
       if (!order.ok) {
-        const said = typeof order.detail?.message === "string" ? order.detail.message : null;
-        toast(order.error === "trading_closed" ? "Buying opens soon. The sniff is free until then." : (said ?? errorLine(order.error)));
+        toast(errorLine(order.error));
         return;
       }
       const signed = await signTransaction(order.value.transaction, wallet.authToken);
       if (signed.authToken !== wallet.authToken) store.setWallet({ ...wallet, authToken: signed.authToken });
       const landed = await executeOrder(order.value.requestId, signed.signed);
       if (!landed.ok || landed.value.status !== "Success") {
-        toast(landed.ok ? `Didn't land: ${landed.value.error ?? "try again"}.` : errorLine(landed.error));
+        toast(landed.ok ? "Didn't go through. Try again." : errorLine(landed.error));
         return;
       }
       forgetHoldings(wallet.address);
       void bag.refresh();
-      const text = side === "buy" ? `Aped ${amount} USDC of $${coin.symbol}${tp ? " · TP 50% at 2x" : ""}` : `Sold ${sellPct}% of $${coin.symbol}`;
-      store.addActivity({ kind: side === "buy" ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature: landed.value.signature });
-      if (side === "buy" && tp && !watched) store.toggleWatch(coin);
+      const text = buying
+        ? `Aped $${amount} of $${coin.symbol}${tp ? " · sells half at 2x" : ""}`
+        : `Sold ${sellPct === 100 ? "all" : `${sellPct}%`} of $${coin.symbol}`;
+      store.addActivity({ kind: buying ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature: landed.value.signature });
+      if (buying && tp && !watched) store.toggleWatch(coin);
       toast(`${text}.`);
     } catch (e) {
       toast(walletError(e));
@@ -135,7 +168,7 @@ export function CoinScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.fill}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 150 + insets.bottom }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 230 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <View style={styles.top}>
           <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
             <Text style={styles.back}>←</Text>
@@ -143,15 +176,7 @@ export function CoinScreen({ navigation, route }: Props) {
           <Text style={styles.source} numberOfLines={1}>
             {source && share ? sourceLine(source, share) : ""}
           </Text>
-          <Pressable
-            onPress={() => {
-              tap();
-              store.toggleWatch(coin);
-            }}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={watched ? "Stop watching" : "Watch"}
-          >
+          <Pressable onPress={toggleWatch} hitSlop={10} accessibilityRole="button" accessibilityLabel={watched ? "Stop watching" : "Watch this coin"}>
             <Text style={[styles.star, watched && styles.starOn]}>{watched ? "★" : "☆"}</Text>
           </Pressable>
         </View>
@@ -166,7 +191,7 @@ export function CoinScreen({ navigation, route }: Props) {
               {coin.verified && <Text style={styles.verified}>✓</Text>}
             </View>
             <Text style={styles.name} numberOfLines={1}>
-              {coin.kind === "stock" ? `${coin.name} · tokenized stock` : coin.name}
+              {coin.kind === "stock" ? `${coin.name} · stock coin` : coin.name}
             </Text>
           </View>
           <View style={styles.priceCol}>
@@ -176,15 +201,15 @@ export function CoinScreen({ navigation, route }: Props) {
         </View>
 
         <Text style={styles.stats}>
-          MC {usd(coin.mcapUsd)} · Liq {usd(coin.liquidityUsd)} · {count(coin.holders)} holders
+          {usd(coin.mcapUsd)} mcap · {count(coin.holders)} holders
         </Text>
-        {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>The issuer doesn't sell to US persons.</Text>}
+        {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
         {others.length > 0 && (
           <Pressable
             onPress={() =>
               navigation.navigate("Choose", {
                 title: "Not this one?",
-                line: `Other coins in that share${source && share ? `, ${sourceLine(source, share)}` : ""}.`,
+                line: `Other coins in there${source && share ? `, ${sourceLine(source, share)}` : ""}.`,
                 candidates: others,
                 source,
                 share,
@@ -194,89 +219,59 @@ export function CoinScreen({ navigation, route }: Props) {
             hitSlop={8}
             accessibilityRole="button"
           >
-            <Text style={styles.notThis}>Not this one? {others.length === 1 ? "1 more coin" : `${others.length} more coins`} in that share</Text>
+            <Text style={styles.notThis}>Not this one? See {others.length === 1 ? "the other coin" : `${others.length} others`}</Text>
           </Pressable>
         )}
 
-        {/* The Buy / Sell switch stays live on a blocked coin: Spot refuses the
-            buy, never the way out of a bag already held. */}
-        <View style={styles.side}>
-          {(["buy", "sell"] as const).map((s) => (
-            <Pressable
-              key={s}
-              onPress={() => {
-                tap();
-                setSide(s);
-              }}
-              style={[styles.sideItem, side === s && styles.sideOn]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: side === s }}
-            >
-              <Text style={[styles.sideText, side === s && styles.sideTextOn]}>{s === "buy" ? "Buy" : "Sell"}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={[blocked && side === "buy" && styles.off, { pointerEvents: blocked && side === "buy" ? "none" : "auto" }]}>
-          {side === "buy" ? (
-            <>
-              <View style={styles.amountRow}>
-                <Text style={styles.amount}>{amount}</Text>
-                <Text style={styles.unit}>USDC</Text>
-              </View>
-              <View style={styles.chips}>
-                {chips.map((c) => (
-                  <Pill key={c} label={String(c)} on={c === amount} onPress={() => setAmount(c)} />
-                ))}
-              </View>
-              {cap !== null && <Text style={styles.capHint}>Fresh coin: {cap} USDC max.</Text>}
-
-              <View style={styles.tp}>
-                <View style={styles.tpText}>
-                  <Text style={styles.tpTitle}>TP 50% at 2x</Text>
-                  <Text style={styles.tpNote}>Sells half when it doubles. Initials back.</Text>
-                </View>
-                <Toggle value={tp} onChange={setTp} label="Take profit: sell half at 2x" />
-              </View>
-            </>
-          ) : position ? (
-            <>
-              <View style={styles.amountRow}>
-                <Text style={styles.amount}>{sellPct}%</Text>
-                <Text style={styles.unit}>of your bag</Text>
-              </View>
-              <View style={styles.chips}>
-                {SELL_SHARES.map((p) => (
-                  <Pill key={p} label={p === 100 ? "All" : `${p}%`} on={p === sellPct} onPress={() => setSellPct(p)} />
-                ))}
-              </View>
-              <Text style={styles.held}>
-                You hold {fmtAmount(position.amount)} ${coin.symbol}, about {usd(position.usd)}. Sold into USDC.
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.held}>
-              {wallet ? `No $${coin.symbol} in this wallet to sell.` : "Connect a wallet to see and sell what you hold."}
-            </Text>
-          )}
-        </View>
+        {position && (
+          <View style={styles.side}>
+            {(["buy", "sell"] as const).map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => {
+                  tap();
+                  setSide(s);
+                }}
+                style={[styles.sideItem, side === s && styles.sideOn]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: side === s }}
+              >
+                <Text style={[styles.sideText, side === s && styles.sideTextOn]}>{s === "buy" ? "Buy" : "Sell"}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         <View style={styles.report}>
           <SniffReport state={sniff} onRetry={() => void sniffNow()} />
         </View>
+
+        {buying && canPickAmount && (
+          <View style={styles.tp}>
+            <View style={styles.tpText}>
+              <Text style={styles.tpTitle}>Sell half at 2x</Text>
+              <Text style={styles.tpNote}>Your ${amount} back when it doubles. The rest rides.</Text>
+            </View>
+            <Toggle value={tp} onChange={setTp} label="Sell half at 2x" />
+          </View>
+        )}
       </ScrollView>
 
-      <View style={[styles.bar, { paddingBottom: 14 + insets.bottom }]}>
+      <View style={[styles.bar, { paddingBottom: 12 + insets.bottom }]}>
+        {!buying && position && (
+          <Text style={styles.held}>
+            You have {fmtAmount(position.amount)} {coin.symbol} · {usd(position.usd)}
+          </Text>
+        )}
+        {canPickAmount && (
+          <View style={styles.chips}>
+            {buying
+              ? chips.map((c) => <Pill key={c} label={`$${c}`} on={c === amount} onPress={() => setAmount(c)} />)
+              : SELL_SHARES.map((p) => <Pill key={p} label={p === 100 ? "All" : `${p}%`} on={p === sellPct} onPress={() => setSellPct(p)} />)}
+          </View>
+        )}
         <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={() => void trade()} />
-        <Text style={styles.barNote}>
-          {side === "buy" && blocked
-            ? "Sniff something else: share another post."
-            : sniff.status === "loading" && side === "buy"
-              ? "Checking the exit, the keys and the crowd."
-              : wallet?.kind === "mwa"
-                ? "Your wallet signs every trade. Spot never holds a key."
-                : "Free sniff. Connect a wallet to trade."}
-        </Text>
+        <Text style={styles.barNote}>{note}</Text>
       </View>
       {toastNode}
     </View>
@@ -314,11 +309,10 @@ const styles = StyleSheet.create({
   stats: { marginTop: 14, fontFamily: font.mono, fontSize: 13, color: color.faint },
   restricted: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 14, color: "#ffb08a" },
   notThis: { marginTop: 10, fontFamily: font.bodySemi, fontSize: 15, color: color.orange },
-  off: { opacity: 0.35 },
   side: {
     flexDirection: "row",
     alignSelf: "flex-start",
-    marginTop: 26,
+    marginTop: 20,
     padding: 4,
     borderRadius: 999,
     backgroundColor: color.ink2,
@@ -329,17 +323,12 @@ const styles = StyleSheet.create({
   sideOn: { backgroundColor: color.white },
   sideText: { fontFamily: font.bodyBold, fontSize: 15, color: color.faint },
   sideTextOn: { color: color.ink },
-  amountRow: { flexDirection: "row", alignItems: "baseline", gap: 10, marginTop: 18 },
-  amount: { fontFamily: font.display, fontSize: 72, lineHeight: 76, letterSpacing: -2, color: color.white },
-  unit: { fontFamily: font.displayBold, fontSize: 22, color: color.dim },
-  chips: { flexDirection: "row", gap: 10, marginTop: 10 },
-  capHint: { marginTop: 10, fontFamily: font.bodySemi, fontSize: 14, color: "#ffb08a" },
-  held: { marginTop: 14, fontFamily: font.body, fontSize: 15, lineHeight: 21, color: color.dim },
+  report: { marginTop: 24, marginBottom: 12 },
   tp: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 22,
+    marginTop: 18,
     padding: 16,
     borderRadius: 18,
     backgroundColor: color.ink2,
@@ -348,18 +337,19 @@ const styles = StyleSheet.create({
   },
   tpText: { flex: 1 },
   tpTitle: { fontFamily: font.bodyBold, fontSize: 17, color: color.white },
-  tpNote: { marginTop: 2, fontFamily: font.body, fontSize: 14, color: color.faint },
-  report: { marginTop: 30, marginBottom: 12 },
+  tpNote: { marginTop: 2, fontFamily: font.body, fontSize: 14, lineHeight: 19, color: color.faint },
   bar: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 14,
+    paddingTop: 12,
     paddingHorizontal: 20,
-    backgroundColor: "rgba(11, 11, 12, 0.96)",
+    backgroundColor: "rgba(11, 11, 12, 0.97)",
     borderTopWidth: 1,
     borderColor: color.line,
   },
+  held: { marginBottom: 10, textAlign: "center", fontFamily: font.bodySemi, fontSize: 14.5, color: color.dim },
+  chips: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 12 },
   barNote: { marginTop: 8, textAlign: "center", fontFamily: font.body, fontSize: 13.5, color: color.faint },
 });
