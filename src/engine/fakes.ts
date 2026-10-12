@@ -1,5 +1,5 @@
 import type { UltraOutcome, UltraSearchClient } from "@/core/resolve/ultra";
-import type { MintFacts, MintReader } from "@/engine/chain";
+import type { AccountsReader, MintFacts, MintReader, WalletAccounts } from "@/engine/chain";
 import type { Deps } from "@/engine/deps";
 import type { PairLookup } from "@/engine/dexscreener";
 import type { Outcome } from "@/engine/http";
@@ -7,6 +7,7 @@ import type { Quote, QuoteFailure, Quoter, QuoteRequest, TokenInfo } from "@/eng
 import type { PostRef } from "@/engine/links";
 import type { Post, PostFailure } from "@/engine/posts";
 import { DEFAULT_POLICY } from "@/engine/sniff";
+import type { Executor, Order, OrderRequest, Orderer } from "@/engine/trade";
 
 /* Valid 32-byte addresses that are nobody's coin (sha256 of a label). */
 export const COIN_A = "GAKDkX3myHqofbqHQ4wV7HkzwLgAv8quFHpAPvGeunNG";
@@ -150,11 +151,37 @@ export function fakePosts(posts: Record<string, Post | PostFailure>) {
 
 export const fakeExpand = (map: Record<string, string>) => async (url: string) => map[url] ?? null;
 
+/** A wallet's accounts as the chain would hand them over. */
+export const fakeAccounts =
+  (answer: Awaited<ReturnType<AccountsReader>> = { ok: true, value: { sol: 0, tokens: [] } satisfies WalletAccounts }): AccountsReader =>
+  async () =>
+    answer;
+
+/** Jupiter's /order: a transaction for whoever asks, unless told to refuse. */
+export function fakeOrderer(answer?: Awaited<ReturnType<Orderer>>): Orderer & { asked: OrderRequest[] } {
+  const asked: OrderRequest[] = [];
+  const order: Orderer = async (r) => {
+    asked.push(r);
+    if (answer) return answer;
+    const value: Order = { requestId: "req-1", transaction: "AQID", inAmount: r.amount, outAmount: "6250000000", priceImpactPct: 0.4, gasless: false };
+    return { ok: true, value };
+  };
+  return Object.assign(order, { asked });
+}
+
+export const fakeExecutor =
+  (answer: Awaited<ReturnType<Executor>> = { ok: true, value: { status: "Success", signature: "5ig", error: null } }): Executor =>
+  async () =>
+    answer;
+
 export function fakeDeps(over: Partial<Deps> = {}): Deps {
   return {
     search: fakeSearch([]),
     quote: fakeQuoter(),
     readMint: fakeMintReader(),
+    readAccounts: fakeAccounts(),
+    order: fakeOrderer(),
+    execute: fakeExecutor(),
     readPost: fakePosts({}),
     expand: fakeExpand({}),
     pairs: noPairs,

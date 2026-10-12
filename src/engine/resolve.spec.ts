@@ -8,6 +8,7 @@ import {
   PAIR_A,
   WALLET,
   WBTC,
+  WIF,
   fakeDeps,
   fakeExpand,
   fakePairs,
@@ -174,6 +175,26 @@ describe("words alone", () => {
   it("with nothing in them are nothing", async () => {
     const r = await resolve({ text: "gm" }, fakeDeps());
     expect(r).toMatchObject({ status: "none", pick: null, candidates: [], missed: [] });
+  });
+});
+
+describe("a ticker without its $", () => {
+  it("is asked about when it points at a coin that stands out", async () => {
+    const r = await resolve({ text: "WIF looking strong into the weekend" }, fakeDeps({ search: fakeSearch([token(WIF, { symbol: "$WIF", isVerified: true })]) }));
+    expect(r.status).toBe("ambiguous");
+    expect(mints(r)).toEqual([`${WIF}:name`]);
+  });
+
+  it("is not CT's own capitals", async () => {
+    const search = fakeSearch([real]);
+    const r = await resolve({ text: "GM. LFG, new ATH soon, NFA DYOR" }, fakeDeps({ search }));
+    expect(r.status).toBe("none");
+    expect(search.queries).toEqual([]);
+  });
+
+  it("is not a coin nobody stands behind", async () => {
+    const r = await resolve({ text: "EXAMPLE is the play" }, fakeDeps({ search: fakeSearch([copy1]) }));
+    expect(r.status).toBe("none");
   });
 });
 

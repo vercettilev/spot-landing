@@ -25,6 +25,14 @@ src/core/                     vendored from Poppin's spot-core (see src/core/REA
 
 `npm test` runs these specs with the site's; every upstream is a fake. `npm run dev` calls the real ones: Jupiter keyless on `lite-api.jup.ag`, the public Solana RPC, X/TikTok/YouTube oEmbed, Telegram's widget and Dexscreener.
 
+## `GET /api/holdings?owner=…`
+
+A wallet's bag for the app's Bag tab: `{ ok, owner, totalUsd, usdc, sol, positions: [{ token, amount, raw, usd }], hidden }`. Balances from the chain (both token programs, plus SOL), prices and faces from one Jupiter search. Coins worth under a cent, and whatever Jupiter cannot price (spam, dust), are counted in `hidden`, not listed. Errors: `400 invalid_owner`, `429`, `503 lookup_failed`.
+
+## `POST /api/order` and `POST /api/execute` (closed by default)
+
+The money path, built ahead of the decisions it waits on and **closed unless `SPOT_TRADING=1`** (`403 trading_closed` otherwise). `/api/order` takes `{ mint, side, taker, amountUsdc }` for a buy or `{ …, amountRaw }` for a sell and answers Jupiter Swap V2's transaction for the taker's wallet to sign, plus a `requestId`. A buy is sniffed again on the server, whatever the app showed: `409 blocked | unsniffed | over_cap` builds nothing. A sell is never refused. `/api/execute` takes `{ requestId, signedTransaction }` and lands it through Jupiter (`{ status, signature, error }`). Spot holds no key, adds nothing to the transaction and takes no fee yet. Needs `JUPITER_API_KEY` (`503 needs_key`).
+
 ## Settings
 
 On the site's Vercel project, Settings → Environment Variables, for Production and Preview. All optional; the first two are strongly advised:
@@ -34,7 +42,8 @@ On the site's Vercel project, Settings → Environment Variables, for Production
 - `SPOT_GATE_MIN_LIQUIDITY_USD`, `SPOT_GATE_MIN_HOLDERS`, `SPOT_GATE_MIN_POOL_AGE_HOURS`: where the warn line sits (defaults $7,500, 150, 2 hours).
 - `SPOT_WARN_CAP_USDC`: the most a warned coin can be bought for (default 50).
 - `JUPITER_RPS`: the Jupiter plan's requests per second. With a key it defaults to 1, the free plan, and calls queue a second apart, so a sniff (three calls) takes two to three seconds. Set 10 on Developer, and so on.
-- `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`: overrides, rarely needed.
+- `SPOT_TRADING`: `1` opens `/api/order` and `/api/execute`. Leave it unset until the fee, the wallet and the legal read are settled.
+- `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`, `JUPITER_ORDER_PATH`, `JUPITER_EXECUTE_PATH`: overrides, rarely needed.
 
 After a deploy, `/api/health` says which host and quote path it chose; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
 
@@ -57,6 +66,7 @@ Body `{ "url"?: string, "text"?: string }`, exactly as the share sheet handed th
 
 - `status`: `found` opens the coin; `ambiguous` means ask which (`pick` is null, `candidates` are ranked); `none` means nothing in the share is a coin.
 - `via`: where the coin came from. `link` (the shared link is that coin's page), `post` (a CA or a link in the post), `text`, `pair` (a pool link, mapped through Dexscreener), `cashtag`, `name` (a tokenized stock named in words; always asked, never picked).
+- A ticker written without its `$` ("WIF looking strong") is looked up only when nothing else in the share names a coin, only for capitals CT does not use for everything else (GM, LFG, ATH and the like are skipped), and only offered as `ambiguous` when the coin is the catalog's, verified, or holds $50k of liquidity.
 - How it reads a share: the shared link first (pump.fun, birdeye, solscan, gmgn, bullx, jup.ag, trading-bot `start=` links…), short links (t.co, vm.tiktok.com, bit.ly) asked where they go without being followed, then the post's own words (X and TikTok and YouTube oEmbed, public Telegram posts), then the links inside the post, then cashtags. A cashtag is the catalog's mint when spot-core curated one (`$BTC` is WBTC, `$TSLA` is TSLAx), otherwise the namesake that spot-core's tiebreaks say dwarfs the others; namesakes Spot could never buy (a live freeze key) do not count as rivals.
 - `restrictions`: who the issuer says may not hold it (`us-persons` for every tokenized stock). Returned, not applied: the app knows its user's region.
 - `missed`: upstreams that did not answer (`post`, `search`, `pairs`, `short_link`). When Jupiter could not be asked and nothing was found, the answer is `503 lookup_failed` instead of a "none" that would be a guess.

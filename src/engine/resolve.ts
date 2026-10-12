@@ -55,6 +55,30 @@ export interface ResolveInput {
 }
 
 export const TEXT_CAP = 5_000;
+
+/* A bare word has to point at a coin with this much behind it to be offered. */
+const BARE_MIN_LIQUIDITY = 50_000;
+
+/* Capitals CT writes that are not coins. */
+const NOT_TICKERS = new Set(
+  (
+    "THE AND FOR YOU ARE NOT BUT ALL NEW NOW OUT GET GOT HAS HAD CAN WHO WHY HOW ITS OUR ONE TWO TOP BIG WIN " +
+    "BUY SELL HOLD SEND MOON PUMP DUMP RUG APE GEM LFG CEO CTO ATH ATL NFA DYOR WAGMI NGMI FOMO FUD HODL " +
+    "IMO IMHO LOL LMAO OMG WTF TBH IDK DEX CEX API NFT NFTS AGI USA TV PNL APY APR TVL MCAP FDV KOL KOLS " +
+    "DMS IRL ETF SEC FED CPI GDP USD USDC USDT EUR GBP JPY SOL CHART LIVE NEWS ALPHA CALL CALLS SOON"
+  ).split(" "),
+);
+
+/** Ticker-shaped words written without a $: capitals, 3 to 10 long, in order, once each. */
+export function bareTickers(text: string): string[] {
+  const plain = text.replace(/https?:\/\/\S+/g, " ");
+  const out: string[] = [];
+  for (const m of plain.matchAll(/(?<![A-Za-z0-9$#@_])([A-Z][A-Z0-9]{2,9})(?![A-Za-z0-9_])/g)) {
+    const word = m[1]!;
+    if (!NOT_TICKERS.has(word) && !out.includes(word)) out.push(word);
+  }
+  return out;
+}
 const MAX_LINKS = 3;
 const MAX_POST_LINKS = 3;
 const MAX_ADDRESSES = 5;
@@ -209,6 +233,19 @@ export async function resolve(input: ResolveInput, deps: ResolveDeps): Promise<R
       .filter((x): x is TokenInfo => x !== undefined)
       .map((x): Candidate => ({ token: cardOf(x), via: "name" }));
     if (cards.length) return done("ambiguous", null, cards);
+  }
+
+  /* 6. A ticker written without its $ ("WIF looking strong"), the way half
+     of CT writes. Capitals only, minus the capitals CT uses for everything
+     else, and only a coin that stands out: the catalog's, a verified one,
+     or one with real liquidity. Still a guess, so it is asked, never picked. */
+  const words = bareTickers(`${post?.text ?? ""}\n${shared}`).slice(0, MAX_TICKERS);
+  if (words.length) {
+    const guesses = (await Promise.all(words.map((w) => cashtag(w))))
+      .map((t) => t.winner)
+      .filter((c): c is Candidate => c !== null && (c.token.verified || (c.token.liquidityUsd ?? 0) >= BARE_MIN_LIQUIDITY))
+      .map((c): Candidate => ({ ...c, via: "name" }));
+    if (guesses.length) return done("ambiguous", null, guesses);
   }
 
   return done("none", null, []);
