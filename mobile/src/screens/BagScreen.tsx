@@ -77,7 +77,7 @@ export function BagScreen({ navigation }: Props) {
             {money(b.totalUsd)}
           </Text>
           <Text style={styles.totalNote}>
-            {b.positions.length === 0 ? "No coins yet" : `${b.positions.length} coin${b.positions.length === 1 ? "" : "s"}`} and {usd(b.usdc.usd)} ready to ape
+            {b.positions.length === 0 ? "No coins yet" : `${b.positions.length} coin${b.positions.length === 1 ? "" : "s"}`} and {usd(b.usdc.usd + Math.max(0, (b.sol.usd ?? 0) - 1))} ready to ape
           </Text>
           {pnl && pnl.trades > 0 && (
             <Text style={[styles.pnl, { color: pnl.all < 0 ? color.red : color.green }]}>Your apes: {gain(pnl.all)} all-time</Text>

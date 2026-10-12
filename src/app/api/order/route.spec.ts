@@ -50,6 +50,15 @@ describe("POST /api/order", () => {
     expect(order.asked).toEqual([{ inputMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", outputMint: COIN_A, amount: "25000000", taker: WALLET }]);
   });
 
+  it("pays a buy in SOL when asked, at Jupiter's price of the moment", async () => {
+    const SOL = "So11111111111111111111111111111111111111112";
+    const order = fakeOrderer();
+    setDeps(fakeDeps({ search: fakeSearch([token(COIN_A), token(SOL, { symbol: "SOL", usdPrice: 200 })]), order }));
+    const res = await post({ mint: COIN_A, side: "buy", amountUsdc: 25, taker: WALLET, payWith: "sol" });
+    expect(res.status).toBe(200);
+    expect(order.asked).toEqual([{ inputMint: SOL, outputMint: COIN_A, amount: "125000000", taker: WALLET }]);
+  });
+
   it("sniffs again, and builds nothing for a blocked coin or above a warned one's cap", async () => {
     const order = fakeOrderer();
     setDeps(fakeDeps({ search: fakeSearch([token(COIN_A)]), quote: fakeQuoter({ sell: "no_route" }), order }));

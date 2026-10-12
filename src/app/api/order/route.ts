@@ -1,8 +1,8 @@
-import { USDC_MINT } from "@/core/route/jupiter";
+import { SOL_MINT, USDC_MINT } from "@/core/route/jupiter";
 import { fail, getIp, json, makeRateLimiter, preflight } from "@/engine/api";
 import { isAddress } from "@/engine/address";
 import { getDeps } from "@/engine/deps";
-import { isRecord } from "@/engine/http";
+import { isRecord, num } from "@/engine/http";
 import { sniff } from "@/engine/sniff";
 import { mayTrade, tradingMode } from "@/engine/trade";
 
@@ -12,11 +12,12 @@ export const maxDuration = 30;
 const limit = makeRateLimiter(20);
 
 /**
- * AN ORDER TO SIGN. `{ mint, side: "buy" | "sell", taker, amountUsdc | amountRaw }`
+ * AN ORDER TO SIGN. `{ mint, side: "buy" | "sell", taker, amountUsdc | amountRaw, payWith? }`
  * → a Jupiter transaction for the taker's wallet. A buy is sniffed again
  * here, whatever the app showed: a blocked coin gets no transaction, a
  * warned one none above its cap. A sell is never refused: getting out is
- * always the user's call.
+ * always the user's call. A buy is paid in USDC, or with `payWith: "sol"`
+ * in SOL worth the same dollars at Jupiter's price of the moment.
  *
  * CLOSED until SPOT_TRADING=1, and only for SPOT_TRADING_WALLETS when that
  * is set (a wallet off the list hears trading_closed, like everyone does
@@ -58,7 +59,14 @@ export async function POST(req: Request) {
     if (s.value.level === "warn" && s.value.maxBuyUsdc !== null && usdc > s.value.maxBuyUsdc) {
       return fail(409, "over_cap", { maxBuyUsdc: s.value.maxBuyUsdc });
     }
-    [input, output, amount] = [USDC_MINT, mint, String(Math.round(usdc * 1e6))];
+    if (b.payWith === "sol") {
+      const sol = await deps.search.search(SOL_MINT, { timeoutMs: 3_000 });
+      const price = sol.ok ? num(sol.value.find((t) => t.id === SOL_MINT)?.usdPrice) : undefined;
+      if (price === undefined || !(price > 0)) return fail(503, "lookup_failed");
+      [input, output, amount] = [SOL_MINT, mint, String(Math.round((usdc / price) * 1e9))];
+    } else {
+      [input, output, amount] = [USDC_MINT, mint, String(Math.round(usdc * 1e6))];
+    }
   } else {
     const raw = typeof b.amountRaw === "string" ? b.amountRaw.trim() : "";
     if (!/^\d{1,30}$/.test(raw) || /^0+$/.test(raw)) return fail(400, "invalid_amount");

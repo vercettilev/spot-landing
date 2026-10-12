@@ -13,6 +13,9 @@ import type { Executed, Holdings, Order, TokenCard } from "./types";
 
 export type Side = "buy" | "sell";
 
+/** What a buy is paid in: USDC when there is enough, else SOL worth the same dollars. */
+export type PayWith = "usdc" | "sol";
+
 /**
  * HOW LONG A SIGNED ORDER CAN STILL LAND. Solana drops a transaction once
  * its blockhash is 150 blocks old, about a minute, and Jupiter takes a
@@ -35,28 +38,34 @@ export function settled(res: Answer<Executed>): "landed" | "failed" | "unsure" {
   return res.value.final ? "failed" : "unsure";
 }
 
-/** The two balances a trade moves, raw: the coin, and the USDC it was bought with or sold for. */
+/** The balances a trade moves, raw: the coin, the USDC it was bought with or sold for, and the SOL (lamports) it may have been paid in. */
 export interface Snapshot {
   coin: string;
   usdc: string;
+  sol: string;
 }
 
 export function snapshotOf(bag: Holdings | null | undefined, mint: string): Snapshot | null {
   if (!bag) return null;
-  return { coin: bag.positions.find((p) => p.token.mint === mint)?.raw ?? "0", usdc: bag.usdc.raw };
+  return { coin: bag.positions.find((p) => p.token.mint === mint)?.raw ?? "0", usdc: bag.usdc.raw, sol: String(Math.round(bag.sol.amount * 1e9)) };
 }
 
 const big = (raw: string) => BigInt(/^\d+$/.test(raw) ? raw : "0");
 
+/* More SOL than any fee costs, less than any ape: a buy paid in SOL is
+   told from a fee by this much leaving. */
+const SOL_SPENT = BigInt(2_000_000);
+
 /**
  * DID IT LAND? Either side of the trade moving the right way says so: a buy
- * takes USDC and adds the coin, a sell the other way round. Both are read,
- * because a coin too new to price is missing from the bag's list while the
- * USDC it cost is not.
+ * takes USDC (or SOL, when paid in it) and adds the coin, a sell the other
+ * way round. Both are read, because a coin too new to price is missing from
+ * the bag's list while the cash it cost is not.
  */
-export function moved(side: Side, before: Snapshot, after: Snapshot): boolean {
-  const [coin0, coin1, usdc0, usdc1] = [before.coin, after.coin, before.usdc, after.usdc].map(big);
-  return side === "buy" ? coin1! > coin0! || usdc1! < usdc0! : coin1! < coin0! || usdc1! > usdc0!;
+export function moved(side: Side, before: Snapshot, after: Snapshot, payWith: PayWith = "usdc"): boolean {
+  const [coin0, coin1, usdc0, usdc1, sol0, sol1] = [before.coin, after.coin, before.usdc, after.usdc, before.sol, after.sol].map(big);
+  if (side === "sell") return coin1! < coin0! || usdc1! > usdc0!;
+  return coin1! > coin0! || usdc1! < usdc0! || (payWith === "sol" && sol0! - sol1! > SOL_SPENT);
 }
 
 /** What a quote pays out, in dollars, when that can be told before signing: a sell's USDC, a buy's coins at their price. */
@@ -87,7 +96,7 @@ export function orderErrorLine(error: ApiError, detail: Record<string, unknown> 
   switch (error) {
     case "refused":
       if (/\bsol\b|lamport|rent|fee/i.test(said) && /insufficient|not enough/i.test(said)) return "Add a little SOL for fees first, about $1 worth.";
-      if (/insufficient|not enough|balance/i.test(said)) return side === "buy" ? "Not enough USDC. Add cash, then ape." : "Your wallet holds less than that now. Refresh your bag.";
+      if (/insufficient|not enough|balance/i.test(said)) return side === "buy" ? "Not enough USDC or SOL. Add cash, then ape." : "Your wallet holds less than that now. Refresh your bag.";
       return "Jupiter wouldn't take this trade. Try again.";
     case "busy":
       return "Spot is busy. Try again in a few seconds.";
@@ -123,6 +132,7 @@ export interface Pending {
   mint: string;
   token: TokenCard;
   side: Side;
+  payWith: PayWith;
   /** Jupiter or the chain already said it landed: only the bag is behind. */
   landed: boolean;
   /** The wallet before it, when it could be read. */
@@ -150,7 +160,7 @@ export type Fate = "landed" | "lost" | "unread";
  * bag, so its deadline ends the wait, never the trade.
  */
 export function fateOf(p: Pending, after: Snapshot | null, now: number): Fate | null {
-  if (after && p.before && moved(p.side, p.before, after)) return "landed";
+  if (after && p.before && moved(p.side, p.before, after, p.payWith)) return "landed";
   if (now <= deadlineOf(p)) return null;
   if (p.landed) return "landed";
   return after && p.before ? "lost" : "unread";
@@ -170,14 +180,16 @@ const units = (raw: bigint, decimals: number) => Number(raw < ZERO ? -raw : raw)
 /**
  * THE FILL, from the wallet before and after: exact where a balance moved,
  * the quote's figure where one did not show (a coin Jupiter cannot price is
- * missing from the bag's list; the USDC it cost is not).
+ * missing from the bag's list; the USDC it cost is not). A buy paid in SOL
+ * keeps the dollars the order was made out for: the SOL that left is that
+ * at Jupiter's price of the moment, less a fee.
  */
 export function fillOf(p: Pending, after: Snapshot): Fill {
   if (!p.before) return { ...p.quote, exact: false };
   const coin = big(after.coin) - big(p.before.coin);
   const cash = big(after.usdc) - big(p.before.usdc);
   const amount = coin === ZERO ? null : units(coin, p.token.decimals);
-  const usdc = cash === ZERO ? null : units(cash, 6);
+  const usdc = p.payWith === "sol" ? p.quote.usdc : cash === ZERO ? null : units(cash, 6);
   return { usdc: usdc ?? p.quote.usdc, amount: amount ?? p.quote.amount, exact: usdc !== null && amount !== null };
 }
 

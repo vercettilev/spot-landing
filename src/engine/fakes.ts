@@ -1,5 +1,5 @@
 import type { UltraOutcome, UltraSearchClient } from "@/core/resolve/ultra";
-import type { AccountsReader, MintFacts, MintReader, SignatureReader, WalletAccounts } from "@/engine/chain";
+import type { AccountsReader, ImageReader, MintFacts, MintReader, SignatureReader, WalletAccounts } from "@/engine/chain";
 import type { Deps } from "@/engine/deps";
 import type { PairLookup } from "@/engine/dexscreener";
 import type { Outcome } from "@/engine/http";
@@ -181,6 +181,9 @@ export const fakeSignatures =
     return Object.assign(async (signature: string) => (asked.push(signature), answer), { asked });
   };
 
+/** The chain's images, by mint. */
+export const fakeImages = (images: Record<string, string> = {}): ImageReader => async (mint) => images[mint] ?? null;
+
 export function fakeDeps(over: Partial<Deps> = {}): Deps {
   return {
     search: fakeSearch([]),
@@ -190,6 +193,7 @@ export function fakeDeps(over: Partial<Deps> = {}): Deps {
     order: fakeOrderer(),
     execute: fakeExecutor(),
     readSignature: fakeSignatures(),
+    readImage: fakeImages(),
     readPost: fakePosts({}),
     expand: fakeExpand({}),
     pairs: noPairs,
