@@ -38,14 +38,14 @@ The money path, built ahead of the decisions it waits on and **closed unless `SP
 On the site's Vercel project, Settings → Environment Variables, for Production and Preview. All optional; the first two are strongly advised:
 
 - `JUPITER_API_KEY` from [developers.jup.ag](https://developers.jup.ag). With it the engine uses `api.jup.ag` and Swap V2's `/order` for quotes; without it, `lite-api.jup.ag` and `/swap/v1/quote`, which Jupiter is retiring. Real traffic needs the key.
-- `SOLANA_RPC_URL`: a Helius, Triton or QuickNode endpoint. The public one rate-limits hard, and when the chain does not answer for a Token-2022 coin the sniff waits rather than guess (see below).
+- `SOLANA_RPC_URL`: a Helius, Triton or QuickNode endpoint (Helius's free plan is enough to start). The public one rate-limits hard: the bag reads every token account a wallet holds, and when the chain does not answer for a Token-2022 coin the sniff waits rather than guess (see below).
 - `SPOT_GATE_MIN_LIQUIDITY_USD`, `SPOT_GATE_MIN_HOLDERS`, `SPOT_GATE_MIN_POOL_AGE_HOURS`: where the warn line sits (defaults $7,500, 150, 2 hours).
 - `SPOT_WARN_CAP_USDC`: the most a warned coin can be bought for (default 50).
 - `JUPITER_RPS`: the Jupiter plan's requests per second. With a key it defaults to 1, the free plan, and calls queue a second apart, so a sniff (three calls) takes two to three seconds. Set 10 on Developer, and so on.
 - `SPOT_TRADING`: `1` opens `/api/order` and `/api/execute`. Leave it unset until the fee, the wallet and the legal read are settled.
 - `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`, `JUPITER_ORDER_PATH`, `JUPITER_EXECUTE_PATH`: overrides, rarely needed.
 
-After a deploy, `/api/health` says which host and quote path it chose; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
+After a deploy, `/api/health` says which host and quote path it chose, whether an RPC is set (`custom`) and whether trading is open; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
 
 ## `POST /api/resolve`
 
