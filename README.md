@@ -18,6 +18,9 @@ src/components/PhoneDemo.tsx  Spot on a phone, on a loop: share, sniff, take pro
 src/components/Reveal.tsx     plays the stamp and the receipt once they scroll into view
 src/lib/email.ts              optional notes to ourselves (new signup, or a rescue if the store is down)
 src/components/SpotPuppy.tsx  the mascot; press it and it barks, the angry one growls
+src/app/api/resolve, sniff    the app's API: a share in, its coin out; a coin in, the sniff out
+src/engine/                   what those two run on (see src/engine/README.md)
+src/core/                     vendored from Poppin's spot-core, byte for byte
 src/components/puppyArt.ts    the logo traced and split into ears, jaw, head and paws (generated)
 public/                       the 23-second film, its poster, the bark and growl, logo files
 scripts/waitlist.ts           counts per phone, or a CSV of the list
@@ -43,6 +46,7 @@ Locally the form cannot store anything without the Blob credentials described un
 5. Redeploy, so the site picks all of it up.
 6. The domain is `usespot.fun`, registered through Google Workspace, so its DNS lives at Squarespace. `www.usespot.fun` serves the site and `usespot.fun` redirects to it: at Squarespace that is an A record for `usespot.fun` and a CNAME for `www`, next to Google Workspace's mail records. `SITE_URL` in `src/lib/site.ts` names `www.usespot.fun`; `NEXT_PUBLIC_SITE_URL` overrides it (see `.env.example`).
 7. Optional: `RESEND_API_KEY`, `MAIL_FROM` and `OPS_INBOX` for a note per signup and a mail rescue when the store fails.
+   For the app's API: `JUPITER_API_KEY` and `SOLANA_RPC_URL`, for Production and Preview (see `src/engine/README.md`).
 8. Turn on Web Analytics in the project to count visits.
 
 ## Reading the list
