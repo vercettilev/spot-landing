@@ -1,10 +1,11 @@
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Spot } from "./src/Spot";
+import { Navigation } from "./src/navigation";
+import { StoreProvider, useStore } from "./src/store";
 import { color } from "./src/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -22,21 +23,30 @@ const FONTS = {
 
 export default function App() {
   const [loaded, error] = useFonts(FONTS);
-
-  useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync().catch(() => {});
-  }, [loaded, error]);
-
   if (!loaded && !error) return null;
 
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
-        <Spot />
-      </SafeAreaView>
+      <StoreProvider>
+        <WhenReady>
+          <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
+            <Navigation />
+          </SafeAreaView>
+        </WhenReady>
+      </StoreProvider>
     </SafeAreaProvider>
   );
+}
+
+/* The splash stays up until the phone's memory is read, so the first
+   screen already knows the wallet and the settings. */
+function WhenReady({ children }: { children: ReactNode }) {
+  const { ready } = useStore();
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+  return ready ? children : null;
 }
 
 const styles = StyleSheet.create({

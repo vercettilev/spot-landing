@@ -57,6 +57,13 @@ export function usd(n: number | null): string {
   return `$${Math.round(Math.max(n, 0))}`;
 }
 
+/** A bag's worth, to the cent, the way a wallet shows it: $1,077.10. Past a million it reads like usd(). */
+export function money(n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return "—";
+  if (n >= 1e6) return usd(n);
+  return `$${Math.max(n, 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 /**
  * A price: cents above a dollar, four significant digits below it, and a
  * coin worth a sliver of a cent with its zeros counted, $0.0₅1234, the way
@@ -156,4 +163,51 @@ export function actionFor(state: "loading" | "error" | Level, amount: number): A
     default:
       return { label: "Sniff again", enabled: true, tone: "wait" };
   }
+}
+
+/** How long ago, the way a feed says it: now, 5m, 3h, 2d, 6w. */
+export function ago(iso: string, now = Date.now()): string {
+  const s = Math.max(0, (now - Date.parse(iso)) / 1000);
+  if (!Number.isFinite(s) || s < 60) return "now";
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 86400 * 14) return `${Math.floor(s / 86400)}d`;
+  return `${Math.floor(s / (86400 * 7))}w`;
+}
+
+/** A verdict as one word on a chip. */
+export function verdictWord(level: Level): { word: string; status: "good" | "warn" | "bad" | "unknown" } {
+  switch (level) {
+    case "ok":
+      return { word: "Clean", status: "good" };
+    case "warn":
+      return { word: "GRRR", status: "warn" };
+    case "block":
+      return { word: "NOPE", status: "bad" };
+    default:
+      return { word: "?", status: "unknown" };
+  }
+}
+
+/** Coins held, the way a wallet says it: 6,250 or 0.0015 or 1.2M. */
+export function amount(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1000) return Math.round(n).toLocaleString("en-US");
+  if (n >= 1) return (Math.round(n * 100) / 100).toString();
+  return parseFloat(n.toPrecision(3)).toString();
+}
+
+/** The raw amount for a share of a holding, rounded down so it never asks for more than is there. */
+export function shareOf(raw: string, pctOf100: number): string {
+  if (!/^\d+$/.test(raw)) return "0";
+  if (pctOf100 >= 100) return raw;
+  return ((BigInt(raw) * BigInt(Math.round(pctOf100 * 100))) / BigInt(10000)).toString();
+}
+
+/* expo-share-intent hands a shared image over as a file:// URI, and the text
+   reader on Android opens a content:// URI or a bare path, so the scheme
+   comes off first. */
+export function readablePath(uri: string, os: string): string {
+  return os === "android" && uri.startsWith("file://") ? uri.slice("file://".length) : uri;
 }

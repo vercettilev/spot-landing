@@ -29,11 +29,15 @@
       [
         "expo-share-intent",
         {
-          "androidIntentFilters": ["text/*"],
+          "androidIntentFilters": [
+            "text/*",
+            "image/*"
+          ],
           "iosActivationRules": {
             "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
-            "NSExtensionActivationSupportsText": true
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsImageWithMaxCount": 1
           }
         }
       ],

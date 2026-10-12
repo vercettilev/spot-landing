@@ -10,12 +10,18 @@ import type { Status } from "../types";
 /* The small parts every screen shares: the marks, the buttons, the chips,
    a coin's face, and a tap that can be felt. */
 
+/* Set from the user's settings by the store. */
+let haptics = true;
+export const setHaptics = (on: boolean) => {
+  haptics = on;
+};
+
 export const tap = () => {
-  if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+  if (haptics && Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
 };
 
 export const thud = () => {
-  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  if (haptics && Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 };
 
 export function Wordmark({ width = 76 }: { width?: number }) {
@@ -213,4 +219,98 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.97)",
   },
   toastText: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, lineHeight: 20, color: color.ink },
+  topBar: { flexDirection: "row", alignItems: "center", gap: 14, height: 48 },
+  topBack: { fontFamily: font.bodyBold, fontSize: 26, color: color.white, marginTop: -3 },
+  topTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, color: color.dim },
+  title: { marginTop: 6, fontFamily: font.display, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: color.white },
+  section: {
+    marginTop: 30,
+    marginBottom: 10,
+    fontFamily: font.mono,
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: color.faint,
+  },
+  card: { padding: 16, borderRadius: 20, backgroundColor: color.ink2, borderWidth: 1, borderColor: color.line },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderColor: color.line },
+  settingText: { flex: 1 },
+  settingTitle: { fontFamily: font.bodyBold, fontSize: 16, color: color.white },
+  settingNote: { marginTop: 2, fontFamily: font.body, fontSize: 13.5, lineHeight: 18, color: color.faint },
+  pill: {
+    minWidth: 56,
+    alignItems: "center",
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: color.line,
+    backgroundColor: color.ink2,
+  },
+  pillOn: { backgroundColor: color.orange, borderColor: color.orange },
+  pillOff: { opacity: 0.35 },
+  pillText: { fontFamily: font.bodyBold, fontSize: 15, color: color.white },
+  pillTextOn: { color: color.ink },
 });
+
+/** A screen's top: back (when it has somewhere to go back to), a title, and whatever sits on the right. */
+export function TopBar({ title, onBack, right }: { title?: string; onBack?: () => void; right?: ReactNode }) {
+  return (
+    <View style={styles.topBar}>
+      {onBack ? (
+        <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
+          <Text style={styles.topBack}>←</Text>
+        </Pressable>
+      ) : null}
+      <Text style={styles.topTitle} numberOfLines={1}>
+        {title ?? ""}
+      </Text>
+      {right}
+    </View>
+  );
+}
+
+/** A tab's title, big, the way the landing sets a headline. */
+export function Title({ children }: { children: ReactNode }) {
+  return <Text style={styles.title}>{children}</Text>;
+}
+
+export function Section({ children }: { children: ReactNode }) {
+  return <Text style={styles.section}>{children}</Text>;
+}
+
+/** A dark card with a hairline, the app's one container. */
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+/** A settings row: words on the left, a control on the right. */
+export function SettingRow({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <View style={styles.settingRow}>
+      <View style={styles.settingText}>
+        <Text style={styles.settingTitle}>{title}</Text>
+        {note ? <Text style={styles.settingNote}>{note}</Text> : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** A small round choice, as in the amount chips. */
+export function Pill({ label, on, onPress, disabled }: { label: string; on?: boolean; onPress?: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      onPress={() => {
+        tap();
+        onPress?.();
+      }}
+      disabled={disabled}
+      style={[styles.pill, on && styles.pillOn, disabled && styles.pillOff]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(on), disabled: Boolean(disabled) }}
+    >
+      <Text style={[styles.pillText, on && styles.pillTextOn]}>{label}</Text>
+    </Pressable>
+  );
+}

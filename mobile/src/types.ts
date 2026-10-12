@@ -87,5 +87,42 @@ export interface Share {
   url?: string;
   text?: string;
   /** How it arrived, for the line under the coin. */
-  from: "share" | "paste";
+  from: "share" | "paste" | "screenshot";
+}
+
+/** /api/holdings */
+export interface Holding {
+  token: TokenCard;
+  amount: number;
+  raw: string;
+  usd: number;
+}
+
+export interface Holdings {
+  ok: true;
+  owner: string;
+  totalUsd: number;
+  usdc: { amount: number; raw: string; usd: number };
+  sol: { amount: number; usd: number | null };
+  positions: Holding[];
+  hidden: number;
+}
+
+/** /api/order */
+export interface Order {
+  ok: true;
+  requestId: string;
+  transaction: string;
+  inAmount: string;
+  outAmount: string;
+  priceImpactPct: number | null;
+  gasless: boolean;
+}
+
+/** /api/execute */
+export interface Executed {
+  ok: true;
+  status: "Success" | "Failed";
+  signature: string | null;
+  error: string | null;
 }

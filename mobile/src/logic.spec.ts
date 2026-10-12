@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionFor, chipsFor, clampAmount, count, fromPaste, fromShare, ordered, pct, price, sourceLine, usd } from "./logic";
+import { actionFor, ago, amount, chipsFor, clampAmount, count, fromPaste, fromShare, money, ordered, pct, price, readablePath, shareOf, sourceLine, usd, verdictWord } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -53,6 +53,9 @@ describe("numbers", () => {
     expect(usd(4_200)).toBe("$4.2k");
     expect(usd(900)).toBe("$900");
     expect(usd(null)).toBe("—");
+    expect(money(1077.1)).toBe("$1,077.10");
+    expect(money(0.004)).toBe("$0.00");
+    expect(money(2_400_000)).toBe("$2.4M");
     expect(price(229.585)).toBe("$229.59");
     expect(price(0.2202673)).toBe("$0.2203");
     expect(price(0.0021)).toBe("$0.0021");
@@ -100,5 +103,43 @@ describe("the button", () => {
     expect(actionFor("block", 25)).toMatchObject({ enabled: false, tone: "stop" });
     expect(actionFor("unknown", 25)).toMatchObject({ label: "Sniff again", enabled: true });
     expect(actionFor("loading", 25)).toMatchObject({ enabled: false });
+  });
+});
+
+describe("the feed's words", () => {
+  const now = Date.parse("2026-10-12T12:00:00Z");
+  it("say how long ago", () => {
+    expect(ago("2026-10-12T11:59:30Z", now)).toBe("now");
+    expect(ago("2026-10-12T11:55:00Z", now)).toBe("5m");
+    expect(ago("2026-10-12T09:00:00Z", now)).toBe("3h");
+    expect(ago("2026-10-10T12:00:00Z", now)).toBe("2d");
+    expect(ago("2026-08-01T12:00:00Z", now)).toBe("10w");
+  });
+
+  it("put a verdict in one word", () => {
+    expect(verdictWord("ok")).toEqual({ word: "Clean", status: "good" });
+    expect(verdictWord("block")).toEqual({ word: "NOPE", status: "bad" });
+  });
+
+  it("count a bag", () => {
+    expect(amount(6250)).toBe("6,250");
+    expect(amount(1_234_567)).toBe("1.2M");
+    expect(amount(12.3456)).toBe("12.35");
+    expect(amount(0.0015)).toBe("0.0015");
+  });
+
+  it("sell a share of a holding without asking for more than is there", () => {
+    expect(shareOf("6250000000", 50)).toBe("3125000000");
+    expect(shareOf("999", 25)).toBe("249");
+    expect(shareOf("6250000000", 100)).toBe("6250000000");
+    expect(shareOf("nope", 50)).toBe("0");
+  });
+});
+
+describe("a shared screenshot", () => {
+  it("reaches the reader as a path it can open", () => {
+    expect(readablePath("file:///data/user/0/fun.usespot.app/cache/Screenshot_1.png", "android")).toBe("/data/user/0/fun.usespot.app/cache/Screenshot_1.png");
+    expect(readablePath("content://media/external/images/media/42", "android")).toBe("content://media/external/images/media/42");
+    expect(readablePath("file:///var/mobile/shot.png", "ios")).toBe("file:///var/mobile/shot.png");
   });
 });
