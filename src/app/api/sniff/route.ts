@@ -2,6 +2,7 @@ import { USDC_MINT } from "@/core/route/jupiter";
 import { NO_STORE, fail, getIp, json, makeRateLimiter, preflight } from "@/engine/api";
 import { isAddress } from "@/engine/address";
 import { getDeps } from "@/engine/deps";
+import { fillIcons } from "@/engine/icons";
 import { sniff } from "@/engine/sniff";
 
 export const runtime = "nodejs";
@@ -33,8 +34,10 @@ export async function GET(req: Request) {
   const amount = raw === null || raw.trim() === "" ? DEFAULT_AMOUNT : Number(raw);
   if (!Number.isFinite(amount) || amount < 1 || amount > MAX_AMOUNT) return fail(400, "invalid_amount");
 
-  const res = await sniff(mint, Math.round(amount * 100) / 100, getDeps());
+  const deps = getDeps();
+  const res = await sniff(mint, Math.round(amount * 100) / 100, deps);
   if (!res.ok) return res.reason === "lookup_failed" ? fail(503, "lookup_failed") : fail(404, res.reason);
+  await fillIcons([res.value.token], deps.readImage);
 
   /* Prices move by the second; ten seconds of sharing one answer between
      everyone sniffing the same coin is what keeps a hot coin from costing a

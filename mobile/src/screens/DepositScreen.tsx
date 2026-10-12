@@ -11,14 +11,15 @@ import { color, font } from "../theme";
 type Props = NativeStackScreenProps<RootParams, "Deposit">;
 
 const NOTES = [
-  "Only send USDC on Solana. USDC sent on another network (Ethereum, Base, Tron) can be lost.",
-  "From an exchange: withdraw USDC and choose Solana.",
+  "Only send on Solana. USDC or SOL sent on another network (Ethereum, Base, Tron) can be lost.",
+  "From an exchange: withdraw USDC or SOL and choose Solana.",
 ];
 
 /**
- * ADDING DOLLARS. Spot buys with USDC, and USDC goes straight to the
- * wallet's own address: Spot never holds it. The code is the plain address,
- * which every exchange and wallet scanner reads.
+ * ADDING CASH. Spot buys with USDC, or with SOL when that is what the
+ * wallet holds, and both go straight to the wallet's own address: Spot
+ * never holds them. The code is the plain address, which every exchange
+ * and wallet scanner reads.
  */
 export function DepositScreen({ navigation }: Props) {
   const { wallet } = useStore();
@@ -48,7 +49,7 @@ export function DepositScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <TopBar title="Add cash" onBack={() => navigation.goBack()} />
         <Text style={styles.h1}>Add cash.</Text>
-        <Text style={styles.lede}>Load USDC, digital dollars on Solana, and ape anything you see. It goes to your own wallet, not to Spot.</Text>
+        <Text style={styles.lede}>Load USDC (digital dollars) or SOL and ape anything you see. It goes to your own wallet, not to Spot.</Text>
         {wallet.kind === "watch" ? (
           <Card style={styles.watch}>
             <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
@@ -64,7 +65,7 @@ export function DepositScreen({ navigation }: Props) {
             {"\n"}
             {address.slice(Math.ceil(address.length / 2))}
           </Text>
-          <Text style={styles.network}>USDC on Solana</Text>
+          <Text style={styles.network}>USDC or SOL, on Solana</Text>
         </View>
 
         <View style={styles.actions}>

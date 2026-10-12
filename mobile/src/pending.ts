@@ -81,7 +81,7 @@ async function watch(k: string): Promise<void> {
         pending.delete(k);
         persist();
         if (!res.ok) forgetHoldings(p.owner);
-        emit(p, fate, fate === "landed" && after && p.before && moved(p.side, p.before, after) ? fillOf(p, after) : null);
+        emit(p, fate, fate === "landed" && after && p.before && moved(p.side, p.before, after, p.payWith) ? fillOf(p, after) : null);
         return;
       }
       await sleep(p.landed ? 2_000 : 3_000);

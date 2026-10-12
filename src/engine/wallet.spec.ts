@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { COIN_A, COIN_B, WALLET, fakeAccounts, fakeFetch, fakeSearch, jsonResponse, token } from "@/engine/fakes";
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from "./address";
-import { balancesOf, landingOf, makeAccountsReader, makeSignatureReader } from "./chain";
+import { balancesOf, imageOf, landingOf, makeAccountsReader, makeImageReader, makeSignatureReader } from "./chain";
+import { fillIcons } from "./icons";
+import { cardOf } from "./token";
 import { holdings } from "./holdings";
 import { jupiterConfig } from "./jupiter";
 import { makeExecutor, makeOrderer, mayTrade, tradeConfig, tradingMode } from "./trade";
@@ -153,5 +155,31 @@ describe("a sent transaction", () => {
     const fetchFn = fakeFetch([["https://rpc.test", () => jsonResponse({ jsonrpc: "2.0", id: 1, result: { context: { slot: 9 }, value: [{ err: null, confirmationStatus: "confirmed" }] } })]]);
     expect(await makeSignatureReader("https://rpc.test", { fetchFn })("5ig")).toEqual({ ok: true, value: "landed" });
     expect(JSON.parse(String(fetchFn.seen[0]!.init?.body))).toMatchObject({ method: "getSignatureStatuses", params: [["5ig"], { searchTransactionHistory: true }] });
+  });
+});
+
+describe("a coin's image from the chain", () => {
+  it("is the metadata's image, or a file's address, and only a web address", () => {
+    expect(imageOf({ content: { links: { image: "https://img.test/a.png" }, files: [{ uri: "https://img.test/b.png" }] } })).toBe("https://img.test/a.png");
+    expect(imageOf({ content: { files: [{ uri: "ipfs://x", cdn_uri: "https://cdn.test/x.png" }] } })).toBe("https://cdn.test/x.png");
+    expect(imageOf({ content: { links: { image: "ipfs://nope" } } })).toBeNull();
+    expect(imageOf(null)).toBeNull();
+  });
+
+  it("is asked of the RPC with getAsset, and fills only the cards Jupiter left blank", async () => {
+    const fetchFn = fakeFetch([["https://rpc.test", () => jsonResponse({ jsonrpc: "2.0", id: 1, result: { content: { links: { image: "https://img.test/a.png" } } } })]]);
+    const read = makeImageReader("https://rpc.test", { fetchFn });
+    const blank = cardOf(token(COIN_A, { icon: "" }));
+    const drawn = cardOf(token(COIN_B));
+    await fillIcons([blank, drawn, blank], read);
+    expect(blank.icon).toBe("https://img.test/a.png");
+    expect(drawn.icon).toBe(`https://example.test/${COIN_B}.png`);
+    expect(fetchFn.seen).toHaveLength(1);
+    expect(JSON.parse(String(fetchFn.seen[0]!.init?.body))).toMatchObject({ method: "getAsset", params: { id: COIN_A } });
+  });
+
+  it("keeps the letter when the RPC has no such method", async () => {
+    const fetchFn = fakeFetch([["https://rpc.test", () => jsonResponse({ jsonrpc: "2.0", id: 1, error: { code: -32601, message: "Method not found" } })]]);
+    expect(await makeImageReader("https://rpc.test", { fetchFn })(COIN_A)).toBeNull();
   });
 });

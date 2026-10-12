@@ -226,3 +226,38 @@ export function makeSignatureReader(rpcUrl: string, opts: { fetchFn?: Fetch; tim
     return res.ok ? { ok: true, value: landingOf(res.value.value) } : res;
   };
 }
+
+/**
+ * A COIN'S IMAGE FROM THE CHAIN, for when Jupiter has none yet: Helius's
+ * getAsset reads the mint's own metadata. Any other RPC answers with an
+ * error, and the card keeps its letter.
+ */
+export type ImageReader = (mint: string) => Promise<string | null>;
+
+/** The image in a getAsset result, when it is a web address. Exported for the specs. */
+export function imageOf(result: unknown): string | null {
+  const content = isRecord(result) && isRecord(result.content) ? result.content : undefined;
+  const links = content && isRecord(content.links) ? content.links : undefined;
+  const first = content && Array.isArray(content.files) ? content.files.find(isRecord) : undefined;
+  for (const v of [links?.image, first?.cdn_uri, first?.uri]) {
+    const s = str(v);
+    if (s && /^https?:\/\//i.test(s)) return s;
+  }
+  return null;
+}
+
+export function makeImageReader(rpcUrl: string, opts: { fetchFn?: Fetch; timeoutMs?: number } = {}): ImageReader {
+  const fetchFn = bindFetch(opts.fetchFn ?? fetch);
+  const timeoutMs = opts.timeoutMs ?? 2_500;
+  return async (mint) => {
+    const res = await fetchText(fetchFn, rpcUrl, {
+      timeoutMs,
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getAsset", params: { id: mint } }),
+    });
+    if (!res.ok || res.value.status !== 200) return null;
+    const body = parseJson(res.value.text);
+    return isRecord(body) ? imageOf(body.result) : null;
+  };
+}

@@ -80,7 +80,7 @@ const post = <T>(path: string, body: unknown, timeoutMs: number) =>
   call<T>(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }, timeoutMs);
 
 /** A transaction for the wallet to sign. The server sniffs a buy again before it builds one. */
-export const placeOrder = (o: { mint: string; side: "buy" | "sell"; taker: string; amountUsdc?: number; amountRaw?: string }) =>
+export const placeOrder = (o: { mint: string; side: "buy" | "sell"; taker: string; amountUsdc?: number; amountRaw?: string; payWith?: "usdc" | "sol" }) =>
   post<Order>("/api/order", o, 30_000);
 
 /** The signed transaction, landed through Jupiter. Anything short of a final answer may still land (see trade.ts). */

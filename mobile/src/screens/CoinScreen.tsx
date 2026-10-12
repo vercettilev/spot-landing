@@ -1,11 +1,12 @@
 import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Bell, Button, CoinFace, Pill, Toggle, feel, tap, useToast } from "../components/ui";
+import { Bell, Button, CoinFace, OutIcon, Pill, Toggle, feel, tap, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, pct, price, shareOf, sourceLine, usd } from "../logic";
 import type { RootParams } from "../navigation";
@@ -13,8 +14,9 @@ import { claim, hold, pendingFor, subscribe } from "../pending";
 import { AUTO_SELL, PINGS } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font } from "../theme";
-import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
+import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type PayWith, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
+import { short } from "../wallet/base58";
 import { signTransaction, walletError } from "../wallet/mwa";
 
 type Props = NativeStackScreenProps<RootParams, "Coin">;
@@ -29,6 +31,7 @@ interface Confirm {
   text: string;
   builtAt: number;
   quote: { usdc: number; amount: number };
+  payWith: PayWith;
   line: string;
   label: string;
 }
@@ -151,6 +154,8 @@ export function CoinScreen({ navigation, route }: Props) {
   const up = (coin.change24hPct ?? 0) >= 0;
   const watched = store.isWatched(coin.mint);
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
+  /* USDC when there is enough of it; else SOL, less a dollar for fees. */
+  const payWith: PayWith = (bag.value?.usdc.usd ?? 0) >= amount || (bag.value?.sol.usd ?? 0) - 1 < amount ? "usdc" : "sol";
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
 
   const action = checking
@@ -178,10 +183,18 @@ export function CoinScreen({ navigation, route }: Props) {
           : restricted
             ? "Coins like this aren't sold to people in the US."
             : wallet?.kind === "mwa"
-              ? "Your wallet asks you to approve every trade."
+              ? payWith === "sol"
+                ? "Pays with SOL. Your wallet asks you to approve."
+                : "Your wallet asks you to approve every trade."
               : wallet
                 ? "You're only tracking this wallet. Connect yours to ape."
                 : "Free sniff. Connect a wallet to ape.";
+
+  async function copyCa() {
+    tap();
+    await Clipboard.setStringAsync(coin.mint).catch(() => {});
+    toast("CA copied.");
+  }
 
   function toggleWatch() {
     tap();
@@ -218,7 +231,7 @@ export function CoinScreen({ navigation, route }: Props) {
       const [order, fresh] = await Promise.all([
         placeOrder(
           buying
-            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
+            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount, payWith }
             : { mint: coin.mint, side, taker: wallet.address, amountRaw: sellRaw },
         ),
         fetchHoldings(wallet.address),
@@ -245,6 +258,7 @@ export function CoinScreen({ navigation, route }: Props) {
           text,
           builtAt,
           quote,
+          payWith,
           line: buying
             ? `Thin pool. Your $${amount} only buys about ${usd(short.gotUsd)} of it.`
             : `Thin pool. You'd get ${usd(short.gotUsd)} back, not ${usd(short.expectedUsd)}.`,
@@ -252,7 +266,7 @@ export function CoinScreen({ navigation, route }: Props) {
         });
         return;
       }
-      await send(wallet, order.value, side, before, text, builtAt, quote);
+      await send(wallet, order.value, side, before, text, builtAt, quote, buying ? payWith : "usdc");
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -273,7 +287,7 @@ export function CoinScreen({ navigation, route }: Props) {
     inFlight.current = true;
     setBusy(true);
     try {
-      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote);
+      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote, c.payWith);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -290,12 +304,13 @@ export function CoinScreen({ navigation, route }: Props) {
     text: string,
     builtAt: number,
     quote: { usdc: number; amount: number },
+    paid: PayWith,
   ) {
     const signed = await signTransaction(order.transaction, w.authToken, w.address);
     if (signed.authToken !== w.authToken) store.setWallet({ ...w, authToken: signed.authToken });
     const res = await executeOrder(order.requestId, signed.signed);
     const signature = res.ok ? res.value.signature : null;
-    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, before, text, signature, quote };
+    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, payWith: paid, before, text, signature, quote };
     switch (settled(res)) {
       case "landed":
         finish(w.address, sideNow, text, signature);
@@ -354,6 +369,24 @@ export function CoinScreen({ navigation, route }: Props) {
         </View>
 
         {coin.mcapUsd !== null && <Text style={styles.stats}>{usd(coin.mcapUsd)} market cap</Text>}
+        {/* The address is the one thing a lookalike cannot copy: shown, copied in a tap, and checked on Solscan. */}
+        <View style={styles.caRow}>
+          <Pressable onPress={() => void copyCa()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
+            <Text style={styles.caLabel}>CA</Text>
+            <Text style={styles.caText}>{short(coin.mint)}</Text>
+            <Text style={styles.caLink}>Copy</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void Linking.openURL(`https://solscan.io/token/${coin.mint}`).catch(() => {})}
+            hitSlop={8}
+            accessibilityRole="link"
+            accessibilityLabel="See it on Solscan"
+            style={styles.ca}
+          >
+            <Text style={styles.caLink}>Solscan</Text>
+            <OutIcon />
+          </Pressable>
+        </View>
         {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
         {others.length > 0 && (
           <Pressable
@@ -470,6 +503,11 @@ const styles = StyleSheet.create({
   price: { fontFamily: font.displayBold, fontSize: 18, color: color.white },
   change: { marginTop: 2, fontFamily: font.bodyBold, fontSize: 14 },
   stats: { marginTop: 12, fontFamily: font.bodySemi, fontSize: 14, color: color.faint },
+  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
+  ca: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
+  caLabel: { fontFamily: font.bodyBold, fontSize: 13, color: color.faint },
+  caText: { fontFamily: font.mono, fontSize: 13, color: color.dim },
+  caLink: { fontFamily: font.bodySemi, fontSize: 14, color: color.orange },
   restricted: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 14, color: "#ffb08a" },
   notThis: { marginTop: 10, fontFamily: font.bodySemi, fontSize: 15, color: color.orange },
   side: {

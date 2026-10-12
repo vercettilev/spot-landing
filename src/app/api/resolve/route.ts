@@ -1,6 +1,7 @@
 import { NO_STORE, fail, getIp, json, makeRateLimiter, preflight } from "@/engine/api";
 import { getDeps } from "@/engine/deps";
 import { isRecord } from "@/engine/http";
+import { fillIcons } from "@/engine/icons";
 import { TEXT_CAP, resolve } from "@/engine/resolve";
 
 export const runtime = "nodejs";
@@ -28,7 +29,9 @@ async function answer(req: Request, url: unknown, text: unknown, cache: string):
      is not a web link is read as more of what was shared. */
   const isLink = /^https?:\/\//i.test(u);
   const shared = (isLink ? t : [u, t].filter(Boolean).join("\n")).slice(0, TEXT_CAP);
-  const result = await resolve({ url: isLink ? u : undefined, text: shared }, getDeps());
+  const deps = getDeps();
+  const result = await resolve({ url: isLink ? u : undefined, text: shared }, deps);
+  await fillIcons([...(result.pick ? [result.pick.token] : []), ...result.candidates.map((c) => c.token)], deps.readImage);
 
   if (result.status === "none" && result.missed.includes("search")) {
     return fail(503, "lookup_failed", { missed: result.missed });
