@@ -1,0 +1,199 @@
+import { describe, expect, it } from "vitest";
+import { COIN_A, COIN_B, PAIR_A, fakeFetch, jsonResponse, token } from "@/engine/fakes";
+import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from "./address";
+import { makeMintReader, mintFactsOf } from "./chain";
+import { coinOf, makePairLookup } from "./dexscreener";
+import { jupiterConfig, makeQuoter, ultraAuthority } from "./jupiter";
+
+const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const SOL = "So11111111111111111111111111111111111111112";
+const ON_BASE = "0x4200000000000000000000000000000000000006";
+
+describe("which Jupiter", () => {
+  it("is api.jup.ag and Swap V2 with a key, lite-api and v1 without", () => {
+    expect(jupiterConfig({ JUPITER_API_KEY: " k " })).toEqual({ base: "https://api.jup.ag", quotePath: "/swap/v2/order", apiKey: "k" });
+    expect(jupiterConfig({})).toEqual({ base: "https://lite-api.jup.ag", quotePath: "/swap/v1/quote", apiKey: undefined });
+    expect(jupiterConfig({ JUPITER_BASE_URL: "https://jup.example/", JUPITER_QUOTE_PATH: "/q" })).toMatchObject({
+      base: "https://jup.example",
+      quotePath: "/q",
+    });
+  });
+});
+
+describe("a quote", () => {
+  const v2 = jupiterConfig({ JUPITER_API_KEY: "key" });
+  const v1 = jupiterConfig({});
+  const ask = { inputMint: USDC, outputMint: COIN_A, amount: "25000000" };
+
+  it("comes back with what it pays and where it routes", async () => {
+    const fetchFn = fakeFetch([
+      ["https://api.jup.ag/swap/v2/order", () =>
+        jsonResponse({ inAmount: "25000000", outAmount: "6250000000", routePlan: [{ swapInfo: { label: "Pump.fun Amm" } }], transaction: null })],
+    ]);
+    expect(await makeQuoter(v2, { fetchFn })(ask)).toEqual({
+      ok: true,
+      value: { inAmount: "25000000", outAmount: "6250000000", venues: ["Pump.fun Amm"] },
+    });
+    const sent = fetchFn.seen[0]!;
+    expect(sent.url).toBe(`https://api.jup.ag/swap/v2/order?inputMint=${USDC}&outputMint=${COIN_A}&amount=25000000`);
+    expect((sent.init?.headers as Record<string, string>)["x-api-key"]).toBe("key");
+  });
+
+  it("asks v1 with a slippage and no key", async () => {
+    const fetchFn = fakeFetch([["https://lite-api.jup.ag/swap/v1/quote", () => jsonResponse({ outAmount: "1" })]]);
+    await makeQuoter(v1, { fetchFn })(ask);
+    expect(fetchFn.seen[0]!.url).toContain("slippageBps=300");
+    expect((fetchFn.seen[0]!.init?.headers as Record<string, string>)["x-api-key"]).toBeUndefined();
+  });
+
+  it("tells no route apart from not knowing", async () => {
+    const answer = (body: unknown, status: number) => makeQuoter(v1, { fetchFn: fakeFetch([["https://", () => jsonResponse(body, status)]]) })(ask);
+    expect(await answer({ error: "Could not find any route", errorCode: "COULD_NOT_FIND_ANY_ROUTE" }, 400)).toEqual({ ok: false, reason: "no_route" });
+    expect(await answer({ error: "The token is not tradable", errorCode: "TOKEN_NOT_TRADABLE" }, 400)).toEqual({ ok: false, reason: "no_route" });
+    expect(await answer({ errorMessage: "No routes found" }, 200)).toEqual({ ok: false, reason: "no_route" });
+    expect(await answer({ outAmount: "0" }, 200)).toEqual({ ok: false, reason: "no_route" });
+    expect(await answer({ error: "Invalid amount" }, 400)).toEqual({ ok: false, reason: "http_error" });
+    expect(await answer({}, 429)).toEqual({ ok: false, reason: "rate_limited" });
+    expect(await answer({ error: "Could not find any route" }, 503)).toEqual({ ok: false, reason: "http_error" });
+    expect(await answer({ surprise: true }, 200)).toEqual({ ok: false, reason: "bad_shape" });
+  });
+
+  it("gives up on its own clock", async () => {
+    const hang = (async (_: unknown, init?: RequestInit) =>
+      new Promise((_r, reject) => init?.signal?.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" }))))) as typeof fetch;
+    expect(await makeQuoter(v1, { fetchFn: hang, timeoutMs: 20 })(ask)).toEqual({ ok: false, reason: "timeout" });
+  });
+});
+
+describe("Ultra's word on an authority", () => {
+  it("is spot-core's reading: a key is retained, null or absent is revoked, the audit flag can say retained", () => {
+    expect(ultraAuthority(token(COIN_A, { freezeAuthority: "Dev111" }), "freeze")).toBe("retained");
+    expect(ultraAuthority(token(COIN_A, { freezeAuthority: null }), "freeze")).toBe("revoked");
+    const absent = token(COIN_A);
+    delete absent.mintAuthority;
+    expect(ultraAuthority(absent, "mint")).toBe("revoked");
+    expect(ultraAuthority(token(COIN_A, { audit: { mintAuthorityDisabled: false } }), "mint")).toBe("retained");
+  });
+});
+
+describe("the mint account", () => {
+  const account = (owner: string, info: Record<string, unknown>, program = owner === TOKEN_PROGRAM ? "spl-token" : "spl-token-2022") => ({
+    owner,
+    data: { program, parsed: { type: "mint", info: { decimals: 6, supply: "1000", isInitialized: true, ...info } } },
+  });
+
+  it("reads a classic mint's keys", () => {
+    expect(mintFactsOf(account(TOKEN_PROGRAM, { mintAuthority: null, freezeAuthority: "Dev111" }))).toEqual({
+      ok: true,
+      value: expect.objectContaining({ program: "classic", decimals: 6, mintAuthority: null, freezeAuthority: "Dev111", permanentDelegate: null }),
+    });
+  });
+
+  it("reads every Token-2022 setting that can take a bag", () => {
+    const got = mintFactsOf(
+      account(TOKEN_2022_PROGRAM, {
+        mintAuthority: null,
+        freezeAuthority: null,
+        extensions: [
+          { extension: "permanentDelegate", state: { delegate: "Del111" } },
+          {
+            extension: "transferFeeConfig",
+            state: {
+              olderTransferFee: { epoch: 1, maximumFee: 10, transferFeeBasisPoints: 100 },
+              newerTransferFee: { epoch: 2, maximumFee: 10, transferFeeBasisPoints: 900 },
+            },
+          },
+          { extension: "transferHook", state: { authority: null, programId: "Hook111" } },
+          { extension: "nonTransferable" },
+          { extension: "defaultAccountState", state: { accountState: "frozen" } },
+          { extension: "pausableConfig", state: { authority: "Pause111", paused: false } },
+          { extension: "metadataPointer", state: { authority: null, metadataAddress: COIN_A } },
+        ],
+      }),
+    );
+    expect(got).toEqual({
+      ok: true,
+      value: {
+        program: "token-2022",
+        decimals: 6,
+        mintAuthority: null,
+        freezeAuthority: null,
+        permanentDelegate: "Del111",
+        transferFeeBps: 900,
+        transferHook: "Hook111",
+        nonTransferable: true,
+        startsFrozen: true,
+        pause: { authority: "Pause111", paused: false },
+      },
+    });
+  });
+
+  it("is not a mint when it is a wallet or a token account, and is missing when the chain has nothing", () => {
+    expect(mintFactsOf({ owner: "11111111111111111111111111111111", data: ["", "base64"] })).toEqual({ ok: false, reason: "not_a_mint" });
+    expect(mintFactsOf({ owner: TOKEN_PROGRAM, data: { program: "spl-token", parsed: { type: "account", info: {} } } })).toEqual({
+      ok: false,
+      reason: "not_a_mint",
+    });
+    expect(mintFactsOf(null)).toEqual({ ok: false, reason: "not_found" });
+  });
+
+  it("is asked for once, jsonParsed, and a throttled RPC says so", async () => {
+    const fetchFn = fakeFetch([["https://rpc.test", () => jsonResponse({ jsonrpc: "2.0", id: 1, result: { context: { slot: 1 }, value: account(TOKEN_PROGRAM, { mintAuthority: null, freezeAuthority: null }) } })]]);
+    const read = makeMintReader("https://rpc.test", { fetchFn });
+    expect((await read(COIN_A)).ok).toBe(true);
+    expect(JSON.parse(String(fetchFn.seen[0]!.init?.body))).toEqual({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getAccountInfo",
+      params: [COIN_A, { encoding: "jsonParsed", commitment: "confirmed" }],
+    });
+    const busy = makeMintReader("https://rpc.test", { fetchFn: fakeFetch([["https://rpc.test", () => jsonResponse({}, 429)]]) });
+    expect(await busy(COIN_A)).toEqual({ ok: false, reason: "rate_limited" });
+    const erred = makeMintReader("https://rpc.test", { fetchFn: fakeFetch([["https://rpc.test", () => jsonResponse({ error: { code: -32602 } })]]) });
+    expect(await erred(COIN_A)).toEqual({ ok: false, reason: "http_error" });
+  });
+});
+
+describe("a pool", () => {
+  const pair = (pairAddress: string, base: string, quote: string) => ({
+    chainId: "solana",
+    pairAddress,
+    baseToken: { address: base },
+    quoteToken: { address: quote },
+  });
+
+  it("is the coin on whichever side is not SOL or a dollar", () => {
+    expect(coinOf(pair(PAIR_A, COIN_A, SOL))).toBe(COIN_A);
+    expect(coinOf(pair(PAIR_A, USDC, COIN_B))).toBe(COIN_B);
+    expect(coinOf(pair(PAIR_A, SOL, USDC))).toBe(SOL);
+  });
+
+  it("is looked up in one call, and only Solana pools count", async () => {
+    const fetchFn = fakeFetch([
+      ["https://api.dexscreener.com/latest/dex/pairs/solana/", () =>
+        jsonResponse({ pairs: [pair(PAIR_A, COIN_A, SOL), { ...pair(COIN_B, ON_BASE, SOL), chainId: "base" }] })],
+    ]);
+    const got = await makePairLookup({ fetchFn })([PAIR_A, COIN_B], []);
+    expect(got).toEqual({ ok: true, value: new Map([[PAIR_A, COIN_A]]) });
+    expect(fetchFn.seen[0]!.url).toBe(`https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_A},${COIN_B}`);
+  });
+
+  it("finds a lowercased address by searching, and takes only an exact match", async () => {
+    const lower = PAIR_A.toLowerCase();
+    const fetchFn = fakeFetch([
+      ["https://api.dexscreener.com/latest/dex/pairs/", () => jsonResponse({ pairs: null })],
+      ["https://api.dexscreener.com/latest/dex/search", () =>
+        jsonResponse({ pairs: [pair(COIN_B, COIN_B, SOL), pair(PAIR_A, COIN_A, SOL)] })],
+    ]);
+    expect(await makePairLookup({ fetchFn })([], [lower])).toEqual({ ok: true, value: new Map([[lower, COIN_A]]) });
+  });
+
+  it("says so when Dexscreener is down or throttling", async () => {
+    expect(await makePairLookup({ fetchFn: fakeFetch([["https://", () => jsonResponse({}, 429)]]) })([PAIR_A], [])).toEqual({
+      ok: false,
+      reason: "rate_limited",
+    });
+    expect(await makePairLookup({ fetchFn: fakeFetch([]) })([PAIR_A], [])).toEqual({ ok: false, reason: "network_error" });
+  });
+});
+
