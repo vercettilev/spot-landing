@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchHoldings } from "./api";
 import { forgetHoldings, primeHoldings } from "./holdings";
-import { fateOf, snapshotOf, type Fate, type Pending } from "./trade";
+import { fateOf, fillOf, moved, snapshotOf, type Fate, type Fill, type Pending } from "./trade";
 
 /**
  * TRADES THE APP IS STILL WAITING ON, watched from outside any screen:
@@ -16,8 +16,8 @@ const pending = new Map<string, Pending>();
 const watching = new Set<string>();
 const claimed = new Set<string>();
 
-/** Hears every hold (fate null) and every verdict. */
-type Listener = (p: Pending, fate: Fate | null) => void;
+/** Hears every hold (fate null) and every verdict, with the fill when the wallet showed the trade. */
+type Listener = (p: Pending, fate: Fate | null, fill: Fill | null) => void;
 const listeners = new Set<Listener>();
 
 const keyOf = (owner: string, mint: string) => `${owner} ${mint}`;
@@ -27,8 +27,8 @@ function persist() {
   AsyncStorage.setItem(KEY, JSON.stringify([...pending.values()])).catch(() => {});
 }
 
-function emit(p: Pending, fate: Fate | null) {
-  for (const fn of listeners) fn(p, fate);
+function emit(p: Pending, fate: Fate | null, fill: Fill | null = null) {
+  for (const fn of listeners) fn(p, fate, fill);
 }
 
 export const pendingFor = (owner: string | null | undefined, mint: string): Pending | null => (owner ? (pending.get(keyOf(owner, mint)) ?? null) : null);
@@ -75,12 +75,13 @@ async function watch(k: string): Promise<void> {
       const res = await fetchHoldings(p.owner);
       if (pending.get(k) !== p) continue;
       if (res.ok) primeHoldings(p.owner, res.value);
-      const fate = fateOf(p, res.ok ? snapshotOf(res.value, p.mint) : null, Date.now());
+      const after = res.ok ? snapshotOf(res.value, p.mint) : null;
+      const fate = fateOf(p, after, Date.now());
       if (fate) {
         pending.delete(k);
         persist();
         if (!res.ok) forgetHoldings(p.owner);
-        emit(p, fate);
+        emit(p, fate, fate === "landed" && after && p.before && moved(p.side, p.before, after) ? fillOf(p, after) : null);
         return;
       }
       await sleep(p.landed ? 2_000 : 3_000);
@@ -99,7 +100,7 @@ export async function restore(): Promise<void> {
     /* nothing held */
   }
   for (const p of Array.isArray(saved) ? (saved as Pending[]) : []) {
-    if (!p || typeof p.owner !== "string" || typeof p.mint !== "string" || typeof p.until !== "number" || !p.token) continue;
+    if (!p || typeof p.owner !== "string" || typeof p.mint !== "string" || typeof p.until !== "number" || !p.token || !p.quote) continue;
     const k = keyOf(p.owner, p.mint);
     if (pending.has(k)) continue;
     pending.set(k, p);

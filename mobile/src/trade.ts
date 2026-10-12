@@ -132,6 +132,8 @@ export interface Pending {
   /** What to say once it has. */
   text: string;
   signature: string | null;
+  /** What the quote said would move, in whole units, for when the wallet cannot say. */
+  quote: { usdc: number; amount: number };
 }
 
 /** When the looking stops: a little after the window, for an RPC a block or two behind. */
@@ -152,6 +154,31 @@ export function fateOf(p: Pending, after: Snapshot | null, now: number): Fate | 
   if (now <= deadlineOf(p)) return null;
   if (p.landed) return "landed";
   return after && p.before ? "lost" : "unread";
+}
+
+/** What a trade turned out to move, in whole units. */
+export interface Fill {
+  usdc: number;
+  amount: number;
+  /** Both sides read from the wallet, not the quote. */
+  exact: boolean;
+}
+
+const ZERO = BigInt(0);
+const units = (raw: bigint, decimals: number) => Number(raw < ZERO ? -raw : raw) / 10 ** decimals;
+
+/**
+ * THE FILL, from the wallet before and after: exact where a balance moved,
+ * the quote's figure where one did not show (a coin Jupiter cannot price is
+ * missing from the bag's list; the USDC it cost is not).
+ */
+export function fillOf(p: Pending, after: Snapshot): Fill {
+  if (!p.before) return { ...p.quote, exact: false };
+  const coin = big(after.coin) - big(p.before.coin);
+  const cash = big(after.usdc) - big(p.before.usdc);
+  const amount = coin === ZERO ? null : units(coin, p.token.decimals);
+  const usdc = cash === ZERO ? null : units(cash, 6);
+  return { usdc: usdc ?? p.quote.usdc, amount: amount ?? p.quote.amount, exact: usdc !== null && amount !== null };
 }
 
 export function fateLine(p: Pending, fate: Fate): string {

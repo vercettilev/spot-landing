@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { failedLine, fateLine, fateOf, moved, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending } from "./trade";
+import { failedLine, fateLine, fateOf, fillOf, moved, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending } from "./trade";
 import type { Holdings, TokenCard } from "./types";
 
 const COIN = "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm";
@@ -103,14 +103,23 @@ describe("a trade still waited on", () => {
   const p: Pending = {
     owner: "w",
     mint: COIN,
-    token: { mint: COIN, symbol: "X" } as TokenCard,
+    token: { mint: COIN, symbol: "X", decimals: 6 } as TokenCard,
     side: "buy",
     landed: false,
     before: { coin: "0", usdc: "30000000" },
     until: 100_000,
     text: "Aped $10 of $X",
     signature: null,
+    quote: { usdc: 10, amount: 75.33 },
   };
+
+  it("has its fill read from the wallet, and from the quote where the wallet shows nothing", () => {
+    expect(fillOf(p, { coin: "75310000", usdc: "20000000" })).toEqual({ usdc: 10, amount: 75.31, exact: true });
+    expect(fillOf(p, { coin: "0", usdc: "20000000" })).toEqual({ usdc: 10, amount: 75.33, exact: false });
+    expect(fillOf({ ...p, before: null }, { coin: "75310000", usdc: "20000000" })).toEqual({ usdc: 10, amount: 75.33, exact: false });
+    const sell = { ...p, side: "sell" as const, before: { coin: "75310000", usdc: "20000000" }, quote: { usdc: 9.9, amount: 75.31 } };
+    expect(fillOf(sell, { coin: "0", usdc: "29930000" })).toEqual({ usdc: 9.93, amount: 75.31, exact: true });
+  });
 
   it("has landed once the wallet shows it, whatever the clock says", () => {
     expect(fateOf(p, { coin: "75", usdc: "30000000" }, 1)).toBe("landed");
