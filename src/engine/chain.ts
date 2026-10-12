@@ -199,3 +199,30 @@ export function makeAccountsReader(rpcUrl: string, opts: { fetchFn?: Fetch; time
     return { ok: true, value: { sol: lamports / 1e9, tokens: [...merged.values()] } };
   };
 }
+
+/**
+ * WHERE A SENT TRANSACTION STANDS, by its signature: on the chain and done,
+ * on the chain and failed, or nowhere yet (still flying, dropped, or never
+ * sent). "Processed" is not counted as landed: a processed block can still
+ * be skipped.
+ */
+export type Landing = "landed" | "failed" | "unknown";
+
+export type SignatureReader = (signature: string) => Promise<Outcome<Landing, RpcFailure>>;
+
+export function landingOf(value: unknown): Landing {
+  const row = Array.isArray(value) ? value[0] : undefined;
+  if (!isRecord(row)) return "unknown";
+  if (row.err !== null && row.err !== undefined) return "failed";
+  const status = str(row.confirmationStatus);
+  return status === "confirmed" || status === "finalized" ? "landed" : "unknown";
+}
+
+export function makeSignatureReader(rpcUrl: string, opts: { fetchFn?: Fetch; timeoutMs?: number } = {}): SignatureReader {
+  const fetchFn = bindFetch(opts.fetchFn ?? fetch);
+  const timeoutMs = opts.timeoutMs ?? 3_000;
+  return async (signature) => {
+    const res = await rpcCall(fetchFn, rpcUrl, "getSignatureStatuses", [[signature], { searchTransactionHistory: true }], timeoutMs);
+    return res.ok ? { ok: true, value: landingOf(res.value.value) } : res;
+  };
+}

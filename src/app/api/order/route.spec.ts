@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setDeps } from "@/engine/deps";
-import { COIN_A, WALLET, fakeDeps, fakeOrderer, fakeQuoter, fakeSearch, fresh, token } from "@/engine/fakes";
+import { COIN_A, WALLET, fakeDeps, fakeExecutor, fakeOrderer, fakeQuoter, fakeSearch, fakeSignatures, fresh, token } from "@/engine/fakes";
 import { POST as execute } from "../execute/route";
 import { POST } from "./route";
 
@@ -13,8 +13,11 @@ beforeEach(() => {
 });
 afterEach(() => {
   delete process.env.SPOT_TRADING;
+  delete process.env.SPOT_TRADING_WALLETS;
   setDeps(null);
 });
+
+const OTHER = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM";
 
 describe("POST /api/order", () => {
   it("is closed until trading is switched on", async () => {
@@ -23,6 +26,20 @@ describe("POST /api/order", () => {
     const res = await post({ mint: COIN_A, side: "buy", amountUsdc: 25, taker: WALLET });
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ ok: false, error: "trading_closed" });
+  });
+
+  it("while testing, builds orders for the listed wallets and nobody else", async () => {
+    process.env.SPOT_TRADING_WALLETS = ` ${WALLET}, someone-else `;
+    const order = fakeOrderer();
+    setDeps(fakeDeps({ search: fakeSearch([token(COIN_A)]), order }));
+    const stranger = await post({ mint: COIN_A, side: "buy", amountUsdc: 25, taker: OTHER });
+    expect(stranger.status).toBe(403);
+    expect(await stranger.json()).toEqual({ ok: false, error: "trading_closed" });
+    expect((await post({ mint: COIN_A, side: "sell", amountRaw: "1", taker: OTHER })).status).toBe(403);
+    expect(order.asked).toEqual([]);
+    const tester = await post({ mint: COIN_A, side: "buy", amountUsdc: 25, taker: WALLET });
+    expect(tester.status).toBe(200);
+    expect(order.asked).toHaveLength(1);
   });
 
   it("builds a buy for a clean coin, in USDC base units", async () => {
@@ -66,13 +83,49 @@ describe("POST /api/order", () => {
 });
 
 describe("POST /api/execute", () => {
+  const signed = "A".repeat(60);
+  const land = () => post({ requestId: "req-1", signedTransaction: signed }, execute);
+
   it("lands a signed order through Jupiter, and is closed like orders are", async () => {
     setDeps(fakeDeps());
-    const signed = "A".repeat(60);
-    const res = await post({ requestId: "req-1", signedTransaction: signed }, execute);
-    expect(await res.json()).toEqual({ ok: true, status: "Success", signature: "5ig", error: null });
+    expect(await (await land()).json()).toEqual({ ok: true, status: "Success", signature: "5ig", error: null, final: true });
     expect((await post({ requestId: "", signedTransaction: signed }, execute)).status).toBe(400);
     delete process.env.SPOT_TRADING;
-    expect((await post({ requestId: "req-1", signedTransaction: signed }, execute)).status).toBe(403);
+    expect((await land()).status).toBe(403);
+  });
+
+  it("calls a failure final only when the chain shows it landed and failed", async () => {
+    const failed = fakeExecutor({ ok: true, value: { status: "Failed", signature: "5ig", error: "Slippage tolerance exceeded" } });
+    setDeps(fakeDeps({ execute: failed, readSignature: fakeSignatures({ ok: true, value: "failed" }) }));
+    expect(await (await land()).json()).toEqual({ ok: true, status: "Failed", signature: "5ig", error: "Slippage tolerance exceeded", final: true });
+
+    /* Not on the chain yet: it can still land, so the app must not offer it again. */
+    setDeps(fakeDeps({ execute: failed, readSignature: fakeSignatures({ ok: true, value: "unknown" }) }));
+    expect(await (await land()).json()).toMatchObject({ status: "Failed", final: false });
+    setDeps(fakeDeps({ execute: failed, readSignature: fakeSignatures({ ok: false, reason: "timeout" }) }));
+    expect(await (await land()).json()).toMatchObject({ status: "Failed", final: false });
+
+    const unsigned = fakeExecutor({ ok: true, value: { status: "Failed", signature: null, error: "code -1000" } });
+    const chain = fakeSignatures();
+    setDeps(fakeDeps({ execute: unsigned, readSignature: chain }));
+    expect(await (await land()).json()).toMatchObject({ status: "Failed", final: false });
+    expect(chain.asked).toEqual([]);
+  });
+
+  it("believes the chain over Jupiter when the trade landed after all", async () => {
+    const failed = fakeExecutor({ ok: true, value: { status: "Failed", signature: "5ig", error: "Timed out" } });
+    const chain = fakeSignatures({ ok: true, value: "landed" });
+    setDeps(fakeDeps({ execute: failed, readSignature: chain }));
+    expect(await (await land()).json()).toEqual({ ok: true, status: "Success", signature: "5ig", error: null, final: true });
+    expect(chain.asked).toEqual(["5ig"]);
+  });
+
+  it("says pending, not failed, when Jupiter does not answer in time", async () => {
+    setDeps(fakeDeps({ execute: fakeExecutor({ ok: false, reason: "timeout" }) }));
+    const slow = await land();
+    expect(slow.status).toBe(504);
+    expect(await slow.json()).toEqual({ ok: false, error: "pending" });
+    setDeps(fakeDeps({ execute: fakeExecutor({ ok: false, reason: "network_error" }) }));
+    expect((await land()).status).toBe(504);
   });
 });

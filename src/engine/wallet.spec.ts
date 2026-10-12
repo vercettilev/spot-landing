@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { COIN_A, COIN_B, WALLET, fakeAccounts, fakeFetch, fakeSearch, jsonResponse, token } from "@/engine/fakes";
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from "./address";
-import { balancesOf, makeAccountsReader } from "./chain";
+import { balancesOf, landingOf, makeAccountsReader, makeSignatureReader } from "./chain";
 import { holdings } from "./holdings";
 import { jupiterConfig } from "./jupiter";
-import { makeExecutor, makeOrderer, tradeConfig } from "./trade";
+import { makeExecutor, makeOrderer, mayTrade, tradeConfig, tradingMode } from "./trade";
 
 const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const SOL = "So11111111111111111111111111111111111111112";
@@ -120,5 +120,38 @@ describe("an order", () => {
       value: { status: "Failed", signature: null, error: "Slippage tolerance exceeded" },
     });
     expect(JSON.parse(String(fetchFn.seen[0]!.init?.body))).toEqual({ signedTransaction: "c2lnbmVk", requestId: "r1" });
+  });
+});
+
+describe("trading", () => {
+  it("is closed unless switched on, and open to the listed wallets only while testing", () => {
+    expect(tradingMode({}).mode).toBe("closed");
+    expect(tradingMode({ SPOT_TRADING: "0", SPOT_TRADING_WALLETS: WALLET }).mode).toBe("closed");
+    expect(tradingMode({ SPOT_TRADING: "1" }).mode).toBe("open");
+    expect(tradingMode({ SPOT_TRADING: "1", SPOT_TRADING_WALLETS: " , " }).mode).toBe("open");
+    const testing = { SPOT_TRADING: "1", SPOT_TRADING_WALLETS: `${WALLET}\n9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM` };
+    expect(tradingMode(testing).mode).toBe("testing");
+    expect(mayTrade(testing, WALLET)).toBe(true);
+    expect(mayTrade(testing, "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM")).toBe(true);
+    expect(mayTrade(testing, COIN_A)).toBe(false);
+    expect(mayTrade({}, WALLET)).toBe(false);
+    expect(mayTrade({ SPOT_TRADING: "1" }, COIN_A)).toBe(true);
+  });
+});
+
+describe("a sent transaction", () => {
+  it("has landed only once the chain confirms it, and failed once it shows an error", () => {
+    expect(landingOf([{ slot: 1, confirmations: null, err: null, confirmationStatus: "finalized" }])).toBe("landed");
+    expect(landingOf([{ slot: 1, confirmations: 3, err: null, confirmationStatus: "confirmed" }])).toBe("landed");
+    expect(landingOf([{ slot: 1, confirmations: 0, err: null, confirmationStatus: "processed" }])).toBe("unknown");
+    expect(landingOf([{ slot: 1, err: { InstructionError: [3, { Custom: 6001 }] }, confirmationStatus: "confirmed" }])).toBe("failed");
+    expect(landingOf([null])).toBe("unknown");
+    expect(landingOf(undefined)).toBe("unknown");
+  });
+
+  it("is looked up with the history search on, so an older one is still found", async () => {
+    const fetchFn = fakeFetch([["https://rpc.test", () => jsonResponse({ jsonrpc: "2.0", id: 1, result: { context: { slot: 9 }, value: [{ err: null, confirmationStatus: "confirmed" }] } })]]);
+    expect(await makeSignatureReader("https://rpc.test", { fetchFn })("5ig")).toEqual({ ok: true, value: "landed" });
+    expect(JSON.parse(String(fetchFn.seen[0]!.init?.body))).toMatchObject({ method: "getSignatureStatuses", params: [["5ig"], { searchTransactionHistory: true }] });
   });
 });

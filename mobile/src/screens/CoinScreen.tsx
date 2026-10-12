@@ -2,19 +2,53 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { errorLine, executeOrder, placeOrder, sniffCoin } from "../api";
+import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Bell, Button, CoinFace, Pill, Toggle, tap, useToast } from "../components/ui";
+import { Bell, Button, CoinFace, Pill, Toggle, feel, tap, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, pct, price, shareOf, sourceLine, usd } from "../logic";
 import type { RootParams } from "../navigation";
-import { useStore } from "../store";
+import { AUTO_SELL, PINGS } from "../soon";
+import { useStore, type Wallet } from "../store";
 import { color, font } from "../theme";
+import {
+  LAND_WINDOW_MS,
+  LAST_LOOK_MS,
+  SETTLE_MS,
+  failedLine,
+  hold,
+  moved,
+  orderErrorLine,
+  pendingFor,
+  quoteUsd,
+  release,
+  settled,
+  shortFill,
+  snapshotOf,
+  type Pending,
+  type Side,
+  type Snapshot,
+} from "../trade";
+import type { Order } from "../types";
 import { signTransaction, walletError } from "../wallet/mwa";
 
 type Props = NativeStackScreenProps<RootParams, "Coin">;
 
 const SELL_SHARES = [25, 50, 100];
+
+/** A quote that pays much less than the price says, waiting for a yes. */
+interface Confirm {
+  order: Order;
+  side: Side;
+  before: Snapshot | null;
+  text: string;
+  builtAt: number;
+  line: string;
+  label: string;
+}
+
+/* A quote on a thin pool goes stale fast: after this, a yes asks for a new one. */
+const CONFIRM_FRESH_MS = 25_000;
 
 /**
  * A COIN, in the order a first-timer needs it: what it is, whether it is a
@@ -26,6 +60,11 @@ const SELL_SHARES = [25, 50, 100];
  * A trade goes through the wallet on the phone (Seed Vault, Phantom): Spot
  * asks the server for an order, the wallet asks its owner to approve it,
  * Jupiter lands it. Until the server opens trading, the button says so.
+ *
+ * Money rules (trade.ts): one trade at a time, however fast the taps; a
+ * quote far below the price stops for a yes before the wallet opens; and a
+ * trade whose fate is not known locks the button while Spot watches the
+ * wallet, so "did it go through?" can never become a second buy.
  */
 export function CoinScreen({ navigation, route }: Props) {
   const { candidate, source, share, others } = route.params;
@@ -38,6 +77,9 @@ export function CoinScreen({ navigation, route }: Props) {
   const [sellPct, setSellPct] = useState(50);
   const [tp, setTp] = useState(store.settings.tpDefault);
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState<Pending | null>(() => pendingFor(store.wallet?.address, candidate.token.mint));
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const inFlight = useRef(false);
   const run = useRef(0);
 
   const wallet = store.wallet;
@@ -89,8 +131,9 @@ export function CoinScreen({ navigation, route }: Props) {
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
 
-  const action =
-    !buying
+  const action = checking
+    ? { label: checking.landed ? "Updating your bag…" : "Checking…", enabled: false, tone: "wait" as const }
+    : !buying
       ? { label: busy ? "Selling…" : `Sell ${sellPct === 100 ? "all" : `${sellPct}%`} · ~${usd(sellUsd)}`, enabled: Boolean(position) && !busy, tone: "go" as const }
       : restricted
         ? { label: "Not for US users", enabled: false, tone: "stop" as const }
@@ -98,29 +141,40 @@ export function CoinScreen({ navigation, route }: Props) {
           ? { label: "Aping…", enabled: false, tone: "wait" as const }
           : actionFor(sniff.status === "done" ? sniff.sniff.level : sniff.status, amount);
 
-  const note = !buying
-    ? wallet?.kind === "mwa"
-      ? "Sells into USDC. Your wallet asks you to approve."
-      : "You're only tracking this wallet. Connect yours to sell."
-    : sniff.status === "loading"
-      ? "Checking it for scams…"
-      : blocked
-        ? "Share another post to sniff something else."
-        : restricted
-          ? "Coins like this aren't sold to people in the US."
-          : wallet?.kind === "mwa"
-            ? "Your wallet asks you to approve every trade."
-            : wallet
-              ? "You're only tracking this wallet. Connect yours to ape."
-              : "Free sniff. Connect a wallet to ape.";
+  const note = checking
+    ? checking.landed
+      ? "Done. Your bag catches up in a sec."
+      : "Making sure it landed before you go again."
+    : !buying
+      ? wallet?.kind === "mwa"
+        ? "Sells into USDC. Your wallet asks you to approve."
+        : "You're only tracking this wallet. Connect yours to sell."
+      : sniff.status === "loading"
+        ? "Checking it for scams…"
+        : blocked
+          ? "Share another post to sniff something else."
+          : restricted
+            ? "Coins like this aren't sold to people in the US."
+            : wallet?.kind === "mwa"
+              ? "Your wallet asks you to approve every trade."
+              : wallet
+                ? "You're only tracking this wallet. Connect yours to ape."
+                : "Free sniff. Connect a wallet to ape.";
 
   function toggleWatch() {
     tap();
     store.toggleWatch(coin);
-    toast(watched ? `Stopped watching $${coin.symbol}.` : `Spot will bark if $${coin.symbol} turns. It's in Alerts.`);
+    toast(
+      watched
+        ? `Stopped watching $${coin.symbol}.`
+        : PINGS
+          ? `Spot will bark if $${coin.symbol} turns. It's in Alerts.`
+          : `Watching $${coin.symbol}. Barks start when alerts go live.`,
+    );
   }
 
   async function trade() {
+    if (inFlight.current || checking) return;
     if (buying && (sniff.status === "error" || done?.level === "unknown")) {
       void sniffNow();
       return;
@@ -133,38 +187,157 @@ export function CoinScreen({ navigation, route }: Props) {
       toast("You're only tracking this wallet. Connect your own wallet to trade.");
       return;
     }
+    inFlight.current = true;
     setBusy(true);
     try {
-      const order = await placeOrder(
-        buying
-          ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
-          : { mint: coin.mint, side, taker: wallet.address, amountRaw: shareOf(position?.raw ?? "0", sellPct) },
-      );
+      /* The wallet as it is right now, read while the order is built: what
+         a trade that may still land is checked against. */
+      const [order, fresh] = await Promise.all([
+        placeOrder(
+          buying
+            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
+            : { mint: coin.mint, side, taker: wallet.address, amountRaw: shareOf(position?.raw ?? "0", sellPct) },
+        ),
+        fetchHoldings(wallet.address),
+      ]);
       if (!order.ok) {
-        toast(errorLine(order.error));
+        toast(orderErrorLine(order.error, order.detail, side));
         return;
       }
-      const signed = await signTransaction(order.value.transaction, wallet.authToken);
-      if (signed.authToken !== wallet.authToken) store.setWallet({ ...wallet, authToken: signed.authToken });
-      const landed = await executeOrder(order.value.requestId, signed.signed);
-      if (!landed.ok || landed.value.status !== "Success") {
-        toast(landed.ok ? "Didn't go through. Try again." : errorLine(landed.error));
-        return;
-      }
-      forgetHoldings(wallet.address);
-      void bag.refresh();
+      const builtAt = Date.now();
+      const before = snapshotOf(fresh.ok ? fresh.value : bag.value, coin.mint);
       const text = buying
-        ? `Aped $${amount} of $${coin.symbol}${tp ? ". Half sells at 2x" : ""}`
+        ? `Aped $${amount} of $${coin.symbol}${AUTO_SELL && tp ? ". Half sells at 2x" : ""}`
         : `Sold ${sellPct === 100 ? "all" : `${sellPct}%`} of $${coin.symbol}`;
-      store.addActivity({ kind: buying ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature: landed.value.signature });
-      if (buying && tp && !watched) store.toggleWatch(coin);
-      toast(`${text}.`);
+      const short = shortFill(buying ? amount : sellUsd, quoteUsd(side, order.value, coin));
+      if (short) {
+        feel("warning");
+        setConfirm({
+          order: order.value,
+          side,
+          before,
+          text,
+          builtAt,
+          line: buying
+            ? `Thin pool. Your $${amount} only buys about ${usd(short.gotUsd)} of it.`
+            : `Thin pool. You'd get ${usd(short.gotUsd)} back, not ${usd(short.expectedUsd)}.`,
+          label: buying ? "Ape anyway" : `Sell for ${usd(short.gotUsd)}`,
+        });
+        return;
+      }
+      await send(wallet, order.value, side, before, text, builtAt);
     } catch (e) {
       toast(walletError(e));
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
+
+  /** A yes to a thin quote: sent as quoted, or asked for again once it is stale. */
+  async function confirmed() {
+    const c = confirm;
+    if (!c || inFlight.current || !wallet || wallet.kind !== "mwa") return;
+    setConfirm(null);
+    if (Date.now() - c.builtAt > CONFIRM_FRESH_MS) {
+      void trade();
+      return;
+    }
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt);
+    } catch (e) {
+      toast(walletError(e));
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function send(w: Extract<Wallet, { kind: "mwa" }>, order: Order, sideNow: Side, before: Snapshot | null, text: string, builtAt: number) {
+    const signed = await signTransaction(order.transaction, w.authToken, w.address);
+    if (signed.authToken !== w.authToken) store.setWallet({ ...w, authToken: signed.authToken });
+    const res = await executeOrder(order.requestId, signed.signed);
+    const signature = res.ok ? res.value.signature : null;
+    switch (settled(res)) {
+      case "landed": {
+        finish(w.address, sideNow, text, signature);
+        /* Landed, but the next trade waits for the bag to show it. */
+        const p: Pending = { side: sideNow, landed: true, before, until: Date.now() + SETTLE_MS, text, signature };
+        hold(w.address, coin.mint, p);
+        setChecking(p);
+        return;
+      }
+      case "failed":
+        feel("error");
+        toast(failedLine(res, sideNow));
+        return;
+      default: {
+        const p: Pending = { side: sideNow, landed: false, before, until: builtAt + LAND_WINDOW_MS, text, signature };
+        hold(w.address, coin.mint, p);
+        setChecking(p);
+      }
+    }
+  }
+
+  function finish(owner: string, sideNow: Side, text: string, signature: string | null) {
+    forgetHoldings(owner);
+    void bag.refresh();
+    store.addActivity({ kind: sideNow === "buy" ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature });
+    if (sideNow === "buy" && !store.isWatched(coin.mint)) store.toggleWatch(coin);
+    feel("success");
+    toast(`${text}.`);
+  }
+
+  /* A trade the button waits on: the wallet is read every few seconds until
+     it shows the trade, or until the trade can no longer land (or, landed,
+     until the bag has had its time to catch up). */
+  useEffect(() => {
+    const owner = wallet?.address;
+    if (!checking || !owner) return;
+    const mint = candidate.token.mint;
+    const wait = checking.landed ? 2_000 : 3_000;
+    const deadline = checking.until + (checking.landed ? 0 : LAST_LOOK_MS);
+    let alive = true;
+    void (async () => {
+      for (;;) {
+        const res = await fetchHoldings(owner);
+        if (!alive) return;
+        const after = res.ok ? snapshotOf(res.value, mint) : null;
+        if (after && checking.before && moved(checking.side, checking.before, after)) {
+          release(owner, mint);
+          setChecking(null);
+          if (checking.landed) {
+            forgetHoldings(owner);
+            void bag.refresh();
+          } else finish(owner, checking.side, checking.text, checking.signature);
+          return;
+        }
+        if (Date.now() > deadline) {
+          release(owner, mint);
+          setChecking(null);
+          if (checking.landed) {
+            forgetHoldings(owner);
+            void bag.refresh();
+          } else {
+            toast(
+              after && checking.before
+                ? `Didn't go through. Nothing was ${checking.side === "buy" ? "bought" : "sold"}.`
+                : "Couldn't read your wallet. Check your bag before you go again.",
+            );
+          }
+          return;
+        }
+        await new Promise((r) => setTimeout(r, wait));
+        if (!alive) return;
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checking, wallet?.address]);
 
   return (
     <View style={styles.fill}>
@@ -229,6 +402,7 @@ export function CoinScreen({ navigation, route }: Props) {
                 onPress={() => {
                   tap();
                   setSide(s);
+                  setConfirm(null);
                 }}
                 style={[styles.sideItem, side === s && styles.sideOn]}
                 accessibilityRole="button"
@@ -244,7 +418,7 @@ export function CoinScreen({ navigation, route }: Props) {
           <SniffReport state={sniff} onRetry={() => void sniffNow()} />
         </View>
 
-        {buying && canPickAmount && (
+        {AUTO_SELL && buying && canPickAmount && (
           <View style={styles.tp}>
             <View style={styles.tpText}>
               <Text style={styles.tpTitle}>Never round-trip a 2x</Text>
@@ -256,20 +430,33 @@ export function CoinScreen({ navigation, route }: Props) {
       </ScrollView>
 
       <View style={[styles.bar, { paddingBottom: 12 + insets.bottom }]}>
-        {!buying && position && (
-          <Text style={styles.held}>
-            You have {fmtAmount(position.amount)} {coin.symbol} · {usd(position.usd)}
-          </Text>
+        {confirm ? (
+          <>
+            <Text style={styles.confirmLine}>{confirm.line}</Text>
+            <View style={styles.pair}>
+              <Button label="Cancel" kind="quiet" onPress={() => setConfirm(null)} style={styles.half} />
+              <Button label={confirm.label} kind="growl" onPress={() => void confirmed()} style={styles.half} />
+            </View>
+            <Text style={styles.barNote}>Your wallet still asks before anything moves.</Text>
+          </>
+        ) : (
+          <>
+            {!buying && position && (
+              <Text style={styles.held}>
+                You have {fmtAmount(position.amount)} {coin.symbol} · {usd(position.usd)}
+              </Text>
+            )}
+            {canPickAmount && !checking && (
+              <View style={styles.chips}>
+                {buying
+                  ? chips.map((c) => <Pill key={c} label={`$${c}`} on={c === amount} onPress={() => setAmount(c)} />)
+                  : SELL_SHARES.map((p) => <Pill key={p} label={p === 100 ? "All" : `${p}%`} on={p === sellPct} onPress={() => setSellPct(p)} />)}
+              </View>
+            )}
+            <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={() => void trade()} />
+            <Text style={styles.barNote}>{note}</Text>
+          </>
         )}
-        {canPickAmount && (
-          <View style={styles.chips}>
-            {buying
-              ? chips.map((c) => <Pill key={c} label={`$${c}`} on={c === amount} onPress={() => setAmount(c)} />)
-              : SELL_SHARES.map((p) => <Pill key={p} label={p === 100 ? "All" : `${p}%`} on={p === sellPct} onPress={() => setSellPct(p)} />)}
-          </View>
-        )}
-        <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={() => void trade()} />
-        <Text style={styles.barNote}>{note}</Text>
       </View>
       {toastNode}
     </View>
@@ -346,6 +533,9 @@ const styles = StyleSheet.create({
     borderColor: color.line,
   },
   held: { marginBottom: 10, textAlign: "center", fontFamily: font.bodySemi, fontSize: 14.5, color: color.dim },
+  confirmLine: { marginBottom: 12, textAlign: "center", fontFamily: font.bodyBold, fontSize: 16, lineHeight: 22, color: color.white },
+  pair: { flexDirection: "row", gap: 10 },
+  half: { flex: 1 },
   chips: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 12 },
   barNote: { marginTop: 8, textAlign: "center", fontFamily: font.body, fontSize: 13.5, color: color.faint },
 });

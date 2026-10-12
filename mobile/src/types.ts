@@ -125,4 +125,6 @@ export interface Executed {
   status: "Success" | "Failed";
   signature: string | null;
   error: string | null;
+  /** False while a failed trade could still land: the chain has not seen it yet. */
+  final: boolean;
 }

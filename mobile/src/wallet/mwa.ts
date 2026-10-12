@@ -46,10 +46,33 @@ export async function connectWallet(): Promise<Connected> {
   });
 }
 
-/** One transaction, signed by the wallet (not sent: Jupiter lands it). */
-export async function signTransaction(transaction: string, authToken: string | null): Promise<{ signed: string; authToken: string }> {
+type Session = Parameters<Parameters<Protocol["transact"]>[0]>[0];
+
+/* A saved token goes stale (the wallet was reinstalled, or forgot Spot):
+   then the wallet asks its owner once more, instead of every trade from
+   here on failing the same way. */
+async function authorize(wallet: Session, authToken: string | null) {
+  if (authToken) {
+    try {
+      return await wallet.authorize({ chain: CHAIN, identity: IDENTITY, auth_token: authToken });
+    } catch {
+      /* asked again below */
+    }
+  }
+  return wallet.authorize({ chain: CHAIN, identity: IDENTITY });
+}
+
+/**
+ * One transaction, signed by the wallet (not sent: Jupiter lands it), and
+ * only by the account the order was made out to: a wallet switched to
+ * another account would sign a transaction that cannot land.
+ */
+export async function signTransaction(transaction: string, authToken: string | null, address: string): Promise<{ signed: string; authToken: string }> {
   return load().transact(async (wallet) => {
-    const auth = await wallet.authorize({ chain: CHAIN, identity: IDENTITY, ...(authToken ? { auth_token: authToken } : {}) });
+    const auth = await authorize(wallet, authToken);
+    if (!auth.accounts.some((a) => toAddress(a.address) === address)) {
+      throw Object.assign(new Error("The wallet is on another account."), { code: "SPOT_WRONG_ACCOUNT" });
+    }
     const { signed_payloads } = await wallet.signTransactions({ payloads: [transaction] });
     const signed = signed_payloads[0];
     if (!signed) throw new Error("The wallet returned nothing to send.");
@@ -62,6 +85,7 @@ export function walletError(e: unknown): string {
   const code = (e as { code?: string })?.code ?? "";
   const message = String((e as Error)?.message ?? "");
   if (code === "ERROR_WALLET_NOT_FOUND") return "No wallet app on this phone. Get Phantom or Solflare (a Seeker already has one).";
+  if (code === "SPOT_WRONG_ACCOUNT") return "Your wallet is on another account. Switch back, or reconnect in Me.";
   if (code === "ERROR_ASSOCIATION_CANCELLED" || /declin|reject|cancel/i.test(message)) return "You cancelled in your wallet.";
   if (/linked|TurboModuleRegistry|could not be found/i.test(message)) return "This version of Spot can't open wallets. Update the app.";
   return "Your wallet didn't answer. Try again.";
