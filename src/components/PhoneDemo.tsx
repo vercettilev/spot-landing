@@ -22,8 +22,6 @@ const SHARE = "M12 15V3M7 8l5-5 5 5M5 13v7h14v-7";
 const CHECK = "M5 12.5l4.5 4.5L19 7.5";
 const MAIL = "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l9 6 9-6";
 const CHAT = "M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4A8 8 0 1 1 20 12z";
-const FACE =
-  "M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3M9 9v1.5M15 9v1.5M12 9v4h-1M9.5 16a4 4 0 0 0 5 0";
 
 const Tabs = () => (
   <div className={styles.tabs}>
@@ -34,14 +32,15 @@ const Tabs = () => (
 
 /**
  * SPOT, DOING ITS ONE THING, on a loop: a post in a feed, Share, Spot's sheet
- * sniffing the coin while take profit goes on, Face ID, and back to the feed
- * with the buy done and where it came from. The
- * puppy holds the top of the phone the way the logo holds its ledge.
+ * sniffing the coin while "sell half at 2x" goes on, the Ape button, and back
+ * to the feed with the buy done and where it came from. The words are the
+ * app's own ("$25", "Nothing smells off.", "Ape $25"). The puppy holds the
+ * top of the phone the way the logo holds its ledge.
  *
  * Pure CSS: every moving part runs on the same 12-second clock (see the
  * module). Every size inside the phone is a fraction of its width (--u is
  * 1/270 of it), so it scales instead of reflowing. With reduced motion, or
- * before the styles run, it rests on the Confirm screen. The screen is a
+ * before the styles run, it rests on the Ape screen. The screen is a
  * picture; the caption says the steps.
  */
 export function PhoneDemo() {
@@ -85,7 +84,7 @@ export function PhoneDemo() {
                 <div>
                   <b>Aped $EXAMPLE</b>
                   <br />
-                  25 USDC · from @ana.trades
+                  $25, from @ana.trades
                 </div>
               </div>
             </div>
@@ -139,21 +138,15 @@ export function PhoneDemo() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/spot-icon.svg" alt="" />
                 $EXAMPLE
-                <span className={styles.side}>
-                  <b>Buy</b>
-                  <span>Sell</span>
-                </span>
               </div>
-              <div className={styles.amount}>
-                25 <span>USDC</span>
-              </div>
+              <div className={styles.amount}>$25</div>
               <div className={styles.chips}>
                 <span>10</span>
                 <span className={styles.chipOn}>25</span>
                 <span>50</span>
               </div>
               <div className={styles.tp}>
-                <span>TP 50% at 2x</span>
+                <span>Sell half at 2x</span>
                 <i className={styles.toggle}>
                   <i className={`${styles.tap} ${styles.tap4}`} />
                 </i>
@@ -162,14 +155,11 @@ export function PhoneDemo() {
                 <span className={styles.sniffing}>Sniffing the CA…</span>
                 <span className={styles.passed}>
                   <Icon d={CHECK} size={16} />
-                  4/4 checks passed
+                  Nothing smells off.
                 </span>
               </div>
               <div className={styles.confirm}>
-                <span className={styles.faceLabel}>
-                  <Icon d={FACE} size={16} />
-                  Confirm with Face ID
-                </span>
+                <span className={styles.faceLabel}>Ape $25</span>
                 <span className={styles.doneLabel}>
                   <Icon d={CHECK} size={16} />
                   Done
@@ -191,7 +181,7 @@ export function PhoneDemo() {
         <span className={styles.says}>
           <span className={styles.say1}>See it.</span>{" "}
           <span className={styles.say2}>Share to Spot.</span>{" "}
-          <span className={styles.say3}>Confirm.</span>{" "}
+          <span className={styles.say3}>Ape.</span>{" "}
           <span className={styles.say4}>Keep scrolling.</span>
         </span>
       </figcaption>

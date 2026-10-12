@@ -1,6 +1,6 @@
 # Spot landing
 
-The early-access page for **Spot: ape from any app**. See a CA on X, TikTok or Telegram, share the post to Spot, confirm with Face ID, and never leave the app. Selling is the same move, and Spot can take profit for you at a price you set. The page speaks CT: CA, honeypot, mint and freeze revoked, TP, USDC.
+The early-access page for **Spot: ape from any app**. It says what Spot gets you, not what it has: you're in three taps after the CA drops, the rugs are sniffed out first, your initials come out at 2x, and it's dollars in and dollars out. Each part is one big line, one plain sentence and one picture (a chart, the sniff report, a lock screen). The page speaks CT a first-time ape can follow: CA, rug, dev, bag, initials, exit liquidity.
 
 One page and one field: an email. The phone (iPhone, Android or Solana Seeker) is read from the device, or asked on the pass after joining when it cannot be (a desktop), so the first build goes where the people are. Under the field one line says how to move up: each friend who joins through your link moves you up 10 spots. (`GET /api/waitlist?next` can tell a page the number a newcomer would get; this one does not show it.)
 
@@ -14,8 +14,11 @@ src/lib/line.ts               the line: places and referral credit, in Redis (no
 src/lib/referral.ts           what page and server share about codes and links
 src/app/r/[code]/route.ts     a shared link, usespot.fun/r/CODE, lands on the page with the code
 src/components/SpotPass.tsx   what a reader sees once they are in: place, stamp, their link
-src/components/PhoneDemo.tsx  Spot on a phone, on a loop: share, sniff, take profit on, Face ID, done (example data)
-src/components/Reveal.tsx     plays the stamp and the receipt once they scroll into view
+src/components/PhoneDemo.tsx  Spot on a phone, on a loop: share, sniff, sell half at 2x on, Ape $25, done (example data)
+src/components/EarlyChart.tsx "Early, not exit liquidity." as a chart: the CA drops, you're in, they buy the top
+src/components/Sources.tsx    the apps Spot reads posts from on its own: X, TikTok, Telegram, YouTube
+src/components/JoinButton.tsx the second "Save my spot": back up to the form, cursor in the field
+src/components/Reveal.tsx     plays the sniff report and the dump alert once they scroll into view
 src/lib/email.ts              optional notes to ourselves (new signup, or a rescue if the store is down)
 src/components/SpotPuppy.tsx  the mascot; press it and it barks, the angry one growls
 src/app/api/resolve, sniff    the app's API: a share in, its coin out; a coin in, the sniff out
@@ -64,7 +67,7 @@ With the Redis variables in `.env.local` as well (connect it to Development too)
 ## Things to know
 
 - **The operator.** `/privacy` names the company that runs the site (`OPERATOR` in `src/lib/site.ts`). It has to be the real legal operator, so change it if Spot gets its own company.
-- **Claims.** The sniff report lists only checks the trading engine actually runs: a sell route, mint authority, freeze authority and holder count. Top-holder share is not one of them, so it is not promised. The page also promises two things after a buy, and both have to ship in the first version: an alert when a coin turns (its creator selling, liquidity pulled), and an optional take profit (half at 2×) that sells from the buyer's own wallet under a rule they approved when buying. Keep the page and the film in step with the product.
+- **Claims.** Every line is a promise about the first version, in the engine's own words where it has them. The sniff report shows only checks `src/engine/sniff.ts` runs, with its labels, and its verdict is the engine's warn line ("GRRR. Risky. Ape $18 max."). "If it's a trap, Spot won't buy it" is the block rule (no way to sell, a dev who can freeze or take the coins); "keeps your ape small" is the warn cap (at most $50). "Works from X, TikTok, Telegram and YouTube" is what `/api/resolve` reads on its own; anything else is a screenshot, read on the phone. Still to ship before the page is true: take profit (sell half at 2x, from the buyer's own wallet under a rule they approved when buying), the alert when the dev dumps, Spot paying the gas, and iPhone. "Spot never holds them" is the design: the wallet signs, Spot holds no key. Keep the page and the film in step with the product.
 - **The film** (`public/spot-promo.mp4`, with `public/spot-promo-poster.jpg`) is no longer on the page; the phone demo shows the same steps. It is kept at its address for posts, and it uses example data.
 - **The line.** A newcomer gets the next number; each friend who joins through their link subtracts 10 (and a half, so they pass ten people rather than tie with the tenth). Ties go to whoever came first. A repeat of an address, however it is typed (`j.doe+x@gmail.com` is `jdoe@gmail.com`), keeps its place and credits nobody, and one network can give 5 referral credits a day. `REF_BONUS` in `src/lib/referral.ts` sets both the move and the "10 spots" the page promises.
 - **Who commits.** If a deployment ever shows as Blocked, check who authored the newest commit: on a Hobby team with a private repo, Vercel deploys only the owner's commits.

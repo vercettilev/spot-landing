@@ -1,33 +1,36 @@
 import Link from "next/link";
+import { EarlyChart } from "@/components/EarlyChart";
+import { JoinButton } from "@/components/JoinButton";
 import { PhoneDemo } from "@/components/PhoneDemo";
 import { Reveal } from "@/components/Reveal";
+import { Sources } from "@/components/Sources";
 import { SpotForm } from "@/components/SpotForm";
 import { SpotPuppy } from "@/components/SpotPuppy";
 import { OPERATOR, SITE_URL, X_URL } from "@/lib/site";
 import styles from "./page.module.css";
 
-/* Only the checks the engine actually runs: a sell route (what a honeypot
-   fails), mint authority, freeze authority and holder count. Top-holder share
-   is NOT one of them (it was dropped because it blocked healthy tokens), so it
-   is not promised here or in the film. The answers are one example coin's, a
-   coin that fails, because that is the one Spot growls at. */
+/* One example coin's sniff, in the engine's own words (src/engine/sniff.ts):
+   every question asked so that "No" is the good answer. Not a trap, just new
+   and small, so the verdict is the warn one: GRRR, and a cap on the ape (the
+   engine's cap is at most $50, less for a small pool). */
 const SNIFF = [
   { q: "Honeypot?", a: "No", tone: "good" },
-  { q: "Mint revoked?", a: "No", tone: "bad" },
-  { q: "Freeze revoked?", a: "Yes", tone: "good" },
+  { q: "Dev can freeze it?", a: "No", tone: "good" },
+  { q: "Dev can print more?", a: "No", tone: "good" },
   { q: "Enough holders?", a: "Only 38", tone: "warn" },
+  { q: "How old?", a: "20 min", tone: "warn" },
 ] as const;
 
 function Mark({ tone }: { tone: (typeof SNIFF)[number]["tone"] }) {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {tone === "good" ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : tone === "bad" ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M12 5v9M12 19h.01" />}
+      {tone === "good" ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : <path d="M12 5v9M12 19h.01" />}
     </svg>
   );
 }
 
 /* A lock-screen notification, drawn: what Spot says once the coin is yours. */
-function Notice({ title, text, action }: { title: string; text: string; action?: string }) {
+function Notice({ title, text, when, action }: { title: string; text: string; when: string; action?: string }) {
   return (
     <div className={styles.noticeCard}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -35,7 +38,7 @@ function Notice({ title, text, action }: { title: string; text: string; action?:
       <div>
         <p className={styles.noticeTop}>
           <span>Spot</span>
-          <span>now</span>
+          <span>{when}</span>
         </p>
         <p className={styles.noticeText}>
           <b>{title}</b> {text}
@@ -51,12 +54,13 @@ function Notice({ title, text, action }: { title: string; text: string; action?:
 }
 
 /**
- * THE WHOLE PAGE, IN TWO GROUNDS AND A FOOTER. Black: what Spot is, the one
- * field, and Spot doing its thing on a phone. Orange: what it does before you
- * buy and after, as paper and notifications. Black again: the small print.
+ * THE PAGE IS ONE TRADE, TOLD AS WHAT IT GETS YOU. The CA drops and you are
+ * in early; the dog sniffs out the trap; the coin doubles and your money is
+ * back; it was dollars all the way. Each part is one plain sentence under one
+ * big line, and one picture that proves it: a chart, the sniff report, a lock
+ * screen. Then the same button again, and the small print.
  *
- * Everything here is a promise about the first version: the sniff report's
- * checks, the alert when a coin turns, the optional take profit, no gas.
+ * Every line is a promise about the first version (see README, "Claims").
  */
 export default function Home() {
   return (
@@ -79,22 +83,54 @@ export default function Home() {
           <div>
             <h1 className={styles.h1}>Ape from any&nbsp;app.</h1>
             <p className={styles.lede}>
-              See a CA in your feed? Share&nbsp;it&nbsp;to&nbsp;Spot. Buy&nbsp;or&nbsp;sell in&nbsp;USDC without leaving the&nbsp;app.
+              <span className={styles.line}>From your feed to your bag in three&nbsp;taps.</span>{" "}
+              <span className={styles.line}>Spot sniffs out the rugs on the&nbsp;way.</span>
             </p>
-            <div className={styles.join}>
+            <div className={styles.join} id="join">
               <SpotForm shareUrl={SITE_URL} />
             </div>
           </div>
           <PhoneDemo />
         </section>
 
-        <section className={styles.trust}>
-          <div className={`${styles.wrap} ${styles.trustGrid}`}>
-            <div className={styles.col}>
-              <h2 className={styles.h2}>Sniffs before you ape. Watches your bag&nbsp;after.</h2>
+        <section className={styles.early} aria-labelledby="early">
+          <div className={`${styles.wrap} ${styles.split}`}>
+            <div className={styles.copy}>
+              <h2 id="early" className={styles.h2}>
+                Early, not exit liquidity.
+              </h2>
+              <p className={styles.body}>
+                Copy the CA, open a bot, buy SOL, paste, swap: by then the chart already ran. Spot buys straight from
+                the post, in three&nbsp;taps.
+              </p>
+              <p className={styles.sources}>
+                <Sources className={styles.marks} />
+                <span>Works from X, TikTok, Telegram and YouTube. Anything else, share a&nbsp;screenshot.</span>
+              </p>
+            </div>
+            <div className={styles.visual}>
+              <EarlyChart />
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.sniffBand} aria-labelledby="sniff">
+          <div className={styles.wrap}>
+            <h2 id="sniff" className={`${styles.h2} ${styles.wide}`}>
+              Spot smells a rug before you&nbsp;do.
+            </h2>
+            <div className={styles.proofGrid}>
+              <div className={styles.copy}>
+                <p className={styles.body}>
+                  Every coin gets sniffed before you can ape it. If it&apos;s a trap, like a coin you can&apos;t sell
+                  or one the dev can freeze, Spot won&apos;t buy it. If it&apos;s just new and tiny, Spot growls and
+                  keeps your ape&nbsp;small.
+                </p>
+                <p className={styles.aside}>Just curious? Sniff any CA for free, no wallet&nbsp;needed.</p>
+              </div>
               <Reveal className={styles.sniff}>
                 <div className={styles.sniffPup}>
-                  <SpotPuppy mood="angry" label="Spot growling at a scam coin. Press to hear it." />
+                  <SpotPuppy mood="angry" label="Spot growling at a risky coin. Press to hear it." />
                 </div>
                 <div className={styles.report}>
                   <p className={styles.reportHead}>
@@ -103,8 +139,8 @@ export default function Home() {
                   </p>
                   <p className={styles.reportCoin}>$EXAMPLE</p>
                   <ul className={styles.rows}>
-                    {SNIFF.map((c) => (
-                      <li key={c.q}>
+                    {SNIFF.map((c, i) => (
+                      <li key={c.q} style={{ "--i": i } as React.CSSProperties}>
                         <span>{c.q}</span>
                         <span className={`${styles.answer} ${styles[c.tone]}`}>
                           <Mark tone={c.tone} />
@@ -113,56 +149,72 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
+                  <p className={styles.verdict}>Risky. Ape $18&nbsp;max.</p>
                   <p className={styles.grrr}>
                     <span aria-hidden="true">GRRR</span>
                     <span className={styles.sr}>Spot growls at this one.</span>
                   </p>
                 </div>
               </Reveal>
-              <Reveal className={styles.notice}>
-                <Notice title="GRRR." text="Dev just dumped 40% of $EXAMPLE. Sell?" action="Sell" />
-              </Reveal>
-              <p className={styles.curious}>Just curious? Share the CA for a free sniff. No wallet needed.</p>
             </div>
+          </div>
+        </section>
 
-            <div className={styles.col}>
-              <h2 className={styles.h2}>No gas. No&nbsp;SOL. Just&nbsp;USDC.</h2>
-              <Reveal className={styles.receiptWrap}>
-                <div className={styles.receipt}>
-                  <div className={styles.receiptTop}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/spot-wordmark-black.svg" alt="Spot" width={96} height={39} />
-                    <p className={styles.receiptKind}>Buy · Example</p>
-                  </div>
-                  <dl className={styles.receiptRows}>
-                    <div>
-                      <dt>$EXAMPLE</dt>
-                      <dd>25.00 USDC</dd>
-                    </div>
-                    <div>
-                      <dt>Gas</dt>
-                      <dd>on us</dd>
-                    </div>
-                    <div>
-                      <dt>SOL needed</dt>
-                      <dd>0</dd>
-                    </div>
-                    <div>
-                      <dt>Spot fee</dt>
-                      <dd>shown up front</dd>
-                    </div>
-                    <div>
-                      <dt>TP</dt>
-                      <dd>50% at 2x</dd>
-                    </div>
-                  </dl>
-                  <p className={styles.thanks}>Thank you · Woof</p>
+        <section className={styles.after} aria-labelledby="after">
+          <div className={styles.wrap}>
+            <h2 id="after" className={`${styles.h2} ${styles.wide}`}>
+              <span className={styles.line}>Initials out at&nbsp;2x.</span>{" "}
+              <span className={styles.line}>The rest&nbsp;rides.</span>
+            </h2>
+            <div className={styles.proofGrid}>
+              <div className={styles.copy}>
+                <p className={styles.body}>
+                  Flip it on when you ape. When the coin doubles, Spot sells half and your $25 is back. If the dev
+                  starts dumping, your phone buzzes before the group chat&nbsp;does.
+                </p>
+              </div>
+              <div className={styles.visual}>
+                <div className={styles.lock}>
+                  <p className={styles.lockTime} aria-hidden="true">
+                    9:41
+                  </p>
+                  <ul className={styles.lockList} aria-label="Example notifications from Spot">
+                    <li>
+                      <Reveal className={styles.notice}>
+                        <Notice title="GRRR." text="The dev is dumping $EXAMPLE. Sell the rest?" when="now" action="Sell" />
+                      </Reveal>
+                    </li>
+                    <li>
+                      <Notice title="$EXAMPLE doubled." text="Sold half, so your $25 is back. The rest rides." when="1h ago" />
+                    </li>
+                  </ul>
                 </div>
-              </Reveal>
-              <Reveal className={`${styles.notice} ${styles.noticeOver}`}>
-                <Notice title="$EXAMPLE hit 2x." text="Sold half. Initials back: 25 USDC." />
-              </Reveal>
+              </div>
             </div>
+          </div>
+        </section>
+
+        <section className={styles.plain} aria-labelledby="plain">
+          <div className={`${styles.wrap} ${styles.plainInner}`}>
+            <h2 id="plain" className={styles.h2}>
+              Dollars in. Dollars&nbsp;out.
+            </h2>
+            <p className={styles.body}>
+              No SOL to buy first, no gas to top up. Your coins sit in your own wallet, and Spot never holds&nbsp;them.
+            </p>
+          </div>
+        </section>
+
+        <section className={styles.closing} aria-labelledby="closing">
+          <div className={`${styles.wrap} ${styles.closingInner}`}>
+            <h2 id="closing" className={`${styles.h2} ${styles.big}`}>
+              Save your&nbsp;spot.
+            </h2>
+            <p className={styles.body}>
+              Spot lands on Android, iPhone and Solana Seeker. Every friend who joins with your link moves you up
+              10&nbsp;spots.
+            </p>
+            <JoinButton className={styles.cta}>Save my spot</JoinButton>
           </div>
         </section>
       </main>

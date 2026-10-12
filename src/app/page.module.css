@@ -1,6 +1,11 @@
-/* Two grounds and a footer: black, orange, black. Each section owns its
-   ground; the page itself is black. */
+/* ONE TRADE IN SIX GROUNDS. Ink for the hero and for getting in early, orange
+   for the dog's world (the sniff), ink again for the night the coin doubles,
+   paper for the plain truth about money, orange to sign up, ink for the small
+   print. Each part is one big line, one plain sentence and one picture. */
 .page {
+  --stone: #a8a49c;
+  --stone-light: #cfcac1;
+  --section: clamp(104px, 13vw, 184px);
   min-height: 100vh;
 }
 
@@ -18,15 +23,6 @@
   }
 }
 
-.h2 {
-  font-family: var(--font-display-stack);
-  font-weight: 900;
-  font-size: clamp(32px, 8.4vw, 46px);
-  line-height: 1;
-  letter-spacing: -0.025em;
-  text-wrap: balance;
-}
-
 .sr {
   position: absolute;
   width: 1px;
@@ -34,6 +30,53 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* ---------- type: one big line, one plain sentence ---------- */
+.h1 {
+  max-width: 9em;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(52px, 15vw, 68px);
+  line-height: 0.88;
+  letter-spacing: -0.04em;
+}
+
+.h2 {
+  max-width: 11em;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(42px, 11.5vw, 56px);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.body {
+  max-width: 31em;
+  margin-top: 24px;
+  font-size: 19px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* A sentence that keeps its own line, so a two-sentence line breaks where
+   the sentences do. */
+.line {
+  display: block;
+}
+
+@media (min-width: 960px) {
+  .h1 {
+    font-size: clamp(80px, 7.6vw, 118px);
+  }
+  .h2 {
+    font-size: clamp(58px, 5.5vw, 86px);
+  }
+  .body {
+    margin-top: 32px;
+    font-size: 21px;
+  }
 }
 
 /* ---------- header ---------- */
@@ -82,89 +125,152 @@
   height: auto;
 }
 
-/* ---------- hero: black ---------- */
+/* ---------- hero: the promise, the field, the phone doing it ---------- */
 .hero {
   display: grid;
-  row-gap: 64px;
-  padding-top: 16px;
-  padding-bottom: 88px;
-}
-
-.h1 {
-  max-width: 9.5em;
-  font-family: var(--font-display-stack);
-  font-weight: 900;
-  font-size: clamp(46px, 13vw, 64px);
-  line-height: 0.92;
-  letter-spacing: -0.035em;
+  row-gap: 72px;
+  padding-top: 24px;
+  padding-bottom: var(--section);
 }
 
 .lede {
-  margin-top: 20px;
-  font-size: 19px;
-  line-height: 1.4;
-  color: #cfcac1;
+  max-width: 22em;
+  margin-top: 24px;
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--stone-light);
   text-wrap: balance;
 }
 
 .join {
-  margin-top: 32px;
+  margin-top: 36px;
+  scroll-margin: 96px;
 }
 
 @media (min-width: 960px) {
   .hero {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    column-gap: 72px;
-    padding-top: 24px;
-    padding-bottom: 112px;
-  }
-  .h1 {
-    font-size: clamp(64px, 6.6vw, 100px);
-    line-height: 0.9;
+    column-gap: 80px;
+    min-height: calc(100svh - 72px);
+    padding-top: 8px;
+    padding-bottom: 96px;
   }
   .lede {
-    margin-top: 26px;
-    font-size: clamp(19px, 1.6vw, 22px);
+    margin-top: 32px;
+    font-size: clamp(21px, 1.75vw, 25px);
   }
   .join {
-    margin-top: 40px;
+    margin-top: 44px;
   }
 }
 
-/* ---------- trust: orange, two papers ---------- */
-.trust {
-  background: var(--orange);
-  color: var(--ink);
-  padding: 80px 0 104px;
-}
-
-.trustGrid {
+/* ---------- the parts: words on the left, the picture on the right ---------- */
+.split {
   display: grid;
-  gap: 88px;
+  row-gap: 56px;
 }
 
-.col {
+.copy,
+.visual {
   min-width: 0;
 }
 
 @media (min-width: 960px) {
-  .trust {
-    padding: 104px 0 120px;
+  .split {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: center;
+    column-gap: 96px;
   }
-  .trustGrid {
-    grid-template-columns: minmax(0, 560px) minmax(0, 480px);
-    justify-content: space-between;
+}
+
+/* ---------- early: the chart ---------- */
+/* It carries on the hero's ink, so it needs less room above. */
+.early {
+  padding: clamp(32px, 6vw, 96px) 0 var(--section);
+}
+
+.early .body,
+.after .body {
+  color: var(--stone-light);
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  max-width: 31em;
+  margin-top: 36px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--stone);
+}
+
+.marks {
+  display: inline-flex;
+  gap: 14px;
+  color: var(--white);
+}
+
+/* Room under the chart for "The CA drops". */
+.early .visual {
+  padding-bottom: 40px;
+}
+
+/* ---------- the sniff: orange, the dog and its report ---------- */
+/* On the orange grounds the focus ring is ink, or it would vanish. */
+.sniffBand :focus-visible,
+.closing :focus-visible {
+  outline-color: var(--ink);
+}
+
+/* The turned paper and the stamp may reach past a phone's edge; the band
+   keeps them from making the page scroll sideways. */
+.sniffBand {
+  padding: var(--section) 0;
+  overflow-x: clip;
+  background: var(--orange);
+  color: var(--ink);
+}
+
+.wide {
+  max-width: 13em;
+}
+
+/* The two parts that prove something (the sniff, the night it doubles): the
+   big line across the top, the words straight under it, the proof beside
+   them. */
+.proofGrid {
+  display: grid;
+  row-gap: 56px;
+  margin-top: 24px;
+}
+
+.proofGrid .body {
+  margin-top: 0;
+}
+
+@media (min-width: 960px) {
+  .proofGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 560px);
     align-items: start;
-    gap: 64px;
+    column-gap: 96px;
+    margin-top: 40px;
   }
+}
+
+.aside {
+  margin-top: 24px;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 /* The angry puppy stands on the report the way the calm one holds the phone. */
 .sniff {
   --pup-w: 220px;
   position: relative;
-  margin-top: 36px;
   padding-top: calc(var(--pup-w) / 1.5149 * 0.877);
 }
 
@@ -179,20 +285,18 @@
 
 .report {
   position: relative;
-  padding: 30px 22px 28px;
+  padding: 30px 24px 30px;
   border-radius: 6px;
   background: var(--white);
   transform: rotate(-1.4deg);
-  box-shadow: 0 18px 40px rgba(90, 30, 0, 0.35);
+  box-shadow: 0 2px 0 rgba(90, 30, 0, 0.12), 0 24px 48px rgba(90, 30, 0, 0.32);
 }
 
 .reportHead {
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono-stack);
-  font-size: 13px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 14px;
   color: #5a554c;
 }
 
@@ -217,7 +321,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 15px 0;
+  padding: 14px 0;
   border-bottom: 1px solid #eee9df;
   font-size: 17px;
   font-weight: 600;
@@ -244,24 +348,32 @@
   color: #1f6b45;
 }
 
-.bad {
-  background: #f8e1de;
-  color: #b42d22;
-}
-
 .warn {
   background: #fbebd3;
   color: #8a5300;
 }
 
+/* The verdict, printed where the sniff ends: what it means for the bag. */
+.verdict {
+  margin-top: 6px;
+  padding-top: 16px;
+  padding-right: 120px;
+  border-top: 1.5px dashed #bdb7ab;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
 .grrr {
   position: absolute;
-  right: -8px;
-  bottom: -22px;
+  right: 4px;
+  bottom: 14px;
   padding: 4px 14px;
   border: 3.5px solid #c7372b;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   color: #c7372b;
   font-family: var(--font-display-stack);
   font-weight: 900;
@@ -270,88 +382,37 @@
   transform: rotate(-13deg);
 }
 
-/* The receipt's torn edge is a mask, so the teeth keep their size at any
-   width; the shadow sits on the wrapper so it follows the teeth. */
-.receiptWrap {
-  margin-top: 36px;
-  transform: rotate(1.2deg);
-  filter: drop-shadow(0 14px 22px rgba(90, 30, 0, 0.3));
-}
-
-.receipt {
-  --tooth: 10px;
-  padding: 32px 28px calc(32px + var(--tooth));
-  background: var(--white);
-  color: #1a1a1a;
-  font-family: var(--font-mono-stack);
-  font-size: 16px;
-  line-height: 1.7;
-  -webkit-mask:
-    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth) + 1px) no-repeat,
-    conic-gradient(from -45deg at bottom, #000 90deg, #0000 0) bottom / calc(2 * var(--tooth)) var(--tooth) repeat-x;
-  mask:
-    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth) + 1px) no-repeat,
-    conic-gradient(from -45deg at bottom, #000 90deg, #0000 0) bottom / calc(2 * var(--tooth)) var(--tooth) repeat-x;
-}
-
-.receiptTop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.receiptTop img {
-  width: 96px;
-  height: auto;
-}
-
-.receiptKind {
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #5a554c;
-}
-
-.receiptRows {
-  margin: 18px 0 0;
-  padding-top: 12px;
-  border-top: 1.5px dashed #bdb7ab;
-}
-
-.receiptRows div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.receiptRows dt,
-.receiptRows dd {
-  margin: 0;
-}
-
-.receiptRows dd {
-  text-align: right;
-}
-
-.thanks {
-  margin-top: 22px;
-  text-align: center;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #5a554c;
-}
-
-/* Entrances, once each scrolls into view (Reveal): the stamp lands on the
-   report, the receipt prints. Until then they wait, hidden; without script
-   or with reduced motion they are simply there. */
+/* The one moment on the page that plays by itself, once, when the report
+   scrolls into view: the checks come up one by one, the verdict prints, the
+   stamp lands. Until then they wait; without script or with reduced motion
+   they are simply there (Reveal). */
+.sniff[data-reveal="armed"] .rows li,
+.sniff[data-reveal="armed"] .verdict,
 .sniff[data-reveal="armed"] .grrr {
   opacity: 0;
 }
 
+.sniff[data-reveal="in"] .rows li {
+  animation: tick 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) calc(0.2s + var(--i) * 0.16s) both;
+}
+
+.sniff[data-reveal="in"] .verdict {
+  animation: tick 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) 1.1s both;
+}
+
 .sniff[data-reveal="in"] .grrr {
-  animation: slam 0.5s cubic-bezier(0.2, 0.75, 0.25, 1) 0.35s both;
+  animation: slam 0.5s cubic-bezier(0.2, 0.75, 0.25, 1) 1.45s both;
+}
+
+@keyframes tick {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes slam {
@@ -372,54 +433,53 @@
   }
 }
 
-.receiptWrap[data-reveal="armed"] .receipt {
-  clip-path: inset(0 0 100% 0);
+/* ---------- after the buy: a lock screen at night ---------- */
+.after {
+  padding: var(--section) 0;
 }
 
-.receiptWrap[data-reveal="in"] .receipt {
-  animation: print 1.1s cubic-bezier(0.3, 0.6, 0.3, 1) both;
+.lock {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 44px 16px 20px;
+  border-radius: 44px;
+  background:
+    radial-gradient(120% 70% at 50% 112%, rgba(252, 78, 2, 0.6), rgba(252, 78, 2, 0) 62%),
+    linear-gradient(#19191c, #0f0f11);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 40px 80px rgba(0, 0, 0, 0.55);
 }
 
-@keyframes print {
-  from {
-    clip-path: inset(0 0 100% 0);
-    transform: translateY(-36px);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-    transform: none;
-  }
+.lockTime {
+  text-align: center;
+  font-family: var(--font-display-stack);
+  font-weight: 700;
+  font-size: 92px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: rgba(255, 255, 255, 0.94);
 }
 
-/* ---------- after the buy: notifications, drawn ---------- */
-.notice {
-  position: relative;
-  max-width: 440px;
-  margin-top: 48px;
-  margin-left: 16px;
-}
-
-/* The take-profit one lands over the receipt's torn edge. */
-.noticeOver {
-  z-index: 2;
-  margin-top: -4px;
-  margin-left: auto;
+.lockList {
+  display: grid;
+  gap: 10px;
+  margin: 40px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
 .noticeCard {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.96);
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
   color: var(--ink);
-  box-shadow: 0 14px 30px rgba(90, 30, 0, 0.3);
 }
 
 .noticeCard img {
-  width: 44px;
+  width: 40px;
   height: auto;
 }
 
@@ -427,14 +487,14 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #6e6a62;
 }
 
 .noticeText {
   margin-top: 2px;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.35;
 }
 
@@ -443,7 +503,7 @@
 }
 
 .noticeAction {
-  padding: 8px 16px;
+  padding: 8px 15px;
   border-radius: 999px;
   background: var(--ink);
   color: var(--white);
@@ -451,19 +511,13 @@
   font-weight: 700;
 }
 
-.curious {
-  margin-top: 28px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-/* Each drops in like a banner once it scrolls into view (Reveal). */
+/* The dump alert arrives on top of the 2x, once, as a banner would. */
 .notice[data-reveal="armed"] .noticeCard {
   opacity: 0;
 }
 
 .notice[data-reveal="in"] .noticeCard {
-  animation: drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.5s both;
+  animation: drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.3s both;
 }
 
 @keyframes drop {
@@ -474,6 +528,87 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- money: paper, plain, a short beat ---------- */
+.plain {
+  padding: clamp(88px, 10vw, 144px) 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.plainInner {
+  display: grid;
+  row-gap: 8px;
+}
+
+@media (min-width: 960px) {
+  .plainInner {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    align-items: end;
+    column-gap: 96px;
+  }
+  .plainInner .body {
+    margin-top: 0;
+    font-size: 23px;
+  }
+}
+
+/* ---------- the close: orange, the same button again ---------- */
+.closing {
+  padding: var(--section) 0;
+  background: var(--orange);
+  color: var(--ink);
+  text-align: center;
+}
+
+.closingInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.big {
+  max-width: none;
+  font-size: clamp(60px, 17vw, 80px);
+}
+
+.closing .body {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 27em;
+}
+
+/* The form's key, in ink so it reads on orange: it sits on its own shadow
+   and goes down when pressed. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 62px;
+  margin-top: 40px;
+  padding: 0 40px;
+  border-radius: 16px;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  box-shadow: 0 5px 0 #7a2600;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.cta:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #7a2600;
+}
+
+@media (min-width: 960px) {
+  .big {
+    font-size: clamp(96px, 10vw, 152px);
   }
 }
 
