@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Spot",
+    "slug": "spot",
+    "scheme": "spot",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b0b0c",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "fun.usespot.app"
+    },
+    "android": {
+      "package": "fun.usespot.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#fc4e02",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Spot"
+    },
+    "plugins": [
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": [
+            "text/*",
+            "image/*"
+          ],
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsImageWithMaxCount": 1
+          }
+        }
+      ],
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 140,
+          "backgroundColor": "#0b0b0c"
+        }
+      ],
+      "expo-image"
+    ]
+  }
+}

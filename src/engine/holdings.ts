@@ -1,0 +1,76 @@
+import type { UltraSearchClient } from "@/core/resolve/ultra";
+import { SOL_MINT, USDC_MINT } from "@/core/route/jupiter";
+import type { AccountsReader } from "./chain";
+import { num, type Outcome } from "./http";
+import type { TokenInfo } from "./jupiter";
+import { cardOf, type TokenCard } from "./token";
+
+/**
+ * THE BAG: what a wallet holds and what it is worth, for the app's Bag tab.
+ * Balances come from the chain, prices and faces from Jupiter, in one
+ * search for every mint at once. Whatever Jupiter cannot price, and what is
+ * worth less than a cent (airdropped spam, dust), is counted, not listed.
+ */
+
+export interface Holding {
+  token: TokenCard;
+  amount: number;
+  /** Raw base units, what a sell of the whole bag asks for. */
+  raw: string;
+  usd: number;
+}
+
+export interface Holdings {
+  owner: string;
+  totalUsd: number;
+  usdc: { amount: number; raw: string; usd: number };
+  sol: { amount: number; usd: number | null };
+  /** Coins worth a cent or more, the biggest first. */
+  positions: Holding[];
+  /** Everything else: unpriced, spam, dust. */
+  hidden: number;
+}
+
+export interface HoldingsDeps {
+  search: UltraSearchClient;
+  readAccounts: AccountsReader;
+}
+
+/* Ultra takes up to a hundred mints in one query; SOL takes one of them. */
+const MAX_MINTS = 99;
+
+const cents = (n: number) => Math.round(n * 100) / 100;
+
+export async function holdings(owner: string, deps: HoldingsDeps): Promise<Outcome<Holdings, "lookup_failed">> {
+  const acc = await deps.readAccounts(owner);
+  if (!acc.ok) return { ok: false, reason: "lookup_failed" };
+
+  const usdcRow = acc.value.tokens.find((t) => t.mint === USDC_MINT);
+  const coins = acc.value.tokens.filter((t) => t.mint !== USDC_MINT && t.amount > 0);
+  const asked = coins.slice(0, MAX_MINTS);
+
+  const found = await deps.search.search([SOL_MINT, ...asked.map((t) => t.mint)].join(","), { timeoutMs: 3_000 });
+  if (!found.ok) return { ok: false, reason: "lookup_failed" };
+  const infos = new Map<string, TokenInfo>(found.value.map((t) => [t.id, t]));
+
+  const positions: Holding[] = [];
+  for (const t of asked) {
+    const info = infos.get(t.mint);
+    const price = num(info?.usdPrice);
+    if (!info || price === undefined) continue;
+    const usd = price * t.amount;
+    if (usd < 0.01) continue;
+    positions.push({ token: cardOf(info), amount: t.amount, raw: t.raw, usd: cents(usd) });
+  }
+  positions.sort((a, b) => b.usd - a.usd);
+
+  const solPrice = num(infos.get(SOL_MINT)?.usdPrice);
+  const sol = { amount: acc.value.sol, usd: solPrice === undefined ? null : cents(acc.value.sol * solPrice) };
+  const usdc = { amount: usdcRow?.amount ?? 0, raw: usdcRow?.raw ?? "0", usd: cents(usdcRow?.amount ?? 0) };
+  const totalUsd = cents(usdc.usd + (sol.usd ?? 0) + positions.reduce((sum, p) => sum + p.usd, 0));
+
+  return {
+    ok: true,
+    value: { owner, totalUsd, usdc, sol, positions, hidden: coins.length - positions.length },
+  };
+}

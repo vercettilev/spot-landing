@@ -95,28 +95,107 @@ export function mintFactsOf(value: unknown): Outcome<MintFacts, MintFailure> {
   return { ok: true, value: facts };
 }
 
+export type RpcFailure = "timeout" | "network_error" | "http_error" | "rate_limited" | "bad_shape";
+
+/** One JSON-RPC call: the `result`, or why there is none. */
+export async function rpcCall(
+  fetchFn: Fetch,
+  rpcUrl: string,
+  method: string,
+  params: unknown[],
+  timeoutMs: number,
+): Promise<Outcome<Record<string, unknown>, RpcFailure>> {
+  const res = await fetchText(fetchFn, rpcUrl, {
+    timeoutMs,
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  if (!res.ok) return res;
+  if (res.value.status === 429) return { ok: false, reason: "rate_limited" };
+  const body = parseJson(res.value.text);
+  if (res.value.status !== 200 || !isRecord(body)) return { ok: false, reason: "http_error" };
+  if (body.error !== undefined) return { ok: false, reason: "http_error" };
+  if (!isRecord(body.result) || !("value" in body.result)) return { ok: false, reason: "bad_shape" };
+  return { ok: true, value: body.result };
+}
+
 export function makeMintReader(rpcUrl: string, opts: { fetchFn?: Fetch; timeoutMs?: number } = {}): MintReader {
   const fetchFn = bindFetch(opts.fetchFn ?? fetch);
   const timeoutMs = opts.timeoutMs ?? 2_000;
 
   return async (mint) => {
-    const res = await fetchText(fetchFn, rpcUrl, {
-      timeoutMs,
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "getAccountInfo",
-        params: [mint, { encoding: "jsonParsed", commitment: "confirmed" }],
-      }),
-    });
-    if (!res.ok) return res;
-    if (res.value.status === 429) return { ok: false, reason: "rate_limited" };
-    const body = parseJson(res.value.text);
-    if (res.value.status !== 200 || !isRecord(body)) return { ok: false, reason: "http_error" };
-    if (body.error !== undefined) return { ok: false, reason: "http_error" };
-    if (!isRecord(body.result) || !("value" in body.result)) return { ok: false, reason: "bad_shape" };
-    return mintFactsOf(body.result.value);
+    const res = await rpcCall(fetchFn, rpcUrl, "getAccountInfo", [mint, { encoding: "jsonParsed", commitment: "confirmed" }], timeoutMs);
+    return res.ok ? mintFactsOf(res.value.value) : res;
+  };
+}
+
+/** A wallet's balance of one mint, all its token accounts for that mint added up. */
+export interface TokenBalance {
+  mint: string;
+  /** Raw base units, as a string: amounts outgrow a float's exact range. */
+  raw: string;
+  amount: number;
+  decimals: number;
+}
+
+export interface WalletAccounts {
+  /** Native SOL, in SOL. */
+  sol: number;
+  tokens: TokenBalance[];
+}
+
+export type AccountsReader = (owner: string) => Promise<Outcome<WalletAccounts, RpcFailure>>;
+
+/** Token accounts from one getTokenAccountsByOwner answer (jsonParsed). Exported for the specs. */
+export function balancesOf(value: unknown): TokenBalance[] {
+  const out: TokenBalance[] = [];
+  for (const row of Array.isArray(value) ? value : []) {
+    const data = isRecord(row) && isRecord(row.account) ? row.account.data : undefined;
+    const parsed = isRecord(data) && isRecord(data.parsed) ? data.parsed : undefined;
+    const info = parsed && isRecord(parsed.info) ? parsed.info : undefined;
+    const amount = info && isRecord(info.tokenAmount) ? info.tokenAmount : undefined;
+    const mint = str(info?.mint);
+    const raw = str(amount?.amount);
+    const decimals = num(amount?.decimals);
+    if (!mint || !raw || !/^\d+$/.test(raw) || decimals === undefined) continue;
+    out.push({ mint, raw, amount: Number(raw) / 10 ** decimals, decimals });
+  }
+  return out;
+}
+
+/**
+ * EVERYTHING A WALLET HOLDS, from the chain: its SOL, and its token accounts
+ * under both token programs (a Token-2022 coin is invisible to a classic-only
+ * query). Several accounts of one mint are added into one balance.
+ */
+export function makeAccountsReader(rpcUrl: string, opts: { fetchFn?: Fetch; timeoutMs?: number } = {}): AccountsReader {
+  const fetchFn = bindFetch(opts.fetchFn ?? fetch);
+  const timeoutMs = opts.timeoutMs ?? 4_000;
+  const byProgram = (wallet: string, programId: string) =>
+    rpcCall(fetchFn, rpcUrl, "getTokenAccountsByOwner", [wallet, { programId }, { encoding: "jsonParsed", commitment: "confirmed" }], timeoutMs);
+
+  return async (wallet) => {
+    const [classic, t22, balance] = await Promise.all([
+      byProgram(wallet, TOKEN_PROGRAM),
+      byProgram(wallet, TOKEN_2022_PROGRAM),
+      rpcCall(fetchFn, rpcUrl, "getBalance", [wallet, { commitment: "confirmed" }], timeoutMs),
+    ]);
+    if (!classic.ok) return classic;
+    if (!t22.ok) return t22;
+    if (!balance.ok) return balance;
+    const lamports = num(balance.value.value);
+    if (lamports === undefined) return { ok: false, reason: "bad_shape" };
+
+    const merged = new Map<string, TokenBalance>();
+    for (const b of [...balancesOf(classic.value.value), ...balancesOf(t22.value.value)]) {
+      const seen = merged.get(b.mint);
+      if (!seen) merged.set(b.mint, b);
+      else {
+        const raw = (BigInt(seen.raw) + BigInt(b.raw)).toString();
+        merged.set(b.mint, { ...seen, raw, amount: Number(raw) / 10 ** seen.decimals });
+      }
+    }
+    return { ok: true, value: { sol: lamports / 1e9, tokens: [...merged.values()] } };
   };
 }
