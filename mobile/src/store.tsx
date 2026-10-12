@@ -142,6 +142,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => setHaptics(state.settings.haptics), [state.settings.haptics]);
 
   const save = useCallback(<K extends keyof State>(key: K, value: State[K]) => {
+    /* Known to the next write in the same tick, not only after the render:
+       an ape's activity line followed by its watch's used to lose the first. */
+    latest.current = { ...latest.current, [key]: value };
     setState((s) => ({ ...s, [key]: value }));
     void AsyncStorage.setItem(KEY[key], JSON.stringify(value)).catch(() => {});
   }, []);

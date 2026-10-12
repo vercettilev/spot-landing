@@ -52,8 +52,33 @@ export function useHoldings(owner: string | null): HoldingsState {
     void load(false);
   }, [load]);
 
+  /* A bag replaced or dropped from outside (a trade landed, the watcher in
+     pending.ts read a fresh one) reaches every screen showing it. */
+  useEffect(() => {
+    if (!owner) return;
+    const fn = (o: string) => {
+      if (o === owner) void load(false);
+    };
+    listeners.add(fn);
+    return () => void listeners.delete(fn);
+  }, [owner, load]);
+
   return { ...state, refresh: () => load(true) };
 }
 
-/** Forget a wallet's bag, after a trade changed it. */
-export const forgetHoldings = (owner: string) => cache.delete(owner);
+const listeners = new Set<(owner: string) => void>();
+const notify = (owner: string) => {
+  for (const fn of listeners) fn(owner);
+};
+
+/** Forget a wallet's bag, after a trade changed it: every screen showing it reads again. */
+export function forgetHoldings(owner: string): void {
+  cache.delete(owner);
+  notify(owner);
+}
+
+/** A bag read elsewhere just now, handed to every screen showing it. */
+export function primeHoldings(owner: string, value: Holdings): void {
+  cache.set(owner, { at: Date.now(), value });
+  notify(owner);
+}

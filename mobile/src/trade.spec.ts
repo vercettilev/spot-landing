@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { failedLine, hold, moved, orderErrorLine, pendingFor, quoteUsd, release, settled, shortFill, snapshotOf } from "./trade";
-import type { Holdings } from "./types";
+import { failedLine, fateLine, fateOf, moved, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending } from "./trade";
+import type { Holdings, TokenCard } from "./types";
 
 const COIN = "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm";
 
@@ -99,14 +99,52 @@ describe("a trade that did not start", () => {
   });
 });
 
-describe("an order that may still land", () => {
-  it("stays held for its wallet and coin until released", () => {
-    expect(pendingFor("w", COIN)).toBeNull();
-    hold("w", COIN, { side: "buy", landed: false, before: null, until: 1, text: "Aped", signature: null });
-    expect(pendingFor("w", COIN)?.side).toBe("buy");
-    expect(pendingFor("other", COIN)).toBeNull();
-    expect(pendingFor(null, COIN)).toBeNull();
-    release("w", COIN);
-    expect(pendingFor("w", COIN)).toBeNull();
+describe("a trade still waited on", () => {
+  const p: Pending = {
+    owner: "w",
+    mint: COIN,
+    token: { mint: COIN, symbol: "X" } as TokenCard,
+    side: "buy",
+    landed: false,
+    before: { coin: "0", usdc: "30000000" },
+    until: 100_000,
+    text: "Aped $10 of $X",
+    signature: null,
+  };
+
+  it("has landed once the wallet shows it, whatever the clock says", () => {
+    expect(fateOf(p, { coin: "75", usdc: "30000000" }, 1)).toBe("landed");
+    expect(fateOf(p, { coin: "0", usdc: "20000000" }, 999_999)).toBe("landed");
+  });
+
+  it("is looked for until a little after it could last land, and counts the seconds down", () => {
+    expect(fateOf(p, { coin: "0", usdc: "30000000" }, 100_000)).toBeNull();
+    expect(fateOf(p, null, 105_000)).toBeNull();
+    expect(fateOf(p, { coin: "0", usdc: "30000000" }, 106_000)).toBeNull();
+    expect(secondsLeft(p, 10_000)).toBe(96);
+    expect(secondsLeft(p, 100_000)).toBe(6);
+    expect(secondsLeft(p, 105_500)).toBe(1);
+    expect(secondsLeft(p, 200_000)).toBe(0);
+  });
+
+  it("is lost after that, or unread when the wallet could not be read either side", () => {
+    expect(fateOf(p, { coin: "0", usdc: "30000000" }, 106_001)).toBe("lost");
+    expect(fateOf(p, null, 106_001)).toBe("unread");
+    expect(fateOf({ ...p, before: null }, { coin: "99", usdc: "0" }, 106_001)).toBe("unread");
+  });
+
+  it("that already landed only waits for the bag, and never turns into a loss", () => {
+    const landed = { ...p, landed: true, until: 12_000 };
+    expect(fateOf(landed, { coin: "0", usdc: "30000000" }, 12_000)).toBeNull();
+    expect(fateOf(landed, { coin: "0", usdc: "30000000" }, 12_001)).toBe("landed");
+    expect(fateOf(landed, null, 12_001)).toBe("landed");
+    expect(secondsLeft(landed, 10_000)).toBe(2);
+  });
+
+  it("says what became of it in plain words", () => {
+    expect(fateLine(p, "landed")).toBe("Aped $10 of $X.");
+    expect(fateLine(p, "lost")).toBe("Didn't go through. Nothing was bought.");
+    expect(fateLine({ ...p, side: "sell" }, "lost")).toBe("Didn't go through. Nothing was sold.");
+    expect(fateLine(p, "unread")).toBe("Couldn't read your wallet. Check your bag before you go again.");
   });
 });

@@ -1,3 +1,4 @@
+import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -8,27 +9,11 @@ import { Bell, Button, CoinFace, Pill, Toggle, feel, tap, useToast } from "../co
 import { forgetHoldings, useHoldings } from "../holdings";
 import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, pct, price, shareOf, sourceLine, usd } from "../logic";
 import type { RootParams } from "../navigation";
+import { claim, hold, pendingFor, subscribe } from "../pending";
 import { AUTO_SELL, PINGS } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font } from "../theme";
-import {
-  LAND_WINDOW_MS,
-  LAST_LOOK_MS,
-  SETTLE_MS,
-  failedLine,
-  hold,
-  moved,
-  orderErrorLine,
-  pendingFor,
-  quoteUsd,
-  release,
-  settled,
-  shortFill,
-  snapshotOf,
-  type Pending,
-  type Side,
-  type Snapshot,
-} from "../trade";
+import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
 import { signTransaction, walletError } from "../wallet/mwa";
 
@@ -63,8 +48,9 @@ const CONFIRM_FRESH_MS = 25_000;
  *
  * Money rules (trade.ts): one trade at a time, however fast the taps; a
  * quote far below the price stops for a yes before the wallet opens; and a
- * trade whose fate is not known locks the button while Spot watches the
- * wallet, so "did it go through?" can never become a second buy.
+ * trade whose fate is not known locks the button, with a countdown, while
+ * pending.ts watches the wallet, so "did it go through?" can never become
+ * a second buy. The user may leave: the verdict follows them.
  */
 export function CoinScreen({ navigation, route }: Props) {
   const { candidate, source, share, others } = route.params;
@@ -77,12 +63,18 @@ export function CoinScreen({ navigation, route }: Props) {
   const [sellPct, setSellPct] = useState(50);
   const [tp, setTp] = useState(store.settings.tpDefault);
   const [busy, setBusy] = useState(false);
-  const [checking, setChecking] = useState<Pending | null>(() => pendingFor(store.wallet?.address, candidate.token.mint));
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const inFlight = useRef(false);
   const run = useRef(0);
 
   const wallet = store.wallet;
+  const owner = wallet?.address ?? null;
+  const mint = candidate.token.mint;
+  const [checking, setChecking] = useState<Pending | null>(() => pendingFor(owner, mint));
+  const [now, setNow] = useState(() => Date.now());
+  const focused = useIsFocused();
+  const focusedRef = useRef(focused);
+  focusedRef.current = focused;
   const bag = useHoldings(wallet?.address ?? null);
   const done = sniff.status === "done" ? sniff.sniff : null;
   const coin = done?.token ?? candidate.token;
@@ -121,6 +113,32 @@ export function CoinScreen({ navigation, route }: Props) {
     if (!position && side === "sell") setSide("buy");
   }, [position, side]);
 
+  /* The hold on this coin and, when it comes, the verdict, from the
+     watcher in pending.ts. Said here while this screen is the one showing;
+     elsewhere TradeWatch says it. */
+  useEffect(() => {
+    setChecking(pendingFor(owner, mint));
+    return subscribe((p, fate) => {
+      if (p.owner !== owner || p.mint !== mint) return;
+      setChecking(fate ? null : p);
+      if (fate && !p.landed && focusedRef.current) toast(fateLine(p, fate));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, mint]);
+
+  useEffect(() => {
+    if (!focused || !owner) return;
+    return claim(owner, mint);
+  }, [focused, owner, mint]);
+
+  /* The countdown on the locked button. */
+  useEffect(() => {
+    if (!checking || checking.landed) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [checking]);
+
   const buying = side === "buy";
   const blocked = done?.level === "block";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
@@ -132,7 +150,7 @@ export function CoinScreen({ navigation, route }: Props) {
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
 
   const action = checking
-    ? { label: checking.landed ? "Updating your bag…" : "Checking…", enabled: false, tone: "wait" as const }
+    ? { label: checking.landed ? "Updating your bag…" : `Checking… ${secondsLeft(checking, now)}s`, enabled: false, tone: "wait" as const }
     : !buying
       ? { label: busy ? "Selling…" : `Sell ${sellPct === 100 ? "all" : `${sellPct}%`} · ~${usd(sellUsd)}`, enabled: Boolean(position) && !busy, tone: "go" as const }
       : restricted
@@ -144,7 +162,7 @@ export function CoinScreen({ navigation, route }: Props) {
   const note = checking
     ? checking.landed
       ? "Done. Your bag catches up in a sec."
-      : "Making sure it landed before you go again."
+      : "Making sure it landed. You can leave, Spot will tell you."
     : !buying
       ? wallet?.kind === "mwa"
         ? "Sells into USDC. Your wallet asks you to approve."
@@ -260,84 +278,29 @@ export function CoinScreen({ navigation, route }: Props) {
     if (signed.authToken !== w.authToken) store.setWallet({ ...w, authToken: signed.authToken });
     const res = await executeOrder(order.requestId, signed.signed);
     const signature = res.ok ? res.value.signature : null;
+    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, before, text, signature };
     switch (settled(res)) {
-      case "landed": {
+      case "landed":
         finish(w.address, sideNow, text, signature);
         /* Landed, but the next trade waits for the bag to show it. */
-        const p: Pending = { side: sideNow, landed: true, before, until: Date.now() + SETTLE_MS, text, signature };
-        hold(w.address, coin.mint, p);
-        setChecking(p);
+        hold({ ...held, landed: true, until: Date.now() + SETTLE_MS });
         return;
-      }
       case "failed":
         feel("error");
         toast(failedLine(res, sideNow));
         return;
-      default: {
-        const p: Pending = { side: sideNow, landed: false, before, until: builtAt + LAND_WINDOW_MS, text, signature };
-        hold(w.address, coin.mint, p);
-        setChecking(p);
-      }
+      default:
+        hold({ ...held, landed: false, until: builtAt + LAND_WINDOW_MS });
     }
   }
 
-  function finish(owner: string, sideNow: Side, text: string, signature: string | null) {
-    forgetHoldings(owner);
-    void bag.refresh();
+  function finish(walletAddress: string, sideNow: Side, text: string, signature: string | null) {
+    forgetHoldings(walletAddress);
     store.addActivity({ kind: sideNow === "buy" ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature });
     if (sideNow === "buy" && !store.isWatched(coin.mint)) store.toggleWatch(coin);
     feel("success");
     toast(`${text}.`);
   }
-
-  /* A trade the button waits on: the wallet is read every few seconds until
-     it shows the trade, or until the trade can no longer land (or, landed,
-     until the bag has had its time to catch up). */
-  useEffect(() => {
-    const owner = wallet?.address;
-    if (!checking || !owner) return;
-    const mint = candidate.token.mint;
-    const wait = checking.landed ? 2_000 : 3_000;
-    const deadline = checking.until + (checking.landed ? 0 : LAST_LOOK_MS);
-    let alive = true;
-    void (async () => {
-      for (;;) {
-        const res = await fetchHoldings(owner);
-        if (!alive) return;
-        const after = res.ok ? snapshotOf(res.value, mint) : null;
-        if (after && checking.before && moved(checking.side, checking.before, after)) {
-          release(owner, mint);
-          setChecking(null);
-          if (checking.landed) {
-            forgetHoldings(owner);
-            void bag.refresh();
-          } else finish(owner, checking.side, checking.text, checking.signature);
-          return;
-        }
-        if (Date.now() > deadline) {
-          release(owner, mint);
-          setChecking(null);
-          if (checking.landed) {
-            forgetHoldings(owner);
-            void bag.refresh();
-          } else {
-            toast(
-              after && checking.before
-                ? `Didn't go through. Nothing was ${checking.side === "buy" ? "bought" : "sold"}.`
-                : "Couldn't read your wallet. Check your bag before you go again.",
-            );
-          }
-          return;
-        }
-        await new Promise((r) => setTimeout(r, wait));
-        if (!alive) return;
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checking, wallet?.address]);
 
   return (
     <View style={styles.fill}>
