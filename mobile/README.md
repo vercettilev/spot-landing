@@ -45,6 +45,7 @@ The dApp Store takes a release APK signed with a key of Spot's own, used for thi
 2. In GitHub, **Settings → Secrets and variables → Actions**, add `SPOT_RELEASE_KEYSTORE` (the contents of the `.b64` file), `SPOT_RELEASE_KEYSTORE_PASSWORD`, `SPOT_RELEASE_KEY_ALIAS` (`spot`) and `SPOT_RELEASE_KEY_PASSWORD` (the same password, for a PKCS12 keystore).
 3. The next build also uploads `spot-…-dapp-store.apk`, signed with that key. That is the file for the [Publisher Portal](https://docs.solanamobile.com/dapp-publishing/setup), which also wants a publisher wallet with a little SOL, the listing (icon, banner, screenshots, description) and identity checks.
 4. Each update needs `android.versionCode` in `app.json` one higher than the last release.
+5. The listing itself (name, descriptions, links, the 512 icon and the 1080-wide screenshots) is in `store/`: paste from `store/listing.md`. The screenshots are made from the web export with example data (`npx expo export --platform web`), so they are the real screens.
 
 ## Work on it
 

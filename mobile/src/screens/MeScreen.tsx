@@ -19,6 +19,7 @@ const LINKS = [
   { label: "Spot on X", note: "@usespotdotfun", url: "https://x.com/usespotdotfun" },
   { label: "usespot.fun", note: null, url: "https://www.usespot.fun" },
   { label: "Privacy", note: "What Spot keeps, and doesn't", url: "https://www.usespot.fun/privacy" },
+  { label: "Terms", note: "The deal, in plain words", url: "https://www.usespot.fun/terms" },
 ];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
