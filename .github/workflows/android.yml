@@ -8,6 +8,10 @@
 # When the repository holds Spot's dApp Store key (the SPOT_RELEASE_*
 # secrets, see mobile/README.md), the same build is also signed with it:
 # that second APK is the one the Solana dApp Store takes.
+#
+# A push to main also publishes the build as the "test" release, so a phone
+# can fetch the newest one from a fixed link (and the app can say an update
+# is out): https://github.com/vercettilev/spot-landing/releases/download/test/spot.apk
 name: Android APK
 
 on:
@@ -20,6 +24,9 @@ on:
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   apk:
@@ -92,3 +99,23 @@ jobs:
           path: mobile/spot-*.apk
           if-no-files-found: error
           retention-days: 30
+
+      # The test channel: one fixed link to the newest build from main, and a
+      # version.json the app reads to say "Update to x.y.z" in Me. The store
+      # build rides along when there is one, for the portal.
+      - name: Publish the test build
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          v="$(node -p "require('./package.json').version")"
+          code="$(node -p "require('./app.json').expo.android.versionCode")"
+          cp "spot-$v-${GITHUB_SHA::7}.apk" spot.apk
+          printf '{"version":"%s","versionCode":%s,"commit":"%s","apk":"https://github.com/%s/releases/download/test/spot.apk"}\n' \
+            "$v" "$code" "${GITHUB_SHA::7}" "$GITHUB_REPOSITORY" > version.json
+          assets=(spot.apk version.json)
+          if ls spot-*-dapp-store.apk >/dev/null 2>&1; then cp spot-*-dapp-store.apk spot-dapp-store.apk; assets+=(spot-dapp-store.apk); fi
+          gh release delete test --yes --cleanup-tag || true
+          gh release create test "${assets[@]}" --title "Spot $v ($code), test build" \
+            --notes "The newest build from main (${GITHUB_SHA::7}), signed with the debug key: for testing, not the store. Install over the previous test build; the store build, when present, is spot-dapp-store.apk."
