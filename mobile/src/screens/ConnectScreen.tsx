@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { fetchHoldings } from "../api";
 import { onCelebrate } from "../components/Moment";
 import { Button, Field, Section, Sheet, useRouteSheet, useToast } from "../components/ui";
@@ -14,6 +14,9 @@ import { MWA_AVAILABLE, connectWallet, walletError } from "../wallet/mwa";
 import { CashPanel } from "./DepositScreen";
 
 type Props = NativeStackScreenProps<RootParams, "Connect">;
+
+/* Where a phone without a wallet gets one: Phantom's own listing on Google Play. */
+const GET_PHANTOM = "https://play.google.com/store/apps/details?id=app.phantom";
 
 /**
  * CONNECTING, as a sheet over whatever asked for it. On Android the wallet
@@ -35,6 +38,8 @@ export function ConnectScreen({ navigation, route }: Props) {
   const [busy, setBusy] = useState(false);
   const [cashBusy, setCashBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* No wallet app on the phone: not an error to show in red, a thing to get. */
+  const [missing, setMissing] = useState(false);
   const [input, setInput] = useState("");
   const address = input.trim();
   const valid = isAddressLike(address);
@@ -51,6 +56,7 @@ export function ConnectScreen({ navigation, route }: Props) {
   async function connect() {
     setBusy(true);
     setError(null);
+    setMissing(false);
     try {
       const c = await connectWallet();
       store.setWallet({ kind: "mwa", address: c.address, label: c.label, authToken: c.authToken, walletUriBase: c.walletUriBase });
@@ -66,7 +72,8 @@ export function ConnectScreen({ navigation, route }: Props) {
       ref.current?.close();
     } catch (e) {
       setStep("connect");
-      setError(walletError(e));
+      if ((e as { code?: string })?.code === "ERROR_WALLET_NOT_FOUND") setMissing(true);
+      else setError(walletError(e));
     } finally {
       setBusy(false);
     }
@@ -98,8 +105,16 @@ export function ConnectScreen({ navigation, route }: Props) {
           <CashPanel need={ape} toast={toast} onBusy={setCashBusy} />
         ) : (
           <>
-            <Text style={styles.lede}>Spot builds each trade. Your wallet approves it, and your keys never leave it.</Text>
-            {MWA_AVAILABLE ? (
+            <Text style={styles.lede}>Your wallet app keeps your money and approves every trade. Spot never holds it.</Text>
+            {MWA_AVAILABLE && missing ? (
+              <>
+                <Text style={styles.missing} accessibilityLiveRegion="polite">
+                  There's no wallet app on this phone yet. Phantom is free and takes a minute to set up; then come back and connect.
+                </Text>
+                <Button label="Get Phantom (free)" onPress={() => void Linking.openURL(GET_PHANTOM).catch(() => {})} style={styles.cta} />
+                <Button label="I have one now. Connect" kind="quiet" disabled={busy} onPress={() => void connect()} style={styles.again} />
+              </>
+            ) : MWA_AVAILABLE ? (
               <>
                 <Button
                   label={step === "counting" ? "Counting your cash…" : busy ? "Waiting for your wallet…" : "Connect wallet"}
@@ -108,7 +123,7 @@ export function ConnectScreen({ navigation, route }: Props) {
                   onPress={() => void connect()}
                   style={styles.cta}
                 />
-                <Text style={styles.note}>Seed Vault, Phantom, Solflare or Backpack. Your wallet asks to connect usespot.fun.</Text>
+                <Text style={styles.note}>Works with Seed Vault, Phantom, Solflare and Backpack.</Text>
               </>
             ) : (
               <Text style={styles.soon}>{Platform.OS === "ios" ? "On iPhone you can only track a wallet for now." : "Wallets connect in the Android app."}</Text>
@@ -152,6 +167,8 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   lede: { fontFamily: font.body, fontSize: type.body, lineHeight: leading.body, color: color.dim },
   cta: { marginTop: space.x6 },
+  again: { marginTop: space.x3 },
+  missing: { marginTop: space.x5, fontFamily: font.bodySemi, fontSize: type.body, lineHeight: leading.body, color: color.white },
   note: { marginTop: space.x3, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   soon: { marginTop: space.x5, fontFamily: font.bodySemi, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   error: { marginTop: space.x3, fontFamily: font.bodySemi, fontSize: type.caption, lineHeight: leading.caption, color: color.red },
