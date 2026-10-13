@@ -291,6 +291,9 @@ export interface Action {
  * The one button, in dollars (USDC is a dollar): "Ape $25". A blocked coin
  * never gets a button that looks pressable.
  */
+/** The key when the sniff failed: it sniffs again. */
+export const SNIFF_AGAIN = "Sniff again";
+
 export function actionFor(state: "loading" | "error" | Level, amount: number): Action {
   switch (state) {
     case "loading":
@@ -302,7 +305,7 @@ export function actionFor(state: "loading" | "error" | Level, amount: number): A
     case "block":
       return { label: "Spot won't buy this", enabled: false, tone: "stop" };
     default:
-      return { label: "Sniff again", enabled: true, tone: "wait" };
+      return { label: SNIFF_AGAIN, enabled: true, tone: "wait" };
   }
 }
 
@@ -443,11 +446,12 @@ export function dockKey(s: DockState): Action {
 /** The line under the key: what happens next, or what to do instead. */
 export function dockNote(s: DockState): string {
   if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it went through. You can leave, Spot will tell you.";
-  if (s.side === "sell") return s.wallet === "mwa" ? "Sells into USDC. Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
-  if (s.sniff === "loading") return "Checking it for scams…";
+  if (s.side === "sell") return s.wallet === "mwa" ? "Sells for cash (USDC). Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
   if (s.sniff === "block") return "Share another post to sniff something else.";
-  if (s.restricted) return "Coins like this aren't sold to people in the US.";
-  if (needsCash(s) && s.held !== null) return `You hold ${money(s.held)} of it. Sell it here or in your Bag anytime.`;
+  /* The key already says who it isn't for; the line says why this user, and where to change it. */
+  if (s.restricted) return "You said you're in the US. Change that in Me.";
+  /* What is held is over the key already; the line says the way out. */
+  if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell above.";
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
   if (s.wallet === "mwa") return s.cash === null ? "Your wallet approves every trade." : `${money(s.cash)} ready to ape. Your wallet approves every trade.`;
   if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";
@@ -532,10 +536,10 @@ export function proofOf(s: { sniffed: number; dodged: number; apes: number }): {
   return { n: s.dodged, label: s.dodged === 1 ? "scam dodged" : "scams dodged", line: `Out of ${s.sniffed} coin${s.sniffed === 1 ? "" : "s"} sniffed. ${aped}`, hot: true };
 }
 
-/** Under the bag's worth: what it is made of, and what is ready to ape. */
+/** Under the bag's worth: what it is made of, and what is ready to ape, when that comes to a dollar. */
 export function bagLine(coins: number, cashUsd: number): string {
   const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
-  return `${held} and ${usd(cashUsd)} ready to ape`;
+  return Math.round(cashUsd) >= 1 ? `${held} and ${usd(cashUsd)} ready to ape` : held;
 }
 
 /** A bag with nothing in it to trade: under a dollar, all told. */

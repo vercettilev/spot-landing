@@ -44,7 +44,7 @@ export function SniffScreen({ navigation }: Props) {
     const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
     const pasted = fromPaste(text);
     if (!pasted) {
-      toast("Nothing to paste. Copy a CA, $ticker or link first.");
+      toast("Nothing to paste. Copy a link or $ticker first.");
       return;
     }
     setInput(text);

@@ -186,7 +186,8 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
 
   return (
     <>
-      <Text style={styles.lede}>{cashLede(cashNow, sol?.usd ?? null)}</Text>
+      {/* The SOL is said once: on the card, when it can be turned into cash. */}
+      <Text style={styles.lede}>{cashLede(cashNow, canTurn ? null : (sol?.usd ?? null))}</Text>
       {wallet.kind === "watch" ? (
         <Card style={styles.watch}>
           <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
@@ -219,10 +220,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
           />
         </Group>
       ) : (
-        <>
-          <Section>Your wallet's address</Section>
-          <Text style={styles.addressLine}>Send USDC or SOL here, on Solana. It's your own wallet: Spot never holds it.</Text>
-        </>
+        <Section>Your wallet's address</Section>
       )}
       {!canTurn || showAddress ? (
         <>
@@ -275,7 +273,6 @@ const styles = StyleSheet.create({
   paper: { alignItems: "center", paddingTop: space.x6, paddingBottom: space.x5, paddingHorizontal: space.x5, borderRadius: radius.block, backgroundColor: color.white },
   paperFirst: { marginTop: space.x4 },
   more: { marginTop: space.x5 },
-  addressLine: { marginBottom: space.x4, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   address: { marginTop: space.x5, textAlign: "center", fontFamily: font.mono, fontSize: type.body, lineHeight: leading.body, color: color.paperInk },
   network: { marginTop: space.x2, fontFamily: font.bodyBold, fontSize: type.footnote, color: color.paperDim },
   actions: { flexDirection: "row", gap: space.x2, marginTop: space.x5 },

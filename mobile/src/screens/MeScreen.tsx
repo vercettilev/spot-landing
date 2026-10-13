@@ -78,11 +78,9 @@ export function MeScreen({ navigation }: Props) {
 
         <View style={styles.profile}>
           <PuppyIcon size={size.avatar} />
+          {/* Which wallet is the first row under Wallet, so it isn't said up here too. */}
           <View style={styles.profileText}>
             <Text style={styles.since}>Degen since {month(settings.since)}</Text>
-            <Text style={styles.who} numberOfLines={1}>
-              {wallet ? `${wallet.kind === "watch" ? "Tracking" : (wallet.label ?? "Wallet")} ${short(wallet.address)}` : "No wallet yet"}
-            </Text>
           </View>
         </View>
 
@@ -181,7 +179,6 @@ const styles = StyleSheet.create({
   profile: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x4 },
   profileText: { flex: 1, minWidth: 0 },
   since: { fontFamily: font.displayBold, fontSize: type.key, lineHeight: leading.key, color: color.white },
-  who: { marginTop: space.hair, fontFamily: font.mono, fontSize: type.footnote, color: color.faint },
   score: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x7 },
   scoreN: { fontFamily: font.display, fontSize: type.moment, lineHeight: leading.moment, letterSpacing: tracking.figure, color: color.white },
   scoreHot: { color: color.orange },

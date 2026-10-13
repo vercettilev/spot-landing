@@ -266,7 +266,7 @@ describe("the dock", () => {
     expect(needsCash({ ...base, cash: null })).toBe(false);
     /* Right after an ape the cash is spent and the coin is held: nothing to fix, so nothing shouts. */
     expect(dockKey({ ...base, cash: 0, held: 25.09 })).toEqual({ label: "Add cash to ape more", enabled: true, tone: "quiet" });
-    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("You hold $25.09 of it. Sell it here or in your Bag anytime.");
+    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("Sell it anytime: tap Sell above.");
     expect(needsCash({ ...base, cash: 3, wallet: "watch" })).toBe(false);
     expect(needsCash({ ...base, cash: 3, sniff: "block" })).toBe(false);
   });
@@ -274,7 +274,7 @@ describe("the dock", () => {
   it("keeps a coin the issuer won't sell in the US away from US users", () => {
     expect(dockKey({ ...base, restricted: true })).toEqual({ label: "Not for US users", enabled: false, tone: "stop" });
     expect(dockKey({ ...base, restricted: true, cash: 3 }).enabled).toBe(false);
-    expect(dockNote({ ...base, restricted: true })).toBe("Coins like this aren't sold to people in the US.");
+    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US. Change that in Me.");
   });
 
   it("waits for an amount while the keypad is empty, and still locks while a trade may land", () => {
@@ -291,7 +291,7 @@ describe("the dock", () => {
     expect(dockKey({ ...sell, held: 0.84, sellPct: 50 }).label).toBe("Sell 50% for about $0.42");
     expect(dockKey({ ...sell, held: null })).toMatchObject({ enabled: false });
     expect(dockKey({ ...sell, busy: true })).toMatchObject({ label: "Selling…", enabled: false });
-    expect(dockNote(sell)).toBe("Sells into USDC. Your wallet approves every trade.");
+    expect(dockNote(sell)).toBe("Sells for cash (USDC). Your wallet approves every trade.");
     expect(dockNote({ ...sell, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to sell.");
   });
 
@@ -300,7 +300,9 @@ describe("the dock", () => {
     expect(dockNote({ ...base, cash: null })).toBe("Your wallet approves every trade.");
     expect(dockNote({ ...base, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to ape.");
     expect(dockNote({ ...base, wallet: "none", cash: null })).toBe("Free sniff. Connect a wallet to ape.");
-    expect(dockNote({ ...base, sniff: "loading" })).toBe("Checking it for scams…");
+    /* While it sniffs, the receipt says so; the line keeps to the wallet. */
+    expect(dockNote({ ...base, sniff: "loading" })).toBe("$120.00 ready to ape. Your wallet approves every trade.");
+    expect(dockNote({ ...base, sniff: "loading", wallet: "none", cash: null })).toBe("Free sniff. Connect a wallet to ape.");
     expect(dockNote({ ...base, sniff: "block" })).toBe("Share another post to sniff something else.");
   });
 });
@@ -385,8 +387,11 @@ describe("adding cash", () => {
 describe("the bag", () => {
   it("says what it is made of and what is ready to ape", () => {
     expect(bagLine(2, 120)).toBe("2 coins and $120 ready to ape");
-    expect(bagLine(1, 0)).toBe("1 coin and $0 ready to ape");
     expect(bagLine(0, 3.4)).toBe("No coins yet and $3 ready to ape");
+    /* No cash to speak of: the line doesn't count it. */
+    expect(bagLine(1, 0)).toBe("1 coin");
+    expect(bagLine(0, 0.3)).toBe("No coins yet");
+    expect(bagLine(1, 0.6)).toBe("1 coin and $1 ready to ape");
   });
 
   it("is empty under a dollar", () => {

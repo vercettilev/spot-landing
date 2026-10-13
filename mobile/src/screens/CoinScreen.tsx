@@ -11,6 +11,7 @@ import { forgetHoldings, useHoldings } from "../holdings";
 import {
   DEFAULT_AMOUNT,
   MAX_TRADE,
+  SNIFF_AGAIN,
   chipsFor,
   clampAmount,
   coinLine,
@@ -460,7 +461,8 @@ export function CoinScreen({ navigation, route }: Props) {
             <OutIcon tint={color.orange} />
           </Pressable>
         </View>
-        {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
+        {/* Said once: while the dock asks, or turns a US buyer away, it says it there. */}
+        {coin.restrictions.includes("us-persons") && !askUs && !restricted && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
         {others.length > 0 && (
           <Pressable
             onPress={() =>
@@ -481,7 +483,8 @@ export function CoinScreen({ navigation, route }: Props) {
         )}
 
         <View style={styles.report}>
-          <SniffReport state={sniff} onRetry={() => void sniffNow()} />
+          {/* One Sniff again on the screen: the key's when it says so, otherwise the receipt's own. */}
+          <SniffReport state={sniff} onRetry={action.label === SNIFF_AGAIN ? undefined : () => void sniffNow()} />
         </View>
 
         {AUTO_SELL && buying && canPickAmount && (

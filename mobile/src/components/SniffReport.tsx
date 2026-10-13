@@ -29,7 +29,7 @@ const native = Platform.OS !== "web";
  * the checks tick in one after another, the stamp comes down and the phone
  * feels which one it was. Reduced motion skips straight to the result.
  */
-export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: () => void }) {
+export function SniffReport({ state, onRetry }: { state: SniffState; onRetry?: () => void }) {
   const rows = useRef(Array.from({ length: MAX_ROWS }, () => new Animated.Value(0))).current;
   const thump = useRef(new Animated.Value(0)).current;
   const reduced = useReducedMotion();
@@ -75,7 +75,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
       <View style={styles.head}>
         <Text style={styles.kicker}>Sniff report</Text>
         <Text style={styles.kicker}>
-          {time ? `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}` : "live"}
+          {time ? `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}` : state.status === "error" ? "" : "live"}
         </Text>
       </View>
 
@@ -117,9 +117,11 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
         <>
           <Text style={[styles.headline, styles.errorHead]}>Couldn't sniff it.</Text>
           <Text style={styles.errorText}>{errorLine(state.error)}</Text>
-          <Pressable onPress={onRetry} style={styles.retry} hitSlop={{ top: space.hair, bottom: space.hair }} accessibilityRole="button">
-            <Text style={styles.retryText}>Sniff again</Text>
-          </Pressable>
+          {onRetry ? (
+            <Pressable onPress={onRetry} style={styles.retry} hitSlop={{ top: space.hair, bottom: space.hair }} accessibilityRole="button">
+              <Text style={styles.retryText}>Sniff again</Text>
+            </Pressable>
+          ) : null}
         </>
       )}
 

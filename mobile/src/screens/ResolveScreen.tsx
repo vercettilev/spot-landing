@@ -19,7 +19,7 @@ function whichLine(r: ResolveResult, share: Share): string {
   if (symbols.size === 1 && r.candidates[0]?.via === "cashtag") {
     return `$${r.candidates[0].token.symbol} is ${r.candidates.length} different coins. Pick the one ${from.replace(/^from /, "")} meant.`;
   }
-  if (r.candidates.every((c) => c.via === "name")) return "Spot found a name, not a CA. Is it one of these?";
+  if (r.candidates.every((c) => c.via === "name")) return "Spot found a name, not the exact coin. Is it one of these?";
   return `${r.candidates.length} coins in there, ${from}. Pick one.`;
 }
 
@@ -42,7 +42,7 @@ export function ResolveScreen({ navigation, route }: Props) {
     const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
     const next = fromPaste(text);
     if (!next) {
-      setNote("Nothing to paste. Copy a CA, $ticker or link first, then tap Paste one.");
+      setNote("Nothing to paste. Copy a link or $ticker first, then tap Paste one.");
       return;
     }
     navigation.replace("Resolve", { share: next });
@@ -106,9 +106,9 @@ export function ResolveScreen({ navigation, route }: Props) {
       line={
         state.unread
           ? screenshot
-            ? "Spot reads the words in a screenshot. Use one where the CA or $ticker shows."
-            : "It may be private or deleted. Paste the CA or $ticker instead."
-          : "Spot looks for a CA, a $ticker or a coin link. Paste one instead?"
+            ? "Spot reads the words in a screenshot. Use one where the $ticker or the coin's address (CA) shows."
+            : "It may be private or deleted. Paste the $ticker or the coin's address (CA) instead."
+          : "Spot looks for a $ticker, a coin's address (CA) or a link to it. Paste one instead?"
       }
       primary={{ label: "Paste one", onPress: () => void pasteInstead() }}
       secondary={{ label: "Back", onPress: () => navigation.goBack() }}
@@ -143,7 +143,7 @@ function Reading({ title, line, onBack }: { title: string; line: string | null; 
           <View style={[styles.bar, styles.barCa]} />
         </Breathing>
         <View style={styles.report}>
-          <SniffReport state={{ status: "reading", title, line }} onRetry={() => {}} />
+          <SniffReport state={{ status: "reading", title, line }} />
         </View>
       </ScrollView>
       <Dock onHeight={setDockHeight}>
