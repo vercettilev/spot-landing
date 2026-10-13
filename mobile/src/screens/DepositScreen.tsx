@@ -211,7 +211,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
       {canTurn ? (
         <Group style={styles.more}>
           <Row
-            title="Send from an exchange or another wallet"
+            title="Send from an exchange or wallet"
             subtitle={showAddress ? "Your wallet's address, below" : "Your wallet's address and its code"}
             chevron
             onPress={() => setShowAddress((v) => !v)}
