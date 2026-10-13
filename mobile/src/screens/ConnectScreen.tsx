@@ -1,14 +1,14 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
-import { Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { fetchHoldings } from "../api";
 import { onCelebrate } from "../components/Moment";
-import { Button, Field, Section, Sheet, useRouteSheet, useToast } from "../components/ui";
+import { Button, Field, Section, Sheet, tap, useRouteSheet, useToast } from "../components/ui";
 import { primeHoldings } from "../holdings";
 import type { RootParams } from "../navigation";
 import { useStore } from "../store";
-import { color, font, leading, space, type } from "../theme";
+import { color, font, leading, size, space, type } from "../theme";
 import { isAddressLike } from "../wallet/base58";
 import { MWA_AVAILABLE, connectWallet, walletError } from "../wallet/mwa";
 import { CashPanel } from "./DepositScreen";
@@ -41,6 +41,8 @@ export function ConnectScreen({ navigation, route }: Props) {
   /* No wallet app on the phone: not an error to show in red, a thing to get. */
   const [missing, setMissing] = useState(false);
   const [input, setInput] = useState("");
+  /* Tracking an address is the side road: folded behind one line unless it is the only road (no wallet adapter here). */
+  const [tracking, setTracking] = useState(!MWA_AVAILABLE);
   const address = input.trim();
   const valid = isAddressLike(address);
 
@@ -134,9 +136,21 @@ export function ConnectScreen({ navigation, route }: Props) {
               </Text>
             ) : null}
 
-            {track || !MWA_AVAILABLE ? (
+            {(track || !MWA_AVAILABLE) && !tracking ? (
+              <Pressable
+                onPress={() => {
+                  tap();
+                  setTracking(true);
+                }}
+                style={styles.trackLink}
+                accessibilityRole="button"
+              >
+                <Text style={styles.trackLinkText}>Just track a wallet instead</Text>
+              </Pressable>
+            ) : null}
+            {(track || !MWA_AVAILABLE) && tracking ? (
               <>
-                <Section>Or just track a wallet</Section>
+                <Section>Track a wallet</Section>
                 <Text style={styles.line}>See any wallet's bag. You can't trade from it.</Text>
                 <Field
                   mono
@@ -175,5 +189,7 @@ const styles = StyleSheet.create({
   line: { fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
   input: { marginTop: space.x3 },
   row: { flexDirection: "row", gap: space.x2, marginTop: space.x3 },
+  trackLink: { alignSelf: "center", minHeight: size.tap, justifyContent: "center", marginTop: space.x3, paddingHorizontal: space.x4 },
+  trackLinkText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.orange },
   half: { flex: 1 },
 });
