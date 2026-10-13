@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionFor, ago, amount, cardLines, chipsFor, clampAmount, count, fitFigure, fromPaste, fromShare, momentLines, money, ordered, pct, price, readablePath, shareOf, shareText, sourceLine, usd, verdictLine, verdictWord } from "./logic";
+import { MAX_TRADE, actionFor, ago, amount, approx, cardLines, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -213,5 +213,133 @@ describe("the card people post", () => {
     expect(fitFigure("+49.6%", 436)).toBe(119);
     expect(fitFigure("+1,234.5%", 436)).toBe(85);
     expect(fitFigure("", 436)).toBe(132);
+  });
+});
+
+describe("the stamp and the line under it", () => {
+  it("does not say GRRR twice", () => {
+    expect(verdictHead("warn", "GRRR. Risky. Ape $50 max.")).toBe("Risky. Ape $50 max.");
+    expect(verdictHead("warn", "GRRR.")).toBe("GRRR.");
+    expect(verdictHead("ok", "Blue chip. Nothing smells off.")).toBe("Blue chip. Nothing smells off.");
+    expect(verdictHead("block", "Honeypot. Spot won't buy it.")).toBe("Honeypot. Spot won't buy it.");
+  });
+});
+
+describe("the dock", () => {
+  const base: DockState = {
+    side: "buy",
+    sniff: "ok",
+    amount: 25,
+    wallet: "mwa",
+    cash: 120,
+    solCovers: false,
+    restricted: false,
+    busy: false,
+    checking: null,
+    held: null,
+    sellPct: 50,
+  };
+
+  it("locks the key while a trade may still land, whatever else is true", () => {
+    expect(dockKey({ ...base, checking: { landed: false, seconds: 73 } })).toEqual({ label: "Checking… 73s", enabled: false, tone: "wait" });
+    expect(dockKey({ ...base, side: "sell", held: 31.2, checking: { landed: true, seconds: 4 } })).toEqual({ label: "Updating your bag…", enabled: false, tone: "wait" });
+    expect(dockKey({ ...base, sniff: "warn", cash: 0, checking: { landed: false, seconds: 9 } }).enabled).toBe(false);
+    expect(dockNote({ ...base, checking: { landed: false, seconds: 73 } })).toBe("Making sure it landed. You can leave, Spot will tell you.");
+  });
+
+  it("apes in dollars, growls, and never offers a buy Spot blocks", () => {
+    expect(dockKey(base)).toEqual({ label: "Ape $25", enabled: true, tone: "buy" });
+    expect(dockKey({ ...base, sniff: "warn", amount: 18 })).toEqual({ label: "GRRR. Ape $18", enabled: true, tone: "growl" });
+    expect(dockKey({ ...base, sniff: "block" })).toMatchObject({ label: "Spot won't buy this", enabled: false });
+    expect(dockKey({ ...base, sniff: "block", cash: 0 })).toMatchObject({ enabled: false });
+    expect(dockKey({ ...base, sniff: "loading" })).toMatchObject({ label: "Sniffing…", enabled: false });
+    expect(dockKey({ ...base, sniff: "error" })).toMatchObject({ label: "Sniff again", enabled: true });
+    expect(dockKey({ ...base, busy: true })).toMatchObject({ label: "Aping…", enabled: false });
+  });
+
+  it("asks for cash when the dollars are short, and says how to get them", () => {
+    expect(needsCash({ ...base, cash: 3 })).toBe(true);
+    expect(dockKey({ ...base, cash: 3 })).toEqual({ label: "Add cash", enabled: true, tone: "go" });
+    expect(dockNote({ ...base, cash: 3 })).toBe("Only $3.00 in USDC. Add cash, then ape.");
+    expect(dockNote({ ...base, cash: 3, solCovers: true })).toBe("Only $3.00 in USDC. Turn some SOL into cash first.");
+    expect(needsCash({ ...base, cash: null })).toBe(false);
+    expect(needsCash({ ...base, cash: 3, wallet: "watch" })).toBe(false);
+    expect(needsCash({ ...base, cash: 3, sniff: "block" })).toBe(false);
+  });
+
+  it("keeps a coin the issuer won't sell in the US away from US users", () => {
+    expect(dockKey({ ...base, restricted: true })).toEqual({ label: "Not for US users", enabled: false, tone: "stop" });
+    expect(dockKey({ ...base, restricted: true, cash: 3 }).enabled).toBe(false);
+    expect(dockNote({ ...base, restricted: true })).toBe("Coins like this aren't sold to people in the US.");
+  });
+
+  it("waits for an amount while the keypad is empty, and still locks while a trade may land", () => {
+    expect(dockKey({ ...base, empty: true })).toEqual({ label: "Type an amount", enabled: false, tone: "stop" });
+    expect(dockKey({ ...base, side: "sell", held: 31.2, empty: true })).toEqual({ label: "Type an amount", enabled: false, tone: "stop" });
+    expect(dockKey({ ...base, empty: true, checking: { landed: false, seconds: 12 } }).label).toBe("Checking… 12s");
+  });
+
+  it("sells a share for what it is worth", () => {
+    const sell = { ...base, side: "sell" as const, held: 31.2 };
+    expect(dockKey(sell)).toEqual({ label: "Sell 50% for ~$16", enabled: true, tone: "sell" });
+    expect(dockKey({ ...sell, sellPct: 100 }).label).toBe("Sell all for ~$31");
+    expect(dockKey({ ...sell, sellPct: 48.4 }).label).toBe("Sell 48.4% for ~$15");
+    expect(dockKey({ ...sell, held: 0.84, sellPct: 50 }).label).toBe("Sell 50% for ~$0.42");
+    expect(dockKey({ ...sell, held: null })).toMatchObject({ enabled: false });
+    expect(dockKey({ ...sell, busy: true })).toMatchObject({ label: "Selling…", enabled: false });
+    expect(dockNote(sell)).toBe("Sells into USDC. Your wallet approves every trade.");
+    expect(dockNote({ ...sell, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to sell.");
+  });
+
+  it("says what the cash is, or what to do first", () => {
+    expect(dockNote(base)).toBe("$120.00 ready to ape. Your wallet approves every trade.");
+    expect(dockNote({ ...base, cash: null })).toBe("Your wallet approves every trade.");
+    expect(dockNote({ ...base, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to ape.");
+    expect(dockNote({ ...base, wallet: "none", cash: null })).toBe("Free sniff. Connect a wallet to ape.");
+    expect(dockNote({ ...base, sniff: "loading" })).toBe("Checking it for scams…");
+    expect(dockNote({ ...base, sniff: "block" })).toBe("Share another post to sniff something else.");
+  });
+});
+
+describe("the keypad", () => {
+  it("types dollars, no leading zeros, nothing past the most allowed", () => {
+    expect(typeDigit("", "4", 10_000)).toEqual({ next: "4", over: false });
+    expect(typeDigit("4", "0", 10_000)).toEqual({ next: "40", over: false });
+    expect(typeDigit("", "0", 10_000)).toEqual({ next: "", over: false });
+    expect(typeDigit("5", "1", 50)).toEqual({ next: "5", over: true });
+    expect(typeDigit("1000", "0", 10_000)).toEqual({ next: "10000", over: false });
+    expect(typeDigit("10000", "0", 10_000)).toEqual({ next: "10000", over: true });
+  });
+
+  it("offers a most that makes sense: the cash, under the cap and the server's limit", () => {
+    expect(maxApe(120.5, null)).toBe(120);
+    expect(maxApe(120.5, 50)).toBe(50);
+    expect(maxApe(25_000, null)).toBe(MAX_TRADE);
+    expect(maxApe(0.4, 50)).toBe(50);
+    expect(maxApe(null, null)).toBeNull();
+    expect(maxApe(0.4, null)).toBeNull();
+  });
+
+  it("says the cap, the cash, or what a sell amount is of the bag", () => {
+    const buy = { side: "buy" as const, typed: 40, over: false, cap: null, cash: 120 };
+    expect(padHint({ ...buy, held: null })).toBe("$120.00 ready to ape.");
+    expect(padHint({ ...buy, typed: 200, held: null })).toBe("More than your $120.00. Add cash first.");
+    expect(padHint({ ...buy, cap: 50, held: null })).toBe("Spot caps this one at $50.");
+    expect(padHint({ ...buy, over: true, held: null })).toBe("Up to $10,000 a trade.");
+    expect(padHint({ ...buy, over: true, cap: 50, held: null })).toBe("Spot caps this one at $50.");
+    expect(padHint({ ...buy, cash: null, held: null })).toBe("");
+    const sell = { side: "sell" as const, over: false, cap: null, cash: null, held: 31.2 };
+    expect(padHint({ ...sell, typed: null })).toBe("You hold $31.20.");
+    expect(padHint({ ...sell, typed: 15 })).toBe("48.1% of your $31.20.");
+    expect(padHint({ ...sell, typed: 31 })).toBe("99.4% of your $31.20.");
+    expect(padHint({ ...sell, typed: 40, over: true })).toBe("You hold $31.20.");
+    expect(shareFor(31.2, 31.2)).toBe(100);
+    expect(shareFor(0.01, 31.2)).toBe(0.1);
+    expect(shareFor(5, 0)).toBe(0);
+    expect(shareWord(50)).toBe("50%");
+    expect(shareWord(100)).toBe("all");
+    expect(holding(31.2)).toBe("You hold $31.20");
+    expect(approx(15.4)).toBe("~$15");
+    expect(approx(0.42)).toBe("~$0.42");
   });
 });

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
-import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { errorLine, type ApiError } from "../api";
-import { ordered, verdictLine } from "../logic";
-import { color, font, shadow, stamp } from "../theme";
+import { ordered, verdictHead, verdictLine } from "../logic";
+import { color, font, leading, motion, radius, shadow, size, space, stamp, tracking, type } from "../theme";
 import type { Sniff } from "../types";
-import { Answer, Breathing, feel } from "./ui";
+import { Answer, Breathing, feel, useReducedMotion } from "./ui";
 
 export type SniffState = { status: "loading" } | { status: "done"; sniff: Sniff } | { status: "error"; error: ApiError };
 
@@ -12,49 +12,45 @@ const WAITING = ["Honeypot?", "Dev can freeze it?", "Dev can print more?", "Enou
 const MAX_ROWS = 12;
 const STAMP = { ok: "CLEAN", warn: "GRRR", block: "NOPE" } as const;
 const FEEL = { ok: "success", warn: "warning", block: "error" } as const;
+const native = Platform.OS !== "web";
 
 /**
  * THE RECEIPT, as on the landing: a white report turned a hair off square.
- * The verdict comes first with one line on what it means for the bag; the
- * questions under it are the proof. This is the app's one orchestrated
- * moment: when the answer lands, the checks tick in one after another, the
- * stamp comes down (CLEAN, GRRR or NOPE) and the phone feels which one it
- * was. Reduced motion skips straight to the result.
+ * The stamp comes first, where the eye lands: CLEAN, GRRR or NOPE, then one
+ * line on what it means for the bag, and the questions under it are the
+ * proof. While the sniff runs, the stamp's place waits empty, so nothing
+ * jumps when the answer lands. This is the app's one orchestrated moment:
+ * the checks tick in one after another, the stamp comes down and the phone
+ * feels which one it was. Reduced motion skips straight to the result.
  */
 export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: () => void }) {
   const rows = useRef(Array.from({ length: MAX_ROWS }, () => new Animated.Value(0))).current;
   const thump = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
   const done = state.status === "done" ? state.sniff : null;
   const key = done ? `${done.mint}:${done.checkedAt}` : null;
 
   useEffect(() => {
     if (!done) return;
     let cancelled = false;
-    const native = Platform.OS !== "web";
     const count = Math.min(done.checks.length, MAX_ROWS);
     const verdict = done.level === "unknown" ? null : done.level;
     rows.forEach((v) => v.setValue(0));
     thump.setValue(0);
-    const land = () => {
+    if (reduced) {
+      rows.forEach((v) => v.setValue(1));
+      thump.setValue(1);
+      if (verdict) feel(FEEL[verdict]);
+      return;
+    }
+    Animated.stagger(
+      motion.stagger,
+      rows.slice(0, count).map((v) => Animated.timing(v, { toValue: 1, duration: motion.tick, useNativeDriver: native })),
+    ).start(() => {
       if (cancelled || !verdict) return;
       feel(FEEL[verdict]);
-      Animated.spring(thump, { toValue: 1, friction: 6, tension: 170, useNativeDriver: native }).start();
-    };
-    AccessibilityInfo.isReduceMotionEnabled()
-      .catch(() => false)
-      .then((reduce) => {
-        if (cancelled) return;
-        if (reduce) {
-          rows.forEach((v) => v.setValue(1));
-          thump.setValue(1);
-          if (verdict) feel(FEEL[verdict]);
-          return;
-        }
-        Animated.stagger(
-          70,
-          rows.slice(0, count).map((v) => Animated.timing(v, { toValue: 1, duration: 220, useNativeDriver: native })),
-        ).start(land);
-      });
+      Animated.spring(thump, { toValue: 1, ...motion.thump, useNativeDriver: native }).start();
+    });
     return () => {
       cancelled = true;
     };
@@ -62,8 +58,9 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
   }, [key]);
 
   const time = done ? new Date(done.checkedAt) : null;
+  const verdict = done && done.level !== "unknown" ? done.level : null;
   return (
-    <View style={[styles.paper, done && done.level !== "unknown" && styles.stamped]} accessibilityLabel="Sniff report">
+    <View style={styles.paper} accessibilityLabel="Sniff report">
       <View style={styles.head}>
         <Text style={styles.kicker}>Sniff report</Text>
         <Text style={styles.kicker}>
@@ -73,6 +70,9 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
 
       {state.status === "loading" && (
         <>
+          <Breathing style={styles.slot}>
+            <View style={styles.slotEmpty} />
+          </Breathing>
           <Breathing style={styles.verdict}>
             <Text style={styles.headline}>Sniffing for scams…</Text>
             <Text style={styles.line}>Can you sell it? Can the dev freeze it? A few seconds.</Text>
@@ -98,8 +98,24 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
 
       {done && (
         <>
-          <View style={styles.verdict}>
-            <Text style={styles.headline}>{done.headline}</Text>
+          {verdict ? (
+            <View style={styles.slot} accessible accessibilityLabel={`Verdict: ${STAMP[verdict]}`}>
+              <Animated.Text
+                style={[
+                  styles.stamp,
+                  { color: stamp[verdict], borderColor: stamp[verdict] },
+                  {
+                    opacity: thump.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0, 1, 1] }),
+                    transform: [{ rotate: "-7deg" }, { scale: thump.interpolate({ inputRange: [0, 1], outputRange: [1.9, 1] }) }],
+                  },
+                ]}
+              >
+                {STAMP[verdict]}
+              </Animated.Text>
+            </View>
+          ) : null}
+          <View style={[styles.verdict, !verdict && styles.verdictBare]}>
+            <Text style={styles.headline}>{verdictHead(done.level, done.headline)}</Text>
             <Text style={styles.line}>{verdictLine(done)}</Text>
           </View>
           {ordered(done.checks).map((c, i) => {
@@ -107,7 +123,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
             return (
               <Animated.View
                 key={c.id}
-                style={[styles.row, { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }]}
+                style={[styles.row, { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [space.x2, 0] }) }] }]}
               >
                 <View style={styles.labelCol}>
                   <Text style={styles.label}>{c.label}</Text>
@@ -124,20 +140,6 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
           ) : done.level === "ok" ? (
             <Text style={styles.trip}>Blue chip. No test trade needed.</Text>
           ) : null}
-          {done.level !== "unknown" && (
-            <Animated.Text
-              style={[
-                styles.stamp,
-                { color: stamp[done.level], borderColor: stamp[done.level] },
-                {
-                  opacity: thump.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0, 1, 1] }),
-                  transform: [{ rotate: "-13deg" }, { scale: thump.interpolate({ inputRange: [0, 1], outputRange: [1.9, 1] }) }],
-                },
-              ]}
-            >
-              {STAMP[done.level]}
-            </Animated.Text>
-          )}
         </>
       )}
     </View>
@@ -147,51 +149,64 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
 /* $25 or $24.95: whole dollars stay whole. */
 const money = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 
+/* The stamp's box: its word set in the stamp's size, padded, inside a 3-point border. */
+const STAMP_BORDER = 3;
+const SLOT = { width: 132, height: leading.stamp + 2 * space.hair + 2 * STAMP_BORDER };
+
 const styles = StyleSheet.create({
   paper: {
     backgroundColor: color.white,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 18,
+    borderRadius: radius.paper,
+    paddingHorizontal: space.x5,
+    paddingTop: space.x5,
+    paddingBottom: space.x5,
     transform: [{ rotate: "-0.8deg" }],
     boxShadow: shadow.paper,
   },
-  stamped: { paddingBottom: 40 },
   head: { flexDirection: "row", justifyContent: "space-between" },
-  kicker: { fontFamily: font.mono, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase", color: color.paperDim },
-  verdict: { marginTop: 10, paddingBottom: 16, borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: color.paperRule },
-  headline: { fontFamily: font.display, fontSize: 25, lineHeight: 29, letterSpacing: -0.4, color: color.ink },
-  line: { marginTop: 6, fontFamily: font.body, fontSize: 15, lineHeight: 21, color: color.paperDim },
+  kicker: { fontFamily: font.mono, fontSize: type.micro, letterSpacing: tracking.kicker, textTransform: "uppercase", color: color.paperDim },
+  slot: { height: SLOT.height, marginTop: space.x4, justifyContent: "center", alignItems: "flex-start" },
+  slotEmpty: {
+    width: SLOT.width,
+    height: SLOT.height,
+    borderRadius: radius.paper,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: color.paperRule,
+    transform: [{ rotate: "-7deg" }],
+  },
+  stamp: {
+    paddingHorizontal: space.x3,
+    paddingVertical: space.hair,
+    borderWidth: STAMP_BORDER,
+    borderRadius: radius.paper,
+    fontFamily: font.display,
+    fontSize: type.stamp,
+    lineHeight: leading.stamp,
+    letterSpacing: tracking.stamp,
+    backgroundColor: color.stampGround,
+    overflow: "hidden",
+  },
+  verdict: { marginTop: space.x3, paddingBottom: space.x4, borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: color.paperRule },
+  verdictBare: { marginTop: space.x3 },
+  headline: { fontFamily: font.display, fontSize: type.headline, lineHeight: leading.headline, letterSpacing: tracking.headline, color: color.ink },
+  line: { marginTop: space.x2, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.paperDim },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
+    gap: space.x3,
+    paddingVertical: space.x3,
+    borderBottomWidth: size.hairline,
     borderColor: color.paperHair,
   },
   labelCol: { flex: 1 },
-  label: { fontFamily: font.bodySemi, fontSize: 16, color: color.paperInk },
-  note: { marginTop: 3, fontFamily: font.body, fontSize: 13.5, lineHeight: 18, color: color.paperDim },
-  pending: { width: 54, height: 26, borderRadius: 999, backgroundColor: color.paperWell },
-  trip: { marginTop: 14, fontFamily: font.mono, fontSize: 13, color: color.paperDim },
-  stamp: {
-    position: "absolute",
-    right: -4,
-    bottom: -16,
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-    borderWidth: 3,
-    borderRadius: 8,
-    fontFamily: font.display,
-    fontSize: 30,
-    letterSpacing: 1.5,
-    backgroundColor: color.stampGround,
-  },
-  errorHead: { marginTop: 10 },
-  errorText: { marginTop: 10, fontFamily: font.body, fontSize: 15, lineHeight: 21, color: color.paperDim },
-  retry: { alignSelf: "flex-start", marginTop: 14, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: color.ink },
-  retryText: { fontFamily: font.bodyBold, fontSize: 15, color: color.white },
+  label: { fontFamily: font.bodySemi, fontSize: type.body, color: color.paperInk },
+  note: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.paperDim },
+  pending: { width: space.x14, height: space.x7, borderRadius: radius.pill, backgroundColor: color.paperWell },
+  trip: { marginTop: space.x4, fontFamily: font.mono, fontSize: type.footnote, color: color.paperDim },
+  errorHead: { marginTop: space.x3 },
+  errorText: { marginTop: space.x3, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.paperDim },
+  retry: { alignSelf: "flex-start", marginTop: space.x4, minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink },
+  retryText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.white },
 });

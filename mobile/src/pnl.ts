@@ -132,3 +132,6 @@ export function tradeLine(t: Trade): string {
   const cash = `${q}${money(t.usdc)}`;
   return t.side === "buy" ? `${cash} → ${coins}` : `${coins} → ${cash}`;
 }
+
+/** "+$0.40 (+4.0%) since you aped", under a coin the bag holds. */
+export const sinceAped = (s: { usd: number; pct: number | null }): string => `${sinceLine(s)} since you aped`;

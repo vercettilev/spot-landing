@@ -63,6 +63,8 @@ export const type = {
   title: 40,
   /** A coin's symbol, a status screen's title. */
   display: 32,
+  /** The stamp's word on the receipt. */
+  stamp: 30,
   /** The keypad's digits. */
   pad: 28,
   /** The receipt's verdict, an empty state's title, a sheet's title. */
@@ -85,6 +87,7 @@ export const leading = {
   hero: 52,
   title: 44,
   display: 36,
+  stamp: 36,
   pad: 34,
   headline: 29,
   key: 24,
@@ -191,6 +194,9 @@ export const motion = {
   fadeOut: 140,
   press: 100,
   toggle: 160,
+  /** The receipt's answers ticking in, one after another. */
+  tick: 220,
+  stagger: 70,
   toastIn: 180,
   toastOut: 220,
   /** How long a toast stays up. */

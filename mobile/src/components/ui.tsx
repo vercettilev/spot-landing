@@ -911,6 +911,7 @@ const GLYPHS = {
   delete: "M10 5h10a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H10l-7-7 7-7zM17 9.5l-5 5M12 9.5l5 5",
   chevron: "M9 6l6 6-6 6",
   out: "M8 16L16 8M9.5 8H16v6.5",
+  check: "M5 12.5l4.5 4.5L19 7.5",
   copy: "M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zM5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5",
 } as const;
 
@@ -927,6 +928,21 @@ export const Chevron = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.chevron
 export const OutIcon = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.out} size={18} tint={tint} />;
 
 export const CopyIcon = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.copy} size={16} tint={tint} />;
+
+/** The orange check after a verified coin's symbol. */
+export function Verified({ size: s = size.glyph }: { size?: number }) {
+  return (
+    <View style={[verified.disc, { width: s, height: s, borderRadius: s / 2 }]} accessible accessibilityLabel="Verified">
+      <Svg width={s * 0.66} height={s * 0.66} viewBox="0 0 24 24" fill="none" stroke={color.ink} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round">
+        <Path d={GLYPHS.check} />
+      </Svg>
+    </View>
+  );
+}
+
+const verified = StyleSheet.create({
+  disc: { backgroundColor: color.orange, alignItems: "center", justifyContent: "center" },
+});
 
 /** The bell on a coin: outlined when Spot isn't watching it, filled orange when it is. */
 export function Bell({ on }: { on: boolean }) {

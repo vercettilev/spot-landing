@@ -27,7 +27,8 @@ import type { Candidate, Share, Source } from "./types";
 export type RootParams = {
   Tabs: undefined;
   Resolve: { share: Share };
-  Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[] };
+  /** `side: "sell"` opens on the Sell side, as from the bag. */
+  Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[]; side?: "buy" | "sell" };
   Choose: { title: string; line: string; candidates: Candidate[]; source: Source | null; share: Share | null; current?: Candidate };
   Deposit: undefined;
   Connect: undefined;
