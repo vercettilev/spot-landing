@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, plainShortFill, proofOf, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, proofOf, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -436,5 +436,25 @@ describe("Me's proof", () => {
     expect(proofOf({ sniffed: 0, dodged: 0, apes: 0 })).toEqual({ n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false });
     expect(proofOf({ sniffed: 1, dodged: 0, apes: 1 })).toEqual({ n: 1, label: "coin sniffed", line: "No scams among them so far. 1 aped.", hot: false });
     expect(proofOf({ sniffed: 3, dodged: 1, apes: 2 })).toEqual({ n: 1, label: "scam dodged", line: "Out of 3 coins sniffed. 2 aped.", hot: true });
+  });
+});
+
+describe("the receipt, shortened", () => {
+  const ck = (id: Check["id"], status: Check["status"] = "good"): Check => ({ id, label: id, answer: "", status, blocks: false, note: null, observed: null, threshold: null });
+  it("shows the four questions and every check that isn't clean, folds the rest", () => {
+    const clean = foldChecks([ck("age"), ck("liquidity"), ck("holders"), ck("mint"), ck("freeze"), ck("honeypot")]);
+    expect(clean.shown.map((c) => c.id)).toEqual(["honeypot", "freeze", "mint", "holders"]);
+    expect(clean.folded.map((c) => c.id)).toEqual(["liquidity", "age"]);
+    const risky = foldChecks([ck("age", "warn"), ck("liquidity"), ck("holders"), ck("mint", "warn"), ck("freeze"), ck("honeypot")]);
+    expect(risky.shown.map((c) => c.id)).toEqual(["honeypot", "freeze", "mint", "holders", "age"]);
+    expect(risky.folded.map((c) => c.id)).toEqual(["liquidity"]);
+    expect(moreChecks(2)).toBe("2 more checks, all clear");
+    expect(moreChecks(1)).toBe("1 more check, all clear");
+  });
+
+  it("puts a coin's size beside its name", () => {
+    expect(coinLine({ name: "dogwifhat", kind: "coin", mcapUsd: 207_100_000 })).toBe("dogwifhat, $207.1M cap");
+    expect(coinLine({ name: "New coin", kind: "coin", mcapUsd: null })).toBe("New coin");
+    expect(coinLine({ name: "Tesla xStock", kind: "stock", mcapUsd: 48_000_000 })).toBe("Tesla xStock, a stock coin");
   });
 });

@@ -13,6 +13,7 @@ import {
   MAX_TRADE,
   chipsFor,
   clampAmount,
+  coinLine,
   dockKey,
   dockNote,
   holding,
@@ -433,7 +434,7 @@ export function CoinScreen({ navigation, route }: Props) {
               {coin.verified && done?.level !== "warn" && done?.level !== "block" && <Verified />}
             </View>
             <Text style={styles.name} numberOfLines={1}>
-              {coin.kind === "stock" ? `${coin.name}, a stock coin` : coin.name}
+              {coinLine(coin)}
             </Text>
           </View>
           <View style={styles.priceCol}>
@@ -442,7 +443,6 @@ export function CoinScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {coin.mcapUsd !== null && <Text style={styles.stats}>{usd(coin.mcapUsd)} market cap</Text>}
         {/* The address is the one thing a lookalike cannot copy: shown, copied in a tap, and checked on Solscan. */}
         <View style={styles.caRow}>
           <Pressable onPress={() => void copyCa()} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
@@ -626,8 +626,7 @@ const styles = StyleSheet.create({
   priceCol: { alignItems: "flex-end" },
   price: { fontFamily: font.displayBold, fontSize: type.lead, color: color.white },
   change: { marginTop: space.hair, fontFamily: font.bodyBold, fontSize: type.caption },
-  stats: { marginTop: space.x3, fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
-  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space.x2 },
   ca: { flexDirection: "row", alignItems: "center", gap: space.x2, minHeight: size.tap },
   caLabel: { fontFamily: font.bodyBold, fontSize: type.footnote, color: color.faint },
   caText: { fontFamily: font.mono, fontSize: type.footnote, color: color.dim },

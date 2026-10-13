@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { errorLine, type ApiError } from "../api";
-import { ordered, verdictHead, verdictLine } from "../logic";
+import { foldChecks, moreChecks, ordered, verdictHead, verdictLine } from "../logic";
 import { color, font, leading, motion, radius, shadow, size, space, stamp, tracking, type } from "../theme";
 import type { Sniff } from "../types";
-import { Answer, Breathing, feel, useReducedMotion } from "./ui";
+import { Answer, Breathing, Chevron, feel, tap, useReducedMotion } from "./ui";
 
 export type SniffState =
   | { status: "reading"; title: string; line: string | null }
@@ -35,11 +35,16 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
   const reduced = useReducedMotion();
   const done = state.status === "done" ? state.sniff : null;
   const key = done ? `${done.mint}:${done.checkedAt}` : null;
+  /* The clean checks past the landing's four, folded until asked for. */
+  const [open, setOpen] = useState(false);
+  const fold = done ? foldChecks(done.checks) : null;
 
   useEffect(() => {
     if (!done) return;
     let cancelled = false;
-    const count = Math.min(done.checks.length, MAX_ROWS);
+    setOpen(false);
+    /* The stamp lands right after the last row that shows. */
+    const count = Math.min(foldChecks(done.checks).shown.length, MAX_ROWS);
     const verdict = done.level === "unknown" ? null : done.level;
     rows.forEach((v) => v.setValue(0));
     thump.setValue(0);
@@ -140,7 +145,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
             <Text style={styles.headline}>{verdictHead(done.level, done.headline)}</Text>
             <Text style={styles.line}>{verdictLine(done)}</Text>
           </View>
-          {ordered(done.checks).map((c, i) => {
+          {(open ? ordered(done.checks) : (fold?.shown ?? [])).map((c, i) => {
             const v = rows[Math.min(i, MAX_ROWS - 1)]!;
             return (
               <Animated.View
@@ -155,12 +160,32 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
               </Animated.View>
             );
           })}
+          {fold && fold.folded.length > 0 && !open ? (
+            <Pressable
+              onPress={() => {
+                tap();
+                setOpen(true);
+                /* Rows past the fold were never ticked in: they arrive now. */
+                rows.forEach((v) => Animated.timing(v, { toValue: 1, duration: motion.tick, useNativeDriver: native }).start());
+              }}
+              style={styles.more}
+              accessibilityRole="button"
+              accessibilityLabel={`${moreChecks(fold.folded.length)}. Show them`}
+            >
+              <Text style={styles.moreText}>{moreChecks(fold.folded.length)}</Text>
+              <View style={styles.moreShow}>
+                <Text style={styles.moreShowText}>Show</Text>
+                <View style={styles.down}>
+                  <Chevron tint={color.paperDim} />
+                </View>
+              </View>
+            </Pressable>
+          ) : null}
+          {/* Only a test trade that ran is worth a line: "no test trade needed" asked readers whether they should run one. */}
           {done.roundTrip ? (
             <Text style={styles.trip}>
               Test trade: ${money(done.roundTrip.inUsdc)} in, ${money(done.roundTrip.outUsdc)} back
             </Text>
-          ) : done.level === "ok" ? (
-            <Text style={styles.trip}>Blue chip. No test trade needed.</Text>
           ) : null}
         </>
       )}
@@ -228,6 +253,11 @@ const styles = StyleSheet.create({
   label: { fontFamily: font.bodySemi, fontSize: type.body, color: color.paperInk },
   note: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.paperDim },
   pending: { width: space.x14, height: space.x7, borderRadius: radius.pill, backgroundColor: color.paperWell },
+  more: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: size.tap, borderBottomWidth: size.hairline, borderColor: color.paperHair },
+  moreText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.paperDim },
+  moreShow: { flexDirection: "row", alignItems: "center", gap: space.x1 },
+  moreShowText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.paperInk },
+  down: { transform: [{ rotate: "90deg" }] },
   trip: { marginTop: space.x4, fontFamily: font.mono, fontSize: type.footnote, color: color.paperDim },
   errorHead: { marginTop: space.x3 },
   errorText: { marginTop: space.x3, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.paperDim },

@@ -117,6 +117,30 @@ export function fitFigure(figure: string, width: number, max = 132, letterSpacin
   return Math.max(40, Math.min(max, Math.floor((width - letterSpacing * (figure.length - 1)) / ems)));
 }
 
+/** The questions every receipt shows: the landing's four. */
+const CORE: CheckId[] = ["honeypot", "freeze", "mint", "holders"];
+
+/**
+ * THE RECEIPT, SHORTENED: the landing's four questions and anything that
+ * isn't a clean "No" are always shown; the rest of what passed folds under
+ * one line, there to open. A clean coin reads in four ticks; a risky one
+ * shows its reasons, never hides them.
+ */
+export function foldChecks(checks: Check[]): { shown: Check[]; folded: Check[] } {
+  const all = ordered(checks);
+  const keep = (c: Check) => CORE.includes(c.id) || c.status !== "good";
+  return { shown: all.filter(keep), folded: all.filter((c) => !keep(c)) };
+}
+
+/** The line a receipt's folded checks sit under. */
+export const moreChecks = (n: number): string => `${n} more check${n === 1 ? "" : "s"}, all clear`;
+
+/** Under a coin's symbol: its name, and its size when it has one (a stock coin says it is one instead). */
+export function coinLine(t: { name: string; kind: string; mcapUsd: number | null }): string {
+  if (t.kind === "stock") return `${t.name}, a stock coin`;
+  return t.mcapUsd !== null ? `${t.name}, ${usd(t.mcapUsd)} cap` : t.name;
+}
+
 /** The landing's four questions first, in its order, then what else the sniff found. */
 const ORDER: CheckId[] = ["route", "honeypot", "freeze", "mint", "holders", "delegate", "liquidity", "age", "tax", "hook", "flagged"];
 
