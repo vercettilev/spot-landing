@@ -30,8 +30,10 @@ export type RootParams = {
   /** `side: "sell"` opens on the Sell side, as from the bag; `continues` fades it in over the reading screen it replaces. */
   Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[]; side?: "buy" | "sell"; continues?: boolean };
   Choose: { title: string; line: string; candidates: Candidate[]; source: Source | null; share: Share | null; current?: Candidate; continues?: boolean };
-  Deposit: undefined;
-  Connect: undefined;
+  /** `need`: the ape it is for, so the swap that covers it is picked already. */
+  Deposit: { need?: number } | undefined;
+  /** `ape`: connecting to ape this much, so a short wallet goes straight on to Add cash; `track`: offer to track an address too. */
+  Connect: { ape?: number; track?: boolean } | undefined;
 };
 
 export type TabParams = { Sniff: undefined; Bag: undefined; Alerts: undefined; Me: undefined };
@@ -40,6 +42,8 @@ export const navRef = createNavigationContainerRef<RootParams>();
 
 const Stack = createNativeStackNavigator<RootParams>();
 const Tab = createBottomTabNavigator<TabParams>();
+
+const SHEET = { presentation: "transparentModal", animation: "none", contentStyle: { backgroundColor: "transparent" } } as const;
 
 const THEME: Theme = {
   ...DarkTheme,
@@ -109,8 +113,9 @@ export function Navigation() {
         <Stack.Screen name="Resolve" component={ResolveScreen} options={{ animation: "fade" }} />
         <Stack.Screen name="Coin" component={CoinScreen} options={({ route }) => ({ animation: route.params.continues ? "fade" : "slide_from_right" })} />
         <Stack.Screen name="Choose" component={ChooseScreen} options={({ route }) => ({ animation: route.params.continues ? "fade" : "slide_from_right" })} />
-        <Stack.Screen name="Deposit" component={DepositScreen} options={{ presentation: "modal", animation: "slide_from_bottom" }} />
-        <Stack.Screen name="Connect" component={ConnectScreen} options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+        {/* Sheets: the screen they belong to stays in view behind them, and they bring their own motion. */}
+        <Stack.Screen name="Deposit" component={DepositScreen} options={SHEET} />
+        <Stack.Screen name="Connect" component={ConnectScreen} options={SHEET} />
       </Stack.Navigator>
     </NavigationContainer>
   );

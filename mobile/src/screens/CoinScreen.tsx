@@ -246,11 +246,25 @@ export function CoinScreen({ navigation, route }: Props) {
     else setSellCustom(v);
   }
 
+  /* Connecting or adding cash rises as a sheet over the coin, told what the
+     ape is for; everything else is the trade. */
+  function act() {
+    if (buying && !wallet && canPickAmount) {
+      navigation.navigate("Connect", { ape: amount });
+      return;
+    }
+    if (needsCash) {
+      navigation.navigate("Deposit", { need: amount });
+      return;
+    }
+    void trade();
+  }
+
   /* The keypad's key does what the dock's does, once the sheet is down. */
   function padGo() {
     padRef.current?.close(() => {
       setPad(false);
-      void trade();
+      act();
     });
   }
 
@@ -565,7 +579,7 @@ export function CoinScreen({ navigation, route }: Props) {
                   ) : null}
                 </View>
               )}
-              <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={() => void trade()} />
+              <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
               <Text style={styles.note}>{note}</Text>
             </>
           )}

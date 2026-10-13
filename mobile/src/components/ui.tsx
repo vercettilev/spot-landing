@@ -773,7 +773,8 @@ export const Sheet = forwardRef<
         }}
         style={[
           sheet.panel,
-          { maxHeight: screen - insets.top - space.x6, paddingBottom: insets.bottom + space.x4 },
+          /* A finger's width of the screen behind stays in view, to see what the sheet belongs to and to tap away. */
+          { maxHeight: screen - insets.top - size.tap, paddingBottom: insets.bottom + space.x4 },
           reduced ? { opacity: shown } : { transform: [{ translateY: y }] },
         ]}
       >
@@ -793,6 +794,39 @@ export const Sheet = forwardRef<
     </View>
   );
 });
+
+/**
+ * A sheet that is a screen of its own (Connect, Add cash): presented as a
+ * transparent modal over the screen it belongs to. Every way out goes
+ * through the sheet's own exit first: back, the scrim, the close button,
+ * and the screen's code leaving or replacing it.
+ */
+type NavAction = Readonly<{ type: string }>;
+
+export function useRouteSheet(navigation: {
+  addListener: (type: "beforeRemove", cb: (e: { preventDefault: () => void; data: { action: NavAction } }) => void) => () => void;
+  dispatch: (action: NavAction) => void;
+  goBack: () => void;
+}) {
+  const ref = useRef<SheetHandle>(null);
+  const leaving = useRef(false);
+  useEffect(
+    () =>
+      navigation.addListener("beforeRemove", (e) => {
+        if (leaving.current) return;
+        e.preventDefault();
+        leaving.current = true;
+        if (ref.current) ref.current.close(() => navigation.dispatch(e.data.action));
+        else navigation.dispatch(e.data.action);
+      }),
+    [navigation],
+  );
+  const onDismiss = () => {
+    leaving.current = true;
+    navigation.goBack();
+  };
+  return { ref, onDismiss };
+}
 
 const sheet = StyleSheet.create({
   layer: { zIndex: layer.sheet, justifyContent: "flex-end" },

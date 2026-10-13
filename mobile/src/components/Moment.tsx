@@ -26,6 +26,12 @@ export function celebrate(m: MomentData): void {
   for (const fn of listeners) fn(m);
 }
 
+/** Hears every moment as it starts: a sheet waiting on cash closes when the cash lands. */
+export function onCelebrate(fn: (m: MomentData) => void): () => void {
+  listeners.add(fn);
+  return () => void listeners.delete(fn);
+}
+
 const native = Platform.OS !== "web";
 const SHOW_MS = { ape: 6_000, sell: 6_000, cash: 2_600 } as const;
 

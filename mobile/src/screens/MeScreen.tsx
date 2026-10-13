@@ -127,7 +127,7 @@ export function MeScreen({ navigation }: Props) {
             <View style={styles.connect}>
               <Text style={styles.connectTitle}>Ape in two taps from any post</Text>
               <Text style={styles.walletNote}>Connect the wallet on this phone. It approves every trade, and Spot never sees your keys.</Text>
-              <Button label="Connect wallet" onPress={() => navigation.navigate("Connect")} style={styles.connectButton} />
+              <Button label="Connect wallet" onPress={() => navigation.navigate("Connect", { track: true })} style={styles.connectButton} />
             </View>
           </Group>
         )}

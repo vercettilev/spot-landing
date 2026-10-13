@@ -36,7 +36,7 @@ export function BagScreen({ navigation }: Props) {
           <PuppyIcon size={72} />
           <Text style={styles.emptyTitle}>No bag yet.</Text>
           <Text style={styles.emptyLine}>Connect the wallet on this phone and your coins show up here, each one a tap from selling.</Text>
-          <Button label="Connect wallet" onPress={() => navigation.navigate("Connect")} style={styles.emptyButton} />
+          <Button label="Connect wallet" onPress={() => navigation.navigate("Connect", { track: true })} style={styles.emptyButton} />
         </View>
       </ScrollView>
     );

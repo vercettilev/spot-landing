@@ -454,3 +454,24 @@ export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: b
 
 /** What the wallet holds of a coin, over the dock. */
 export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`;
+
+/** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
+export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {
+  if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s`, enabled: false };
+  if (p.busy) return { label: "Turning…", enabled: false };
+  return { label: `Turn ${usd(p.chosen)} into cash`, enabled: p.chosen !== null };
+}
+
+/** The line at the top of Add cash: what there is now, when it is short of an ape. */
+export function cashLede(need: number | null, cash: number | null): string {
+  const base = "Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.";
+  return need !== null && cash !== null && cash < need ? `You have ${money(cash)} in USDC. ${base}` : base;
+}
+
+/** The swap that covers an ape: the smallest choice that does, or the most there is. */
+export function coverWith(choices: number[], need: number | null, cash: number | null): number | null {
+  if (!choices.length) return null;
+  if (need === null || cash === null) return choices[0]!;
+  const short = need - cash;
+  return choices.find((c) => c >= short) ?? choices[choices.length - 1]!;
+}

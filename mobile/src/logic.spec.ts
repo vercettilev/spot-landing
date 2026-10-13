@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, actionFor, ago, amount, approx, candidateLine, cardLines, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, actionFor, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -349,5 +349,28 @@ describe("which one?", () => {
     expect(candidateLine({ name: "Pepe", mcapUsd: 1_179_967, holders: 22_958 })).toBe("Pepe. $1.2M market cap, 23k holders");
     expect(candidateLine({ name: "pesos", mcapUsd: 9_096, holders: 2 })).toBe("pesos. $9.1k market cap, 2 holders");
     expect(candidateLine({ name: "New", mcapUsd: null, holders: null })).toBe("New");
+  });
+});
+
+describe("adding cash", () => {
+  it("locks the swap key while a swap may still land", () => {
+    expect(turnKey({ pending: { landed: false, seconds: 64 }, busy: false, chosen: 25 })).toEqual({ label: "Checking… 64s", enabled: false });
+    expect(turnKey({ pending: { landed: true, seconds: 3 }, busy: false, chosen: 25 })).toEqual({ label: "Updating your bag…", enabled: false });
+    expect(turnKey({ pending: null, busy: true, chosen: 25 })).toEqual({ label: "Turning…", enabled: false });
+    expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 into cash", enabled: true });
+  });
+
+  it("says what there is when it is short of an ape", () => {
+    expect(cashLede(25, 3)).toBe("You have $3.00 in USDC. Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.");
+    expect(cashLede(25, 40)).toBe("Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.");
+    expect(cashLede(null, 3)).toBe("Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.");
+  });
+
+  it("picks the swap that covers the ape", () => {
+    expect(coverWith([25, 50, 100], 25, 3)).toBe(25);
+    expect(coverWith([25, 50, 100], 80, 3)).toBe(100);
+    expect(coverWith([25, 50, 89], 500, 0)).toBe(89);
+    expect(coverWith([25, 50], null, null)).toBe(25);
+    expect(coverWith([], 25, 0)).toBeNull();
   });
 });
