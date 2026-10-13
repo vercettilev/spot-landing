@@ -177,13 +177,13 @@ describe("the moment after a trade", () => {
     expect(momentLines({ kind: "sell", symbol: "WIF", usdc: 37.4, amount: 100, gain: { usd: 12.4, pct: 49.6 } })).toEqual({
       head: "Sold.",
       big: "+$12.40 (+49.6%)",
-      small: "since you aped · 100 WIF → $37.40",
+      small: "since you aped\n100 WIF → $37.40",
       backdrop: "green",
     });
     expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31, gain: { usd: -0.07, pct: -0.7 } })).toEqual({
       head: "Sold.",
       big: "−$0.07 (−0.7%)",
-      small: "It happens. 75.31 ANSEM → $9.93",
+      small: "It happens.\n75.31 ANSEM → $9.93",
       backdrop: "orange",
     });
     expect(momentLines({ kind: "sell", symbol: "X", usdc: 5, amount: 1, gain: { usd: 2, pct: null } }).big).toBe("+$2.00");

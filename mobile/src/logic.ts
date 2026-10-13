@@ -70,8 +70,8 @@ export function momentLines(m: MomentData): MomentLines {
   if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", backdrop: "orange" };
   const figure = m.gain.pct === null ? signed(m.gain.usd) : `${signed(m.gain.usd)} (${pct(m.gain.pct)})`;
   return m.gain.usd >= 0
-    ? { head: "Sold.", big: figure, small: `since you aped · ${trade}`, backdrop: "green" }
-    : { head: "Sold.", big: figure, small: `It happens. ${trade}`, backdrop: "orange" };
+    ? { head: "Sold.", big: figure, small: `since you aped\n${trade}`, backdrop: "green" }
+    : { head: "Sold.", big: figure, small: `It happens.\n${trade}`, backdrop: "orange" };
 }
 
 /** The card people post: one figure, one line under it, and where it came from. */
