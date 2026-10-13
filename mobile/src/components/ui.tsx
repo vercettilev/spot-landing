@@ -596,13 +596,15 @@ const pad = StyleSheet.create({
 /* ---- the bar a trade sits in ---- */
 
 /** Content scrolls under a soft edge into the bar instead of meeting a hard line. */
-export function EdgeFade({ height = space.x6, style }: { height?: number; style?: StyleProp<ViewStyle> }) {
+export function EdgeFade({ height = space.x6, style, from = "bottom" }: { height?: number; style?: StyleProp<ViewStyle>; from?: "top" | "bottom" }) {
   const id = `fade${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  /* `from`: the edge the black comes from, the bar's side. */
+  const [y1, y2] = from === "bottom" ? ["0", "1"] : ["1", "0"];
   return (
     <View style={[{ height, pointerEvents: "none" }, style]}>
       <Svg width="100%" height={height}>
         <Defs>
-          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <LinearGradient id={id} x1="0" y1={y1} x2="0" y2={y2}>
             <Stop offset="0" stopColor={color.ink} stopOpacity={0} />
             <Stop offset="1" stopColor={color.ink} stopOpacity={1} />
           </LinearGradient>

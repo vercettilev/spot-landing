@@ -6,7 +6,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Button, CoinFace, Dock, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
+import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import {
   DEFAULT_AMOUNT,
@@ -34,7 +34,7 @@ import { claim, hold, pendingFor, subscribe } from "../pending";
 import { books, saleGain, since, sinceAped } from "../pnl";
 import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
-import { color, font, leading, radius, size, space, tracking, type } from "../theme";
+import { color, font, layer, leading, radius, size, space, tracking, type } from "../theme";
 import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
 import { short } from "../wallet/base58";
@@ -405,18 +405,21 @@ export function CoinScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.fill} aria-hidden={!focused}>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: dockHeight + space.x6 }]}
-        keyboardShouldPersistTaps="handled"
-        aria-hidden={pad}
-      >
+      {/* The way back stays at the top however far the receipt is scrolled. */}
+      <View style={styles.header} aria-hidden={pad}>
         <View style={styles.top}>
           <IconButton icon="back" label="Back" onPress={() => navigation.goBack()} style={styles.back} />
           <Text style={styles.source} numberOfLines={1}>
             {source && share ? sourceLine(source, share) : ""}
           </Text>
         </View>
-
+        <EdgeFade from="top" height={space.x4} style={styles.headerFade} />
+      </View>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: dockHeight + space.x6 }]}
+        keyboardShouldPersistTaps="handled"
+        aria-hidden={pad}
+      >
         <View style={styles.coin}>
           <CoinFace uri={coin.icon} symbol={coin.symbol} size={size.faceCoin} />
           <View style={styles.coinText}>
@@ -424,7 +427,8 @@ export function CoinScreen({ navigation, route }: Props) {
               <Text style={styles.symbol} numberOfLines={1}>
                 ${coin.symbol}
               </Text>
-              {coin.verified && <Verified />}
+              {/* A verified listing says the coin is the real one, not that it is safe: over GRRR or NOPE the tick read as a seal. */}
+              {coin.verified && done?.level !== "warn" && done?.level !== "block" && <Verified />}
             </View>
             <Text style={styles.name} numberOfLines={1}>
               {coin.kind === "stock" ? `${coin.name}, a stock coin` : coin.name}
@@ -590,7 +594,9 @@ export function CoinScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scroll: { paddingHorizontal: space.gutter, paddingTop: space.x2 },
+  header: { zIndex: layer.dock, paddingHorizontal: space.gutter, paddingTop: space.x2, backgroundColor: color.ink },
+  headerFade: { position: "absolute", left: 0, right: 0, bottom: -space.x4 },
+  scroll: { paddingHorizontal: space.gutter },
   top: { flexDirection: "row", alignItems: "center", gap: space.x1, height: size.tap },
   back: { marginLeft: -space.x3 },
   source: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
