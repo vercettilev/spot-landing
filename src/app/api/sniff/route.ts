@@ -4,6 +4,7 @@ import { isAddress } from "@/engine/address";
 import { getDeps } from "@/engine/deps";
 import { fillIcons } from "@/engine/icons";
 import { sniff } from "@/engine/sniff";
+import { tally } from "@/engine/tally";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
   const deps = getDeps();
   const res = await sniff(mint, Math.round(amount * 100) / 100, deps);
   if (!res.ok) return res.reason === "lookup_failed" ? fail(503, "lookup_failed") : fail(404, res.reason);
-  await fillIcons([res.value.token], deps.readImage);
+  await Promise.all([fillIcons([res.value.token], deps.readImage), tally("sniff", res.value.level)]);
 
   /* Prices move by the second; ten seconds of sharing one answer between
      everyone sniffing the same coin is what keeps a hot coin from costing a

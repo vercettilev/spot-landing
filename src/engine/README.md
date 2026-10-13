@@ -46,6 +46,7 @@ On the site's Vercel project, Settings → Environment Variables, for Production
 - `JUPITER_RPS`: the Jupiter plan's requests per second. With a key it defaults to 1, the free plan, and calls queue a second apart, so a sniff (three calls) takes two to three seconds. Set 10 on Developer, and so on.
 - `SPOT_TRADING`: `1` opens `/api/order` and `/api/execute`. Leave it unset until the fee, the wallet and the legal read are settled.
 - `SPOT_TRADING_WALLETS`: with `SPOT_TRADING=1`, only these wallets (addresses, comma separated) get an order; everyone else hears `trading_closed`. For testing with real money on the team's wallets, on the real deployment. `/api/health` then says `trading: "testing"`.
+- `SPOT_STATS_KEY`: with it set, `GET /api/stats?key=…&days=14` answers the daily counts (posts resolved, sniffs by verdict, orders by side, trades landed, bags read, distinct wallets as one-way hashes), kept 90 days in the same Redis as the waitlist (`tally.ts`). Without a Redis database nothing is counted.
 - `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`, `JUPITER_ORDER_PATH`, `JUPITER_EXECUTE_PATH`: overrides, rarely needed.
 
 After a deploy, `/api/health` says which host and quote path it chose, whether an RPC is set (`custom`) and whether trading is `closed`, `testing` or `open`; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).

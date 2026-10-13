@@ -3,6 +3,7 @@ import { isAddress } from "@/engine/address";
 import { getDeps } from "@/engine/deps";
 import { holdings } from "@/engine/holdings";
 import { fillIcons } from "@/engine/icons";
+import { tally, tallyWallet } from "@/engine/tally";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
   const deps = getDeps();
   const res = await holdings(owner, deps);
   if (!res.ok) return fail(503, "lookup_failed");
-  await fillIcons(res.value.positions.map((p) => p.token), deps.readImage);
+  await Promise.all([fillIcons(res.value.positions.map((p) => p.token), deps.readImage), tally("bag"), tallyWallet(owner)]);
   return json({ ok: true, ...res.value }, { cache: "public, s-maxage=10, stale-while-revalidate=20" });
 }
 

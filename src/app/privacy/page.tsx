@@ -55,9 +55,12 @@ export default function Privacy() {
         already; sending it to us tells us nothing the chain does not.
       </p>
       <p>
-        We keep none of this in a database. Our hosting provider (Vercel) keeps request logs for a short time, as
-        every host does, which include your network address and what was asked; we use them to find faults. The
-        app has no analytics or advertising code in it.
+        We keep none of this in a database. We do count how much Spot is used: how many posts were resolved, coins
+        sniffed and what they got, orders built, trades landed and bags read each day, and how many different
+        wallets that was, kept as one-way hashes of their addresses that cannot be turned back into one; the counts
+        are deleted after 90 days and say nothing about who. Our hosting provider (Vercel) keeps request logs for a
+        short time, as every host does, which include your network address and what was asked; we use them to find
+        faults. The app has no analytics or advertising code in it.
       </p>
 
       <h2>Who else sees it</h2>

@@ -3,6 +3,7 @@ import { getDeps } from "@/engine/deps";
 import { isRecord } from "@/engine/http";
 import { fillIcons } from "@/engine/icons";
 import { TEXT_CAP, resolve } from "@/engine/resolve";
+import { tally } from "@/engine/tally";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -31,7 +32,7 @@ async function answer(req: Request, url: unknown, text: unknown, cache: string):
   const shared = (isLink ? t : [u, t].filter(Boolean).join("\n")).slice(0, TEXT_CAP);
   const deps = getDeps();
   const result = await resolve({ url: isLink ? u : undefined, text: shared }, deps);
-  await fillIcons([...(result.pick ? [result.pick.token] : []), ...result.candidates.map((c) => c.token)], deps.readImage);
+  await Promise.all([fillIcons([...(result.pick ? [result.pick.token] : []), ...result.candidates.map((c) => c.token)], deps.readImage), tally("resolve", result.status)]);
 
   if (result.status === "none" && result.missed.includes("search")) {
     return fail(503, "lookup_failed", { missed: result.missed });

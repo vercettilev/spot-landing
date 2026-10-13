@@ -4,6 +4,7 @@ import { isAddress } from "@/engine/address";
 import { getDeps } from "@/engine/deps";
 import { isRecord, num } from "@/engine/http";
 import { sniff } from "@/engine/sniff";
+import { tally } from "@/engine/tally";
 import { mayTrade, tradingMode } from "@/engine/trade";
 
 export const runtime = "nodejs";
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
     if (o.reason === "no_route" || o.reason === "refused") return fail(422, o.reason, o.message ? { message: o.message } : {});
     return fail(503, o.reason === "needs_key" ? "needs_key" : "lookup_failed");
   }
+  await tally("order", toCash ? "cash" : b.side);
   return json({ ok: true, ...o.value });
 }
 
