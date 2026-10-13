@@ -7,15 +7,15 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import Svg, { Path } from "react-native-svg";
 import { Answer, Button, Chevron, CoinFace, Field, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, fromPaste, money, verdictHead, verdictWord } from "../logic";
+import { ago, fromPaste, money, verdictWord } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
 import { useStore } from "../store";
 import { color, font, leading, radius, size, space, tracking, type } from "../theme";
 
 type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Sniff">, NativeStackScreenProps<RootParams>>;
 
-/* Coins from spot-core's hand-probed catalog: always found, always sniffable. */
-const TRIES = ["$WIF", "$POPCAT", "$JUP"];
+/* A coin from spot-core's hand-probed catalog: always found, always sniffable. One, not a choice of three. */
+const TRY = "$WIF";
 
 /**
  * THE FRONT DOOR. The first time: what you get, in the landing's words
@@ -56,7 +56,7 @@ export function SniffScreen({ navigation }: Props) {
       <Field
         value={input}
         onChangeText={setInput}
-        placeholder={first ? "Or paste a CA, $ticker or link" : "Paste a CA, $ticker or link"}
+        placeholder={first ? "Or paste a link or $ticker" : "Paste a link or $ticker"}
         returnKeyType="go"
         onSubmitEditing={() => void go()}
         style={first ? styles.inputFirst : styles.input}
@@ -96,28 +96,22 @@ export function SniffScreen({ navigation }: Props) {
             <Text style={styles.hero} accessibilityRole="header">
               Ape from{"\n"}any app.
             </Text>
-            <Text style={styles.lede}>Spot sniffs every coin before you buy. Honeypots never make it into your bag.</Text>
+            <Text style={styles.lede}>Spot checks every coin for scams before you buy, so you can always sell it back.</Text>
             <ShareSheet />
             {paste}
             <Text style={styles.foot}>Free. No wallet needed.</Text>
-            <Section>Try one</Section>
-            <View style={styles.tries}>
-              {TRIES.map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => {
-                    tap();
-                    navigation.navigate("Resolve", { share: { text: t, from: "paste" } });
-                  }}
-                  hitSlop={{ top: space.hair, bottom: space.hair }}
-                  style={({ pressed }) => [styles.try, pressed && styles.tryPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Try ${t}`}
-                >
-                  <Text style={styles.tryText}>{t}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <Pressable
+              onPress={() => {
+                tap();
+                navigation.navigate("Resolve", { share: { text: TRY, from: "paste" } });
+              }}
+              hitSlop={{ top: space.hair, bottom: space.hair }}
+              style={({ pressed }) => [styles.try, pressed && styles.tryPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Try it on ${TRY}`}
+            >
+              <Text style={styles.tryText}>Try it on {TRY}</Text>
+            </Pressable>
           </>
         ) : (
           <>
@@ -135,7 +129,7 @@ export function SniffScreen({ navigation }: Props) {
                     key={h.mint}
                     left={<CoinFace uri={h.token.icon} symbol={h.token.symbol} size={size.faceRow} />}
                     title={`$${h.token.symbol}`}
-                    subtitle={verdictHead(h.level, h.headline)}
+                    subtitle={h.token.name}
                     right={
                       <View style={styles.recentRight}>
                         <Text style={styles.ago}>{ago(h.at)}</Text>
@@ -241,8 +235,7 @@ const styles = StyleSheet.create({
   hintText: { flex: 1, fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
   recentRight: { flexDirection: "row", alignItems: "center", gap: space.x2 },
   ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
-  tries: { flexDirection: "row", gap: space.x2 },
-  try: { minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink2 },
+  try: { alignSelf: "center", marginTop: space.x6, minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink2 },
   tryPressed: { backgroundColor: color.ink3 },
   tryText: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
 });
