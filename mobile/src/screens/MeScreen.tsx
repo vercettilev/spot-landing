@@ -3,6 +3,7 @@ import type { CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
+import { useEffect, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button, Group, OutIcon, Pill, PuppyIcon, Row, Section, SettingRow, Title, Toggle, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
@@ -11,6 +12,7 @@ import type { RootParams, TabParams } from "../navigation";
 import { AUTO_SELL } from "../soon";
 import { useStore } from "../store";
 import { color, font, space, type } from "../theme";
+import { checkForUpdate, type Update } from "../updates";
 import { short } from "../wallet/base58";
 
 type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Me">, NativeStackScreenProps<RootParams>>;
@@ -41,6 +43,18 @@ export function MeScreen({ navigation }: Props) {
   const [toastNode, toast] = useToast();
   const version = Constants.expoConfig?.version ?? "0.1.0";
   const build = Constants.expoConfig?.android?.versionCode;
+  const [update, setUpdate] = useState<Update | null>(null);
+
+  /* The test channel, once a visit: a newer build out means one more row. */
+  useEffect(() => {
+    let alive = true;
+    void checkForUpdate(build ?? 0).then((u) => {
+      if (alive) setUpdate(u);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [build]);
 
   async function copy(address: string) {
     await Clipboard.setStringAsync(address).catch(() => {});
@@ -141,6 +155,14 @@ export function MeScreen({ navigation }: Props) {
 
         <Section>App</Section>
         <Group>
+          {update && (
+            <Row
+              title={`Update to ${update.version}`}
+              subtitle="Downloads the new build. Open the file to install it over this one."
+              right={<OutIcon />}
+              onPress={() => void Linking.openURL(update.apk).catch(() => {})}
+            />
+          )}
           <SettingRow title="Vibrate on tap">
             <Toggle label="Vibrate on tap" value={settings.haptics} onChange={(haptics) => store.setSettings({ haptics })} />
           </SettingRow>

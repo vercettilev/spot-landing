@@ -33,6 +33,10 @@ Every push that touches `mobile/` builds an APK in GitHub Actions (`.github/work
 
 That APK is signed with Expo's debug key: fine for testing, refused by stores.
 
+## The test channel
+
+Every push to `main` also publishes the debug-key build as the `test` release: the newest APK is always at `https://github.com/vercettilev/spot-landing/releases/download/test/spot.apk` (open it in the phone's browser, then open the file), and `version.json` next to it is what Me reads to show "Update to x.y.z" when a newer build is out (`src/updates.ts`). A test build installs over the previous test build; it cannot install over a store build, which has another signature. After the store launch, point `updates.ts` at the store.
+
 ## The Solana dApp Store
 
 The dApp Store takes a release APK signed with a key of Spot's own, used for this store only and for every update after the first. Lose the key and the listing can never be updated, so keep the file and its password in a password manager.
