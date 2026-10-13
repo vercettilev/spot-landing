@@ -55,7 +55,7 @@ export function Button({
   label: string;
   onPress?: () => void;
   disabled?: boolean;
-  kind?: "go" | "growl" | "stop" | "wait" | "quiet";
+  kind?: "go" | "buy" | "sell" | "growl" | "stop" | "wait" | "quiet";
   style?: StyleProp<ViewStyle>;
 }) {
   /* A disabled key of any kind is the same quiet grey, so "not now" never
@@ -91,6 +91,10 @@ export function Button({
 
 const BUTTON = {
   go: { bg: color.orange, fg: color.ink, border: color.orange, shadow: "#9e3000" },
+  /* Buy green and sell red, the trading apps' own colours: a buy on a coin
+     that growled keeps the warning's orange, because green says "clean". */
+  buy: { bg: color.green, fg: color.ink, border: color.green, shadow: "#1f8a4c" },
+  sell: { bg: color.red, fg: color.white, border: color.red, shadow: "#a8261c" },
   growl: { bg: color.orange, fg: color.ink, border: color.orange, shadow: "#9e3000" },
   stop: { bg: color.ink3, fg: color.faint, border: color.line, shadow: undefined },
   wait: { bg: color.white, fg: color.ink, border: color.white, shadow: "#8f8a82" },

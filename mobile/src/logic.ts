@@ -180,7 +180,7 @@ export function sourceLine(source: Source, share: Share): string {
 export interface Action {
   label: string;
   enabled: boolean;
-  tone: "go" | "growl" | "stop" | "wait";
+  tone: "go" | "buy" | "sell" | "growl" | "stop" | "wait";
 }
 
 /**
@@ -192,7 +192,7 @@ export function actionFor(state: "loading" | "error" | Level, amount: number): A
     case "loading":
       return { label: "Sniffing…", enabled: false, tone: "wait" };
     case "ok":
-      return { label: `Ape $${amount}`, enabled: true, tone: "go" };
+      return { label: `Ape $${amount}`, enabled: true, tone: "buy" };
     case "warn":
       return { label: `GRRR. Ape $${amount}`, enabled: true, tone: "growl" };
     case "block":
