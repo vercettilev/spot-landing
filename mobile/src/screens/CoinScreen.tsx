@@ -185,6 +185,8 @@ export function CoinScreen({ navigation, route }: Props) {
 
   const buying = side === "buy";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
+  /* The first coin the issuer won't sell in the US asks, once, instead of trusting a switch in Me nobody has seen. */
+  const askUs = buying && coin.restrictions.includes("us-persons") && !store.settings.usAsked && !store.settings.usPerson && !checking;
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
   const chips = chipsFor(cap);
   /* A typed amount wins over the chips, within the server's $1 to $10,000 and a warned coin's cap. */
@@ -530,7 +532,19 @@ export function CoinScreen({ navigation, route }: Props) {
                   </View>
                 </View>
               )}
-              {canPickAmount && !checking && (
+              {askUs ? (
+                <View accessibilityRole="none">
+                  <Text style={styles.askTitle} accessibilityRole="header">
+                    Are you in the US?
+                  </Text>
+                  <Text style={styles.askLine}>Coins like this aren't sold to people in the US, so Spot asks once. You can change it in Me.</Text>
+                  <View style={styles.pair}>
+                    <Button label="No" kind="quiet" onPress={() => store.setSettings({ usPerson: false, usAsked: true })} style={styles.half} />
+                    <Button label="Yes, I am" kind="quiet" onPress={() => store.setSettings({ usPerson: true, usAsked: true })} style={styles.half} />
+                  </View>
+                </View>
+              ) : null}
+              {!askUs && canPickAmount && !checking && (
                 <View style={styles.chips}>
                   {buying
                     ? chips.map((c) => (
@@ -565,8 +579,12 @@ export function CoinScreen({ navigation, route }: Props) {
                   ) : null}
                 </View>
               )}
-              <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
-              <Text style={styles.note}>{note}</Text>
+              {askUs ? null : (
+                <>
+                  <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
+                  <Text style={styles.note}>{note}</Text>
+                </>
+              )}
             </>
           )}
         </View>
@@ -636,6 +654,8 @@ const styles = StyleSheet.create({
   heldCol: { flexShrink: 1, alignItems: "flex-end" },
   held: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.white },
   gained: { marginTop: space.hair, fontFamily: font.bodySemi, fontSize: type.footnote },
+  askTitle: { textAlign: "center", fontFamily: font.bodyBold, fontSize: type.lead, color: color.white },
+  askLine: { marginTop: space.x1, marginBottom: space.x3, textAlign: "center", fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   confirmLine: { marginBottom: space.x3, textAlign: "center", fontFamily: font.bodyBold, fontSize: type.body, lineHeight: leading.body, color: color.white },
   pair: { flexDirection: "row", gap: space.x2 },
   half: { flex: 1 },

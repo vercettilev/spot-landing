@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, plainShortFill, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, plainShortFill, proofOf, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -428,5 +428,13 @@ describe("a bad quote's question", () => {
     expect(plainShortFill("Thin pool. Your $25 only buys about $12 of it.")).toBe("Bad price right now. Your $25 only buys about $12 of it.");
     expect(plainShortFill("Thin pool. You'd get $7 back, not $10.")).toBe("Bad price right now. You'd get $7 back, not $10.");
     expect(plainShortFill("Something else.")).toBe("Something else.");
+  });
+});
+
+describe("Me's proof", () => {
+  it("never opens on a zero that reads as failing", () => {
+    expect(proofOf({ sniffed: 0, dodged: 0, apes: 0 })).toEqual({ n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false });
+    expect(proofOf({ sniffed: 1, dodged: 0, apes: 1 })).toEqual({ n: 1, label: "coin sniffed", line: "No scams among them so far. 1 aped.", hot: false });
+    expect(proofOf({ sniffed: 3, dodged: 1, apes: 2 })).toEqual({ n: 1, label: "scam dodged", line: "Out of 3 coins sniffed. 2 aped.", hot: true });
   });
 });

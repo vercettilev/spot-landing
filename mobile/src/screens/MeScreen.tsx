@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button, Group, OutIcon, Pill, PuppyIcon, Row, Section, SettingRow, Title, Toggle, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { CHIPS, money } from "../logic";
+import { CHIPS, money, proofOf } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
 import { AUTO_SELL } from "../soon";
 import { useStore } from "../store";
@@ -69,10 +69,7 @@ export function MeScreen({ navigation }: Props) {
   }
 
   const total = bag.value ? money(bag.value.totalUsd) : "…";
-  const proof =
-    stats.sniffed === 0
-      ? "Sniff your first coin and Spot starts counting."
-      : `Out of ${stats.sniffed} coin${stats.sniffed === 1 ? "" : "s"} sniffed. ${stats.apes === 0 ? "None aped yet." : `${stats.apes} aped.`}`;
+  const proof = proofOf(stats);
 
   return (
     <View style={styles.fill} aria-hidden={!focused}>
@@ -89,11 +86,11 @@ export function MeScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <View style={styles.score} accessible accessibilityLabel={`${stats.dodged} scams dodged. ${proof}`}>
-          <Text style={[styles.scoreN, stats.dodged > 0 && styles.scoreHot]}>{stats.dodged}</Text>
+        <View style={styles.score} accessible accessibilityLabel={`${proof.n === null ? "" : `${proof.n} `}${proof.label}. ${proof.line}`}>
+          {proof.n !== null ? <Text style={[styles.scoreN, proof.hot && styles.scoreHot]}>{proof.n}</Text> : null}
           <View style={styles.scoreText}>
-            <Text style={styles.scoreLabel}>{stats.dodged === 1 ? "scam dodged" : "scams dodged"}</Text>
-            <Text style={styles.scoreProof}>{proof}</Text>
+            <Text style={styles.scoreLabel}>{proof.label}</Text>
+            <Text style={styles.scoreProof}>{proof.line}</Text>
           </View>
         </View>
 
@@ -151,7 +148,7 @@ export function MeScreen({ navigation }: Props) {
             </SettingRow>
           )}
           <SettingRow title="I'm in the US" note="Hides the buy on stock coins that can't be sold in the US.">
-            <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson })} />
+            <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson, usAsked: true })} />
           </SettingRow>
         </Group>
 

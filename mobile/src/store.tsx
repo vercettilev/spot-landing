@@ -16,6 +16,8 @@ export interface Settings {
   tpDefault: boolean;
   /** The issuer of a tokenized stock does not sell to US persons; this hides the buy. */
   usPerson: boolean;
+  /** The user has said whether they are in the US (asked once, on the first coin it matters for). */
+  usAsked: boolean;
   haptics: boolean;
   /** When this phone first opened Spot. */
   since: string;
@@ -74,7 +76,7 @@ const KEY = {
 } as const;
 
 const fresh = (): State => ({
-  settings: { defaultAmount: 25, tpDefault: true, usPerson: false, haptics: true, since: new Date().toISOString() },
+  settings: { defaultAmount: 25, tpDefault: true, usPerson: false, usAsked: false, haptics: true, since: new Date().toISOString() },
   history: [],
   watch: [],
   activity: [],

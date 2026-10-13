@@ -497,6 +497,17 @@ export function coverWith(choices: number[], need: number | null, cash: number |
   return choices.find((c) => c >= short) ?? choices[choices.length - 1]!;
 }
 
+/**
+ * ME'S PROOF, the number first: the scams kept out once there are any, else
+ * the coins sniffed, so the screen never opens on a 0 that reads as failing.
+ */
+export function proofOf(s: { sniffed: number; dodged: number; apes: number }): { n: number | null; label: string; line: string; hot: boolean } {
+  const aped = s.apes === 0 ? "None aped yet." : `${s.apes} aped.`;
+  if (s.sniffed === 0) return { n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false };
+  if (s.dodged === 0) return { n: s.sniffed, label: s.sniffed === 1 ? "coin sniffed" : "coins sniffed", line: `No scams among them so far. ${aped}`, hot: false };
+  return { n: s.dodged, label: s.dodged === 1 ? "scam dodged" : "scams dodged", line: `Out of ${s.sniffed} coin${s.sniffed === 1 ? "" : "s"} sniffed. ${aped}`, hot: true };
+}
+
 /** Under the bag's worth: what it is made of, and what is ready to ape. */
 export function bagLine(coins: number, cashUsd: number): string {
   const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
