@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, plainShortFill, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -170,20 +170,20 @@ describe("the moment after a trade", () => {
   it("says what happened in three lines, loudest where the money is", () => {
     expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Sniffed for rugs first.", backdrop: "orange" });
     expect(momentLines({ kind: "cash", symbol: "USDC", usdc: 50, amount: 50 })).toEqual({ head: "Cash in.", big: "$50.00 ready to ape", small: "From SOL, in one tap.", backdrop: "orange" });
-    expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Cash is back in your bag.", backdrop: "orange" });
+    expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Back in your wallet as cash.", backdrop: "orange" });
   });
 
   it("leads a sell with what it made, and takes a loss on the chin", () => {
     expect(momentLines({ kind: "sell", symbol: "WIF", usdc: 37.4, amount: 100, gain: { usd: 12.4, pct: 49.6 } })).toEqual({
       head: "Sold.",
       big: "+$12.40 (+49.6%)",
-      small: "since you aped\n100 WIF → $37.40",
+      small: "since you aped\n$37.40 is back in your wallet as cash.",
       backdrop: "green",
     });
     expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31, gain: { usd: -0.07, pct: -0.7 } })).toEqual({
       head: "Sold.",
       big: "−$0.07 (−0.7%)",
-      small: "It happens.\n75.31 ANSEM → $9.93",
+      small: "It happens.\n$9.93 is back in your wallet as cash.",
       backdrop: "orange",
     });
     expect(momentLines({ kind: "sell", symbol: "X", usdc: 5, amount: 1, gain: { usd: 2, pct: null } }).big).toBe("+$2.00");
@@ -218,7 +218,8 @@ describe("the card people post", () => {
 
 describe("the stamp and the line under it", () => {
   it("does not say GRRR twice", () => {
-    expect(verdictHead("warn", "GRRR. Risky. Ape $50 max.")).toBe("Risky. Ape $50 max.");
+    expect(verdictHead("warn", "GRRR. Risky. Ape $50 max.")).toBe("Risky. Spot caps buys at $50.");
+    expect(verdictHead("warn", "GRRR. Risky. Ape $1,000 max.")).toBe("Risky. Spot caps buys at $1,000.");
     expect(verdictHead("warn", "GRRR.")).toBe("GRRR.");
     expect(verdictHead("ok", "Blue chip. Nothing smells off.")).toBe("Blue chip. Nothing smells off.");
     expect(verdictHead("block", "Honeypot. Spot won't buy it.")).toBe("Honeypot. Spot won't buy it.");
@@ -241,10 +242,10 @@ describe("the dock", () => {
   };
 
   it("locks the key while a trade may still land, whatever else is true", () => {
-    expect(dockKey({ ...base, checking: { landed: false, seconds: 73 } })).toEqual({ label: "Checking… 73s", enabled: false, tone: "wait" });
+    expect(dockKey({ ...base, checking: { landed: false, seconds: 73 } })).toEqual({ label: "Checking… 73s left", enabled: false, tone: "wait" });
     expect(dockKey({ ...base, side: "sell", held: 31.2, checking: { landed: true, seconds: 4 } })).toEqual({ label: "Updating your bag…", enabled: false, tone: "wait" });
     expect(dockKey({ ...base, sniff: "warn", cash: 0, checking: { landed: false, seconds: 9 } }).enabled).toBe(false);
-    expect(dockNote({ ...base, checking: { landed: false, seconds: 73 } })).toBe("Making sure it landed. You can leave, Spot will tell you.");
+    expect(dockNote({ ...base, checking: { landed: false, seconds: 73 } })).toBe("Making sure it went through. You can leave, Spot will tell you.");
   });
 
   it("apes in dollars, growls, and never offers a buy Spot blocks", () => {
@@ -276,15 +277,15 @@ describe("the dock", () => {
   it("waits for an amount while the keypad is empty, and still locks while a trade may land", () => {
     expect(dockKey({ ...base, empty: true })).toEqual({ label: "Type an amount", enabled: false, tone: "stop" });
     expect(dockKey({ ...base, side: "sell", held: 31.2, empty: true })).toEqual({ label: "Type an amount", enabled: false, tone: "stop" });
-    expect(dockKey({ ...base, empty: true, checking: { landed: false, seconds: 12 } }).label).toBe("Checking… 12s");
+    expect(dockKey({ ...base, empty: true, checking: { landed: false, seconds: 12 } }).label).toBe("Checking… 12s left");
   });
 
   it("sells a share for what it is worth", () => {
     const sell = { ...base, side: "sell" as const, held: 31.2 };
-    expect(dockKey(sell)).toEqual({ label: "Sell 50% for ~$16", enabled: true, tone: "sell" });
-    expect(dockKey({ ...sell, sellPct: 100 }).label).toBe("Sell all for ~$31");
-    expect(dockKey({ ...sell, sellPct: 48.4 }).label).toBe("Sell 48.4% for ~$15");
-    expect(dockKey({ ...sell, held: 0.84, sellPct: 50 }).label).toBe("Sell 50% for ~$0.42");
+    expect(dockKey(sell)).toEqual({ label: "Sell 50% for about $16", enabled: true, tone: "sell" });
+    expect(dockKey({ ...sell, sellPct: 100 }).label).toBe("Sell all for about $31");
+    expect(dockKey({ ...sell, sellPct: 48.4 }).label).toBe("Sell 48.4% for about $15");
+    expect(dockKey({ ...sell, held: 0.84, sellPct: 50 }).label).toBe("Sell 50% for about $0.42");
     expect(dockKey({ ...sell, held: null })).toMatchObject({ enabled: false });
     expect(dockKey({ ...sell, busy: true })).toMatchObject({ label: "Selling…", enabled: false });
     expect(dockNote(sell)).toBe("Sells into USDC. Your wallet approves every trade.");
@@ -339,8 +340,8 @@ describe("the keypad", () => {
     expect(shareWord(50)).toBe("50%");
     expect(shareWord(100)).toBe("all");
     expect(holding(31.2)).toBe("You hold $31.20");
-    expect(approx(15.4)).toBe("~$15");
-    expect(approx(0.42)).toBe("~$0.42");
+    expect(approx(15.4)).toBe("about $15");
+    expect(approx(0.42)).toBe("about $0.42");
   });
 });
 
@@ -354,7 +355,7 @@ describe("which one?", () => {
 
 describe("adding cash", () => {
   it("locks the swap key while a swap may still land", () => {
-    expect(turnKey({ pending: { landed: false, seconds: 64 }, busy: false, chosen: 25 })).toEqual({ label: "Checking… 64s", enabled: false });
+    expect(turnKey({ pending: { landed: false, seconds: 64 }, busy: false, chosen: 25 })).toEqual({ label: "Checking… 64s left", enabled: false });
     expect(turnKey({ pending: { landed: true, seconds: 3 }, busy: false, chosen: 25 })).toEqual({ label: "Updating your bag…", enabled: false });
     expect(turnKey({ pending: null, busy: true, chosen: 25 })).toEqual({ label: "Turning…", enabled: false });
     expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 into cash", enabled: true });
@@ -413,5 +414,13 @@ describe("a coin's face", () => {
   it("tries anything else as given, and nothing when there is none", () => {
     expect(faceSources("https://arweave.net/FyNde0I6M7gOYB6Ui_wnCFPraX4AQIaEcr6rB9gWPAQ")).toEqual(["https://arweave.net/FyNde0I6M7gOYB6Ui_wnCFPraX4AQIaEcr6rB9gWPAQ"]);
     expect(faceSources(null)).toEqual([]);
+  });
+});
+
+describe("a bad quote's question", () => {
+  it("says the price is bad, without a pool the receipt may call big", () => {
+    expect(plainShortFill("Thin pool. Your $25 only buys about $12 of it.")).toBe("Bad price right now. Your $25 only buys about $12 of it.");
+    expect(plainShortFill("Thin pool. You'd get $7 back, not $10.")).toBe("Bad price right now. You'd get $7 back, not $10.");
+    expect(plainShortFill("Something else.")).toBe("Something else.");
   });
 });

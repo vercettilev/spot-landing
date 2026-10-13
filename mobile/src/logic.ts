@@ -67,11 +67,13 @@ export function momentLines(m: MomentData): MomentLines {
   if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Sniffed for rugs first.", backdrop: "orange" };
   if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", backdrop: "orange" };
   const trade = `${coins} → ${money(m.usdc)}`;
-  if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", backdrop: "orange" };
+  /* Where the money went, in so many words: a sell's dollars stay in the wallet, as cash, not in a bank. */
+  const back = `${money(m.usdc)} is back in your wallet as cash.`;
+  if (!m.gain) return { head: "Sold.", big: trade, small: "Back in your wallet as cash.", backdrop: "orange" };
   const figure = m.gain.pct === null ? signed(m.gain.usd) : `${signed(m.gain.usd)} (${pct(m.gain.pct)})`;
   return m.gain.usd >= 0
-    ? { head: "Sold.", big: figure, small: `since you aped\n${trade}`, backdrop: "green" }
-    : { head: "Sold.", big: figure, small: `It happens.\n${trade}`, backdrop: "orange" };
+    ? { head: "Sold.", big: figure, small: `since you aped\n${back}`, backdrop: "green" }
+    : { head: "Sold.", big: figure, small: `It happens.\n${back}`, backdrop: "orange" };
 }
 
 /** The card people post: one figure, one line under it, and where it came from. */
@@ -258,7 +260,7 @@ export function sourceLine(source: Source, share: Share): string {
 export interface Action {
   label: string;
   enabled: boolean;
-  tone: "go" | "buy" | "sell" | "growl" | "stop" | "wait";
+  tone: "go" | "buy" | "sell" | "growl" | "stop" | "wait" | "quiet";
 }
 
 /**
@@ -336,16 +338,20 @@ export function candidateLine(t: { name: string; mcapUsd: number | null; holders
 /** The receipt's line under the stamp: the stamp already says GRRR, so the line doesn't say it twice. */
 export function verdictHead(level: Level, headline: string): string {
   if (level !== "warn") return headline;
-  return headline.replace(/^GRRR\.\s*/, "") || headline;
+  /* "Ape $50 max." read as a suggestion to spend $50; it is a cap. */
+  return headline.replace(/^GRRR\.\s*/, "").replace(/\bApe \$(\d[\d,]*) max\./, "Spot caps buys at $$$1.") || headline;
 }
+
+/** The question a bad quote asks, in plain words: no "thin pool" over a receipt that may say the pool is big. */
+export const plainShortFill = (line: string): string => line.replace(/^Thin pool\.\s*/, "Bad price right now. ");
 
 /* ---- the dock: the key, the line under it, and the amount being typed ---- */
 
 /** The most one trade can be, on the server ($1 to $10,000). */
 export const MAX_TRADE = 10_000;
 
-/** Dollars the way a button says them: cents under $10 ($0.42), round past that ($15, $1.2k). */
-export const approx = (n: number): string => `~${n < 10 ? money(n) : usd(n)}`;
+/** Dollars the way a button says them: cents under $10 ($0.42), round past that ($15, $1.2k), and "about" rather than "~", which the key's heavy face draws as a minus. */
+export const approx = (n: number): string => `about ${n < 10 ? money(n) : usd(n)}`;
 
 /** A share of a holding in words: "all", "50%", "48.4%". */
 export function shareWord(pctOf100: number): string {
@@ -395,7 +401,7 @@ export const needsCash = (s: DockState): boolean =>
  * short, and otherwise says what the sniff allows.
  */
 export function dockKey(s: DockState): Action {
-  if (s.checking) return { label: s.checking.landed ? "Updating your bag…" : `Checking… ${s.checking.seconds}s`, enabled: false, tone: "wait" };
+  if (s.checking) return { label: s.checking.landed ? "Updating your bag…" : `Checking… ${s.checking.seconds}s left`, enabled: false, tone: "wait" };
   if (s.empty) return { label: "Type an amount", enabled: false, tone: "stop" };
   if (s.side === "sell") {
     if (s.busy) return { label: "Selling…", enabled: false, tone: "wait" };
@@ -410,7 +416,7 @@ export function dockKey(s: DockState): Action {
 
 /** The line under the key: what happens next, or what to do instead. */
 export function dockNote(s: DockState): string {
-  if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it landed. You can leave, Spot will tell you.";
+  if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it went through. You can leave, Spot will tell you.";
   if (s.side === "sell") return s.wallet === "mwa" ? "Sells into USDC. Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
   if (s.sniff === "loading") return "Checking it for scams…";
   if (s.sniff === "block") return "Share another post to sniff something else.";
@@ -457,7 +463,7 @@ export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`
 
 /** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
 export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {
-  if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s`, enabled: false };
+  if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s left`, enabled: false };
   if (p.busy) return { label: "Turning…", enabled: false };
   return { label: `Turn ${usd(p.chosen)} into cash`, enabled: p.chosen !== null };
 }

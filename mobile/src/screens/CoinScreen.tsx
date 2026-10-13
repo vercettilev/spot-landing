@@ -20,6 +20,7 @@ import {
   needsCash as shortOfCash,
   padHint,
   pct,
+  plainShortFill,
   price,
   shareFor,
   shareOf,
@@ -492,10 +493,11 @@ export function CoinScreen({ navigation, route }: Props) {
         <View aria-hidden={pad}>
           {confirm ? (
             <>
-              <Text style={styles.confirmLine}>{confirm.line}</Text>
+              <Text style={styles.confirmLine}>{plainShortFill(confirm.line)}</Text>
+              {/* The safe answer is the one that stands out; going ahead anyway is there, quieter. */}
               <View style={styles.pair}>
-                <Button label="Cancel" kind="quiet" onPress={() => setConfirm(null)} style={styles.half} />
-                <Button label={confirm.label} kind="growl" onPress={() => void confirmed()} style={styles.half} />
+                <Button label="Cancel" kind="wait" onPress={() => setConfirm(null)} style={styles.half} />
+                <Button label={confirm.label} kind="quiet" onPress={() => void confirmed()} style={styles.half} />
               </View>
               <Text style={styles.note}>Your wallet still asks before anything moves.</Text>
             </>
