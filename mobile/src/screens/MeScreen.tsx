@@ -106,26 +106,21 @@ export function MeScreen({ navigation }: Props) {
               label="Open your bag"
             />
             <Row title="Copy address" onPress={() => void copy(wallet.address)} />
-            <View style={styles.walletActions}>
-              {wallet.kind === "watch" ? (
-                <>
-                  <Text style={styles.walletNote}>You can see this bag but not trade from it.</Text>
-                  <Button label="Connect your wallet" onPress={() => navigation.navigate("Connect")} />
-                  <Button label="Stop tracking" kind="quiet" onPress={disconnect} />
-                </>
-              ) : (
-                <View style={styles.pair}>
-                  <Button label="Add cash" onPress={() => navigation.navigate("Deposit")} style={styles.half} />
-                  <Button label="Disconnect" kind="quiet" onPress={disconnect} style={styles.half} />
-                </View>
-              )}
-            </View>
+            {/* Settings, not a second Bag: adding cash lives in the bag; leaving is a quiet row that says what it keeps. */}
+            {wallet.kind === "watch" ? (
+              <Row title="Connect your wallet" subtitle="You can see this bag but not trade from it." tint={color.orange} chevron onPress={() => navigation.navigate("Connect")} />
+            ) : null}
+            <Row
+              title={wallet.kind === "watch" ? "Stop tracking" : "Disconnect"}
+              subtitle={wallet.kind === "watch" ? null : "Your coins stay in your wallet."}
+              onPress={disconnect}
+            />
           </Group>
         ) : (
           <Group>
             <View style={styles.connect}>
               <Text style={styles.connectTitle}>Ape in two taps from any post</Text>
-              <Text style={styles.walletNote}>Connect the wallet on this phone. It approves every trade, and Spot never sees your keys.</Text>
+              <Text style={styles.walletNote}>Your wallet app keeps your money and approves every trade. Spot never holds it.</Text>
               <Button label="Connect wallet" onPress={() => navigation.navigate("Connect", { track: true })} style={styles.connectButton} />
             </View>
           </Group>
@@ -194,10 +189,7 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: font.display, fontSize: type.headline, lineHeight: leading.headline, color: color.white },
   scoreProof: { marginTop: space.x1, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
   total: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
-  walletActions: { gap: space.x3, padding: space.x4 },
   walletNote: { fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
-  pair: { flexDirection: "row", gap: space.x2 },
-  half: { flex: 1 },
   connect: { padding: space.x4 },
   connectTitle: { marginBottom: space.x2, fontFamily: font.displayBold, fontSize: type.key, color: color.white },
   connectButton: { marginTop: space.x4 },
