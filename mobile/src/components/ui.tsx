@@ -666,14 +666,15 @@ export const Sheet = forwardRef<
   const latest = useRef({ onDismiss, dismissable, reduced });
   latest.current = { onDismiss, dismissable, reduced };
 
-  function open() {
+  /* `turning`: opened again while leaving, so it starts from where it is on screen, not from the bottom. */
+  function open(turning = false) {
     closing.current = false;
-    shown.setValue(0);
+    if (!turning) shown.setValue(0);
     if (latest.current.reduced) {
       y.setValue(0);
       Animated.timing(shown, { toValue: 1, duration: motion.fadeIn, useNativeDriver: native }).start();
     } else {
-      y.setValue(heightRef.current);
+      if (!turning) y.setValue(heightRef.current);
       Animated.parallel([
         Animated.timing(shown, { toValue: 1, duration: motion.fadeIn, useNativeDriver: native }),
         Animated.spring(y, { toValue: 0, ...motion.settle, useNativeDriver: native }),
@@ -688,7 +689,9 @@ export const Sheet = forwardRef<
   function close(after?: () => void, velocity = 0) {
     if (closing.current) return;
     closing.current = true;
-    const done = () => {
+    /* Only an exit that ran to its end lets go: one cut short by opening again keeps the sheet. */
+    const done = ({ finished }: { finished: boolean }) => {
+      if (!finished || !closing.current) return;
       setMounted(false);
       (after ?? latest.current.onDismiss)();
     };
@@ -716,8 +719,12 @@ export const Sheet = forwardRef<
 
   useEffect(() => {
     if (visible) {
-      opening.current = true;
-      setMounted(true);
+      /* Opened again while leaving: turn round from where it is. */
+      if (mounted && closing.current) open(true);
+      else {
+        opening.current = true;
+        setMounted(true);
+      }
     } else if (mounted && !closing.current) {
       close(() => {});
     }
