@@ -89,6 +89,15 @@ export function since(b: Book, position: Position | null): { usd: number; pct: n
   return { usd, pct: cost > 0 ? (usd / cost) * 100 : null };
 }
 
+/** What a sale of `amount` coins for `usdc` makes against what Spot paid, or null when Spot bought none of them. */
+export function saleGain(b: Book | undefined, amount: number, usdc: number): { usd: number; pct: number | null } | null {
+  if (!b || b.held <= EPS || !(amount > 0)) return null;
+  const part = Math.min(amount, b.held);
+  const cost = b.basis * (part / b.held);
+  const usd = usdc * (part / amount) - cost;
+  return { usd, pct: cost > 0 ? (usd / cost) * 100 : null };
+}
+
 export interface Pnl {
   realized: number;
   open: number;

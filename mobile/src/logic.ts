@@ -39,6 +39,41 @@ export function clampAmount(amount: number, cap: number | null): number {
   return cap === null ? amount : Math.min(amount, cap);
 }
 
+/**
+ * THE MOMENT after a trade lands, in three lines: the word, the loud
+ * figure, and the small one. A sell leads with what it made since the ape
+ * when Spot knows; a loss is said plainly and without a sting.
+ */
+export interface MomentData {
+  kind: "ape" | "sell" | "cash";
+  symbol: string;
+  usdc: number;
+  amount: number;
+  gain?: { usd: number; pct: number | null } | null;
+}
+
+export interface MomentLines {
+  head: string;
+  big: string;
+  small: string;
+  /** How loud the big line is: white for a gain, ink for the rest. */
+  tone: "ink" | "white";
+}
+
+const signed = (n: number) => `${n < 0 ? "−" : "+"}${money(Math.abs(n))}`;
+
+export function momentLines(m: MomentData): MomentLines {
+  const coins = `${amount(m.amount)} ${m.symbol}`;
+  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Spot keeps an eye on it.", tone: "ink" };
+  if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", tone: "ink" };
+  const trade = `${coins} → ${money(m.usdc)}`;
+  if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", tone: "ink" };
+  const figure = m.gain.pct === null ? signed(m.gain.usd) : `${signed(m.gain.usd)} (${pct(m.gain.pct)})`;
+  return m.gain.usd >= 0
+    ? { head: "Sold.", big: figure, small: `since you aped · ${trade}`, tone: "white" }
+    : { head: "Sold.", big: figure, small: `It happens. ${trade}`, tone: "ink" };
+}
+
 /** The landing's four questions first, in its order, then what else the sniff found. */
 const ORDER: CheckId[] = ["route", "honeypot", "freeze", "mint", "holders", "delegate", "liquidity", "age", "tax", "hook", "flagged"];
 

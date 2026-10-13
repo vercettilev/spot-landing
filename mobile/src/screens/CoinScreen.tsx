@@ -5,12 +5,14 @@ import * as Clipboard from "expo-clipboard";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
+import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
 import { Bell, Button, CoinFace, OutIcon, Pill, Toggle, feel, tap, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, money, pct, price, shareOf, sourceLine, usd } from "../logic";
 import type { RootParams } from "../navigation";
 import { claim, hold, pendingFor, subscribe } from "../pending";
+import { books, saleGain } from "../pnl";
 import { AUTO_SELL, PINGS } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font } from "../theme";
@@ -129,7 +131,8 @@ export function CoinScreen({ navigation, route }: Props) {
     return subscribe((p, fate) => {
       if (p.owner !== owner || p.mint !== mint) return;
       setChecking(fate ? null : p);
-      if (fate && !p.landed && focusedRef.current) toast(fateLine(p, fate));
+      /* A landed trade gets the moment, from Moment.tsx; the rest a word here. */
+      if (fate && fate !== "landed" && !p.landed && focusedRef.current) toast(fateLine(p, fate));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, mint]);
@@ -325,7 +328,7 @@ export function CoinScreen({ navigation, route }: Props) {
     const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, payWith: "usdc" as const, before, text, signature, quote };
     switch (settled(res)) {
       case "landed":
-        finish(w.address, sideNow, text, signature);
+        finish(w.address, sideNow, text, signature, quote);
         /* Landed, but the next trade waits for the bag to show it. */
         hold({ ...held, landed: true, until: Date.now() + SETTLE_MS });
         return;
@@ -338,12 +341,12 @@ export function CoinScreen({ navigation, route }: Props) {
     }
   }
 
-  function finish(walletAddress: string, sideNow: Side, text: string, signature: string | null) {
+  function finish(walletAddress: string, sideNow: Side, text: string, signature: string | null, quote: { usdc: number; amount: number }) {
     forgetHoldings(walletAddress);
     store.addActivity({ kind: sideNow === "buy" ? "ape" : "sell", mint: coin.mint, symbol: coin.symbol, text, signature });
     if (sideNow === "buy" && !store.isWatched(coin.mint)) store.toggleWatch(coin);
-    feel("success");
-    toast(`${text}.`);
+    const gain = sideNow === "sell" ? saleGain(books(store.trades.filter((t) => t.owner === walletAddress)).get(coin.mint), quote.amount, quote.usdc) : null;
+    celebrate({ kind: sideNow === "buy" ? "ape" : "sell", symbol: coin.symbol, usdc: quote.usdc, amount: quote.amount, gain });
   }
 
   return (

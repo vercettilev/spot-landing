@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionFor, ago, amount, chipsFor, clampAmount, count, fromPaste, fromShare, money, ordered, pct, price, readablePath, shareOf, sourceLine, usd, verdictLine, verdictWord } from "./logic";
+import { actionFor, ago, amount, chipsFor, clampAmount, count, fromPaste, fromShare, momentLines, money, ordered, pct, price, readablePath, shareOf, sourceLine, usd, verdictLine, verdictWord } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -163,5 +163,29 @@ describe("the line under the verdict", () => {
     expect(verdictLine({ level: "block", checks, token: card })).toBe("You could buy it, but you'd never get out.");
     const odd = [c("hook", "bad", { blocks: true, note: "Something odd." })];
     expect(verdictLine({ level: "block", checks: odd, token: card })).toBe("Something odd.");
+  });
+});
+
+describe("the moment after a trade", () => {
+  it("says what happened in three lines, loudest where the money is", () => {
+    expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Spot keeps an eye on it.", tone: "ink" });
+    expect(momentLines({ kind: "cash", symbol: "USDC", usdc: 50, amount: 50 })).toEqual({ head: "Cash in.", big: "$50.00 ready to ape", small: "From SOL, in one tap.", tone: "ink" });
+    expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Cash is back in your bag.", tone: "ink" });
+  });
+
+  it("leads a sell with what it made, and takes a loss on the chin", () => {
+    expect(momentLines({ kind: "sell", symbol: "WIF", usdc: 37.4, amount: 100, gain: { usd: 12.4, pct: 49.6 } })).toEqual({
+      head: "Sold.",
+      big: "+$12.40 (+49.6%)",
+      small: "since you aped · 100 WIF → $37.40",
+      tone: "white",
+    });
+    expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31, gain: { usd: -0.07, pct: -0.7 } })).toEqual({
+      head: "Sold.",
+      big: "−$0.07 (−0.7%)",
+      small: "It happens. 75.31 ANSEM → $9.93",
+      tone: "ink",
+    });
+    expect(momentLines({ kind: "sell", symbol: "X", usdc: 5, amount: 1, gain: { usd: 2, pct: null } }).big).toBe("+$2.00");
   });
 });
