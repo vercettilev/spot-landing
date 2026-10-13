@@ -167,7 +167,7 @@ export function CoinScreen({ navigation, route }: Props) {
   const action = checking
     ? { label: checking.landed ? "Updating your bag…" : `Checking… ${secondsLeft(checking, now)}s`, enabled: false, tone: "wait" as const }
     : !buying
-      ? { label: busy ? "Selling…" : `Sell ${sellPct === 100 ? "all" : `${sellPct}%`} · ~${usd(sellUsd)}`, enabled: Boolean(position) && !busy, tone: "go" as const }
+      ? { label: busy ? "Selling…" : `Sell ${sellPct === 100 ? "all" : `${sellPct}%`} · ~${usd(sellUsd)}`, enabled: Boolean(position) && !busy, tone: "sell" as const }
       : restricted
         ? { label: "Not for US users", enabled: false, tone: "stop" as const }
         : busy
@@ -429,11 +429,11 @@ export function CoinScreen({ navigation, route }: Props) {
                   setSide(s);
                   setConfirm(null);
                 }}
-                style={[styles.sideItem, side === s && styles.sideOn]}
+                style={[styles.sideItem, side === s && (s === "buy" ? styles.sideBuy : styles.sideSell)]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: side === s }}
               >
-                <Text style={[styles.sideText, side === s && styles.sideTextOn]}>{s === "buy" ? "Buy" : "Sell"}</Text>
+                <Text style={[styles.sideText, side === s && (s === "buy" ? styles.sideTextBuy : styles.sideTextSell)]}>{s === "buy" ? "Buy" : "Sell"}</Text>
               </Pressable>
             ))}
           </View>
@@ -554,9 +554,11 @@ const styles = StyleSheet.create({
     borderColor: color.line,
   },
   sideItem: { paddingVertical: 7, paddingHorizontal: 18, borderRadius: 999 },
-  sideOn: { backgroundColor: color.white },
+  sideBuy: { backgroundColor: color.green },
+  sideSell: { backgroundColor: color.red },
   sideText: { fontFamily: font.bodyBold, fontSize: 15, color: color.faint },
-  sideTextOn: { color: color.ink },
+  sideTextBuy: { color: color.ink },
+  sideTextSell: { color: color.white },
   report: { marginTop: 24, marginBottom: 12 },
   tp: {
     flexDirection: "row",
