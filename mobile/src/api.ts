@@ -5,6 +5,9 @@ import type { Executed, Holdings, Order, ResolveResult, Share, Sniff } from "./t
    purpose: the bare domain redirects, and a redirected POST arrives as a GET. */
 export const API_BASE = (process.env.EXPO_PUBLIC_SPOT_API ?? "https://www.usespot.fun").replace(/\/+$/, "");
 
+/** The digital dollar Spot trades in. */
+export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
 export type ApiError =
   | "offline"
   | "timeout"

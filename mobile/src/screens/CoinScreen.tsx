@@ -2,19 +2,19 @@ import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { SniffReport, type SniffState } from "../components/SniffReport";
 import { Bell, Button, CoinFace, OutIcon, Pill, Toggle, feel, tap, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
-import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, pct, price, shareOf, sourceLine, usd } from "../logic";
+import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, money, pct, price, shareOf, sourceLine, usd } from "../logic";
 import type { RootParams } from "../navigation";
 import { claim, hold, pendingFor, subscribe } from "../pending";
 import { AUTO_SELL, PINGS } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font } from "../theme";
-import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type PayWith, type Pending, type Side, type Snapshot } from "../trade";
+import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
 import { short } from "../wallet/base58";
 import { signTransaction, walletError } from "../wallet/mwa";
@@ -31,7 +31,6 @@ interface Confirm {
   text: string;
   builtAt: number;
   quote: { usdc: number; amount: number };
-  payWith: PayWith;
   line: string;
   label: string;
 }
@@ -66,7 +65,9 @@ export function CoinScreen({ navigation, route }: Props) {
   const [toastNode, toast] = useToast(200 + insets.bottom);
   const [sniff, setSniff] = useState<SniffState>({ status: "loading" });
   const [side, setSide] = useState<"buy" | "sell">("buy");
-  const [amount, setAmount] = useState(store.settings.defaultAmount || DEFAULT_AMOUNT);
+  const [preset, setPreset] = useState(store.settings.defaultAmount || DEFAULT_AMOUNT);
+  /* Dollars typed next to the chips, digits only. */
+  const [custom, setCustom] = useState("");
   const [sellPct, setSellPct] = useState(50);
   const [tp, setTp] = useState(store.settings.tpDefault);
   const [busy, setBusy] = useState(false);
@@ -100,7 +101,7 @@ export function CoinScreen({ navigation, route }: Props) {
       if (res.value.level !== "unknown" || attempt === 1) {
         setSniff({ status: "done", sniff: res.value });
         store.recordSniff(res.value);
-        if (res.value.level === "warn" && res.value.maxBuyUsdc !== null) setAmount((a) => clampAmount(a, res.value.maxBuyUsdc));
+        if (res.value.level === "warn" && res.value.maxBuyUsdc !== null) setPreset((a) => clampAmount(a, res.value.maxBuyUsdc));
         return;
       }
       await new Promise((r) => setTimeout(r, 1500));
@@ -151,12 +152,17 @@ export function CoinScreen({ navigation, route }: Props) {
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
   const chips = chipsFor(cap);
+  /* A typed amount wins over the chips, within the server's $1 to $10,000 and a warned coin's cap. */
+  const typed = custom ? clampAmount(Math.min(10_000, Math.max(1, Number(custom))), cap) : null;
+  const amount = typed ?? preset;
   const up = (coin.change24hPct ?? 0) >= 0;
   const watched = store.isWatched(coin.mint);
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
-  /* USDC when there is enough of it; else SOL, less a dollar for fees. */
-  const payWith: PayWith = (bag.value?.usdc.usd ?? 0) >= amount || (bag.value?.sol.usd ?? 0) - 1 < amount ? "usdc" : "sol";
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
+  /* Spot apes in dollars. Short of them, the one thing to do is add cash. */
+  const cash = bag.value?.usdc.usd ?? null;
+  const needsCash = buying && canPickAmount && wallet?.kind === "mwa" && cash !== null && cash < amount;
+  const solCovers = bag.value !== null && (bag.value.sol.usd ?? 0) - 1 >= amount;
 
   const action = checking
     ? { label: checking.landed ? "Updating your bag…" : `Checking… ${secondsLeft(checking, now)}s`, enabled: false, tone: "wait" as const }
@@ -166,7 +172,9 @@ export function CoinScreen({ navigation, route }: Props) {
         ? { label: "Not for US users", enabled: false, tone: "stop" as const }
         : busy
           ? { label: "Aping…", enabled: false, tone: "wait" as const }
-          : actionFor(sniff.status === "done" ? sniff.sniff.level : sniff.status, amount);
+          : needsCash
+            ? { label: "Add cash", enabled: true, tone: "go" as const }
+            : actionFor(sniff.status === "done" ? sniff.sniff.level : sniff.status, amount);
 
   const note = checking
     ? checking.landed
@@ -182,11 +190,13 @@ export function CoinScreen({ navigation, route }: Props) {
           ? "Share another post to sniff something else."
           : restricted
             ? "Coins like this aren't sold to people in the US."
-            : wallet?.kind === "mwa"
-              ? payWith === "sol"
-                ? "Pays with SOL. Your wallet asks you to approve."
-                : "Your wallet asks you to approve every trade."
-              : wallet
+            : needsCash
+              ? solCovers
+                ? `Only ${money(cash)} in USDC. Turn some SOL into cash first.`
+                : `Only ${money(cash)} in USDC. Add cash, then ape.`
+              : wallet?.kind === "mwa"
+                ? "Your wallet asks you to approve every trade."
+                : wallet
                 ? "You're only tracking this wallet. Connect yours to ape."
                 : "Free sniff. Connect a wallet to ape.";
 
@@ -222,6 +232,10 @@ export function CoinScreen({ navigation, route }: Props) {
       toast("You're only tracking this wallet. Connect your own wallet to trade.");
       return;
     }
+    if (needsCash) {
+      navigation.navigate("Deposit");
+      return;
+    }
     inFlight.current = true;
     setBusy(true);
     try {
@@ -231,7 +245,7 @@ export function CoinScreen({ navigation, route }: Props) {
       const [order, fresh] = await Promise.all([
         placeOrder(
           buying
-            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount, payWith }
+            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
             : { mint: coin.mint, side, taker: wallet.address, amountRaw: sellRaw },
         ),
         fetchHoldings(wallet.address),
@@ -258,7 +272,6 @@ export function CoinScreen({ navigation, route }: Props) {
           text,
           builtAt,
           quote,
-          payWith,
           line: buying
             ? `Thin pool. Your $${amount} only buys about ${usd(short.gotUsd)} of it.`
             : `Thin pool. You'd get ${usd(short.gotUsd)} back, not ${usd(short.expectedUsd)}.`,
@@ -266,7 +279,7 @@ export function CoinScreen({ navigation, route }: Props) {
         });
         return;
       }
-      await send(wallet, order.value, side, before, text, builtAt, quote, buying ? payWith : "usdc");
+      await send(wallet, order.value, side, before, text, builtAt, quote);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -287,7 +300,7 @@ export function CoinScreen({ navigation, route }: Props) {
     inFlight.current = true;
     setBusy(true);
     try {
-      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote, c.payWith);
+      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -304,13 +317,12 @@ export function CoinScreen({ navigation, route }: Props) {
     text: string,
     builtAt: number,
     quote: { usdc: number; amount: number },
-    paid: PayWith,
   ) {
     const signed = await signTransaction(order.transaction, w.authToken, w.address);
     if (signed.authToken !== w.authToken) store.setWallet({ ...w, authToken: signed.authToken });
     const res = await executeOrder(order.requestId, signed.signed);
     const signature = res.ok ? res.value.signature : null;
-    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, payWith: paid, before, text, signature, quote };
+    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, payWith: "usdc" as const, before, text, signature, quote };
     switch (settled(res)) {
       case "landed":
         finish(w.address, sideNow, text, signature);
@@ -462,8 +474,29 @@ export function CoinScreen({ navigation, route }: Props) {
             {canPickAmount && !checking && (
               <View style={styles.chips}>
                 {buying
-                  ? chips.map((c) => <Pill key={c} label={`$${c}`} on={c === amount} onPress={() => setAmount(c)} />)
+                  ? chips.map((c) => (
+                      <Pill
+                        key={c}
+                        label={`$${c}`}
+                        on={!custom && c === amount}
+                        onPress={() => {
+                          setCustom("");
+                          setPreset(c);
+                        }}
+                      />
+                    ))
                   : SELL_SHARES.map((p) => <Pill key={p} label={p === 100 ? "All" : `${p}%`} on={p === sellPct} onPress={() => setSellPct(p)} />)}
+                {buying && (
+                  <TextInput
+                    value={custom}
+                    onChangeText={(t) => setCustom(t.replace(/\D/g, "").slice(0, 5))}
+                    keyboardType="number-pad"
+                    placeholder="$ more"
+                    placeholderTextColor={color.faint}
+                    style={[styles.more, custom ? styles.moreOn : null]}
+                    accessibilityLabel="Another amount, in dollars"
+                  />
+                )}
               </View>
             )}
             <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={() => void trade()} />
@@ -554,6 +587,20 @@ const styles = StyleSheet.create({
   confirmLine: { marginBottom: 12, textAlign: "center", fontFamily: font.bodyBold, fontSize: 16, lineHeight: 22, color: color.white },
   pair: { flexDirection: "row", gap: 10 },
   half: { flex: 1 },
-  chips: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 12 },
+  chips: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, marginBottom: 12 },
+  more: {
+    minWidth: 92,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: color.line,
+    backgroundColor: color.ink2,
+    fontFamily: font.bodyBold,
+    fontSize: 15,
+    color: color.white,
+    textAlign: "center",
+  },
+  moreOn: { borderColor: color.orange, backgroundColor: color.orange, color: color.ink },
   barNote: { marginTop: 8, textAlign: "center", fontFamily: font.body, fontSize: 13.5, color: color.faint },
 });

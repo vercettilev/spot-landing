@@ -31,7 +31,7 @@ Then ape in one tap, from your own wallet. Spot builds the trade through Jupiter
 What you get:
 • A sniff report on any coin, in plain words. "No" is the good answer.
 • Paste a CA, a $ticker or a link, or share a screenshot: Spot reads the coin out of it.
-• Pay with USDC or SOL, whichever you have.
+• Spot apes in dollars (USDC). Got SOL? Turn it into cash in a tap.
 • Your bag, priced, with what every ape made since you aped.
 • Every trade written down from your wallet's own numbers, a tap from Solscan.
 • The CA under every coin, so a lookalike never fools you.
@@ -42,7 +42,8 @@ Not financial advice. Coins can go to zero with or without a trick, and the snif
 
 ## What's new (0.4.0)
 
-• Ape with SOL when you have no USDC.
+• Got SOL and no USDC? Turn it into cash in Add cash.
+• Any amount: type your own next to $10, $25 and $50.
 • The CA under every coin, with a tap to copy and a link to Solscan.
 • Your bag keeps the books: what your apes made, every trade.
 • A trade that is slow to land is never offered twice.

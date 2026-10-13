@@ -93,7 +93,7 @@ describe("a quote", () => {
 
 describe("a trade that did not start", () => {
   it("says why in plain words", () => {
-    expect(orderErrorLine("refused", { message: "1 Insufficient funds" }, "buy")).toBe("Not enough USDC or SOL. Add cash, then ape.");
+    expect(orderErrorLine("refused", { message: "1 Insufficient funds" }, "buy")).toBe("Not enough USDC. Add cash, then ape.");
     expect(orderErrorLine("refused", { message: "Insufficient SOL for fees" }, "buy")).toBe("Add a little SOL for fees first, about $1 worth.");
     expect(orderErrorLine("refused", { message: "Insufficient funds" }, "sell")).toBe("Your wallet holds less than that now. Refresh your bag.");
     expect(orderErrorLine("refused", undefined, "buy")).toBe("Jupiter wouldn't take this trade. Try again.");
