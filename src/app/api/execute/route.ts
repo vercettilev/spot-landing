@@ -1,6 +1,7 @@
 import { fail, getIp, json, makeRateLimiter, preflight } from "@/engine/api";
 import { getDeps } from "@/engine/deps";
 import { isRecord } from "@/engine/http";
+import { tally } from "@/engine/tally";
 import { tradingMode } from "@/engine/trade";
 
 export const runtime = "nodejs";
@@ -46,11 +47,17 @@ export async function POST(req: Request) {
     return res.reason === "timeout" || res.reason === "network_error" ? fail(504, "pending") : fail(503, "lookup_failed");
   }
   const { status, signature, error } = res.value;
-  if (status === "Success") return json({ ok: true, status, signature, error, final: true });
+  if (status === "Success") {
+    await tally("landed");
+    return json({ ok: true, status, signature, error, final: true });
+  }
   if (!signature) return json({ ok: true, status, signature, error, final: false });
   const chain = await deps.readSignature(signature);
   const landing = chain.ok ? chain.value : "unknown";
-  if (landing === "landed") return json({ ok: true, status: "Success", signature, error: null, final: true });
+  if (landing === "landed") {
+    await tally("landed");
+    return json({ ok: true, status: "Success", signature, error: null, final: true });
+  }
   return json({ ok: true, status, signature, error, final: landing === "failed" });
 }
 
