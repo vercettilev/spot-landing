@@ -34,6 +34,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop, SvgXml } from "react-native-svg";
 import { ICON_SVG, MARK_SVG, WORDMARK_SVG } from "../art";
+import { faceSources } from "../logic";
 import { color, font, layer, leading, motion, radius, size, space, tone, tracking, type } from "../theme";
 import type { Status } from "../types";
 
@@ -204,18 +205,36 @@ export function Answer({ status, children }: { status: Status; children: ReactNo
   );
 }
 
-/** A coin's icon, or its first letter on orange when it has none or it will not load. */
+/**
+ * A coin's icon, tried from every place it can come from (faceSources in
+ * logic.ts), or its first letter, quiet, when it has none: never in Spot's
+ * orange, which is for keys, so a letter cannot pass for a brand.
+ */
 export function CoinFace({ uri, symbol, size: s = size.faceCoin }: { uri: string | null; symbol: string; size?: number }) {
-  const [failed, setFailed] = useState(false);
+  const sources = useMemo(() => faceSources(uri), [uri]);
+  const [tried, setTried] = useState<{ uri: string | null; at: number }>({ uri, at: 0 });
+  const at = tried.uri === uri ? tried.at : 0;
   const round = { width: s, height: s, borderRadius: s / 2 };
-  if (!uri || failed) {
+  const source = sources[at];
+  if (!source) {
     return (
-      <View style={[round, styles.faceFallback]}>
+      <View style={[round, styles.faceFallback]} accessible accessibilityLabel={symbol}>
         <Text style={[styles.faceLetter, { fontSize: s * 0.42 }]}>{(symbol[0] ?? "?").toUpperCase()}</Text>
       </View>
     );
   }
-  return <Image source={{ uri }} style={[round, styles.face]} contentFit="cover" onError={() => setFailed(true)} transition={150} />;
+  return (
+    <Image
+      key={source}
+      source={{ uri: source }}
+      style={[round, styles.face]}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      onError={() => setTried({ uri, at: at + 1 })}
+      transition={150}
+      accessibilityLabel={symbol}
+    />
+  );
 }
 
 /** A slow breath, for whatever is waiting on the network. Held still when motion is reduced. */
@@ -288,8 +307,8 @@ const styles = StyleSheet.create({
   answer: { borderRadius: radius.pill, paddingVertical: space.x1, paddingHorizontal: space.x3 },
   answerText: { fontFamily: font.bodyBold, fontSize: type.callout },
   face: { backgroundColor: color.ink3 },
-  faceFallback: { backgroundColor: color.orange, alignItems: "center", justifyContent: "center" },
-  faceLetter: { fontFamily: font.display, color: color.ink },
+  faceFallback: { backgroundColor: color.ink3, alignItems: "center", justifyContent: "center", borderWidth: size.hairline, borderColor: color.line },
+  faceLetter: { fontFamily: font.display, color: color.dim },
   toast: {
     position: "absolute",
     zIndex: layer.toast,

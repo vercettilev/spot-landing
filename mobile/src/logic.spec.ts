@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, actionFor, bagLine, emptyBag, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -386,5 +386,32 @@ describe("the bag", () => {
     expect(emptyBag(0)).toBe(true);
     expect(emptyBag(0.62)).toBe(true);
     expect(emptyBag(255.55)).toBe(false);
+  });
+});
+
+describe("a coin's face", () => {
+  const cid = "bafkreibk3covs5ltyqxa272uodhculbr6kea6betidfwy3ajsav2vjzyum";
+  it("tries IPFS through gateways that answer, the same picture from each", () => {
+    expect(faceSources(`https://${cid}.ipfs.nftstorage.link`)).toEqual([
+      `https://4everland.io/ipfs/${cid}`,
+      `https://${cid}.ipfs.nftstorage.link`,
+      `https://gateway.pinata.cloud/ipfs/${cid}`,
+      `https://ipfs.io/ipfs/${cid}`,
+    ]);
+    expect(faceSources(`ipfs://${cid}/logo.png`)).toEqual([
+      `https://4everland.io/ipfs/${cid}/logo.png`,
+      `https://gateway.pinata.cloud/ipfs/${cid}/logo.png`,
+      `https://ipfs.io/ipfs/${cid}/logo.png`,
+    ]);
+    expect(faceSources(`https://ipfs.io/ipfs/QmYfUZh6dXGTjexNNXnUgNazU8MVsK1dcfvrPDGz3dRrNz`)).toEqual([
+      "https://4everland.io/ipfs/QmYfUZh6dXGTjexNNXnUgNazU8MVsK1dcfvrPDGz3dRrNz",
+      "https://ipfs.io/ipfs/QmYfUZh6dXGTjexNNXnUgNazU8MVsK1dcfvrPDGz3dRrNz",
+      "https://gateway.pinata.cloud/ipfs/QmYfUZh6dXGTjexNNXnUgNazU8MVsK1dcfvrPDGz3dRrNz",
+    ]);
+  });
+
+  it("tries anything else as given, and nothing when there is none", () => {
+    expect(faceSources("https://arweave.net/FyNde0I6M7gOYB6Ui_wnCFPraX4AQIaEcr6rB9gWPAQ")).toEqual(["https://arweave.net/FyNde0I6M7gOYB6Ui_wnCFPraX4AQIaEcr6rB9gWPAQ"]);
+    expect(faceSources(null)).toEqual([]);
   });
 });

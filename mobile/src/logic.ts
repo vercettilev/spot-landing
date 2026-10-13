@@ -484,3 +484,31 @@ export function bagLine(coins: number, cashUsd: number): string {
 
 /** A bag with nothing in it to trade: under a dollar, all told. */
 export const emptyBag = (totalUsd: number): boolean => !(totalUsd >= 1);
+
+/* A coin's icon on IPFS, wherever it was linked from: ipfs://, a path
+   gateway (…/ipfs/<cid>) or a subdomain gateway (<cid>.ipfs.<host>). */
+const IPFS_SCHEME = /^ipfs:\/\/(?:ipfs\/)?([A-Za-z0-9]+)(\/[^?#]*)?/;
+const IPFS_SUBDOMAIN = /^https?:\/\/([a-z0-9]+)\.ipfs\.[^/?#]+(\/[^?#]*)?/;
+const IPFS_PATH = /^https?:\/\/[^/?#]+\/ipfs\/([A-Za-z0-9]+)(\/[^?#]*)?/;
+
+/** Gateways that answer for anyone, the one that held up best first. */
+const GATEWAYS = ["https://4everland.io", "https://gateway.pinata.cloud", "https://ipfs.io"];
+
+/**
+ * WHERE A COIN'S FACE CAN COME FROM, in the order to try. The public IPFS
+ * gateways coins are minted with (nftstorage.link, ipfs.io) turn a phone
+ * away when busy, and a blue chip then wears a letter like a fake. An IPFS
+ * address is its content's fingerprint, so any gateway that answers shows
+ * the same picture: the face is never wrong, only late. Anything else is
+ * tried as given.
+ */
+export function faceSources(uri: string | null): string[] {
+  if (!uri) return [];
+  const m = uri.match(IPFS_SCHEME) ?? uri.match(IPFS_SUBDOMAIN) ?? uri.match(IPFS_PATH);
+  if (!m) return [uri];
+  const cid = m[1]!;
+  const path = m[2] && m[2] !== "/" ? m[2] : "";
+  const via = (g: string) => `${g}/ipfs/${cid}${path}`;
+  const all = [via(GATEWAYS[0]!), /^https?:/.test(uri) ? uri : null, ...GATEWAYS.slice(1).map(via)];
+  return all.filter((u, i): u is string => u !== null && all.indexOf(u) === i);
+}
