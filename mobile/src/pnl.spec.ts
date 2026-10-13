@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { books, gain, pnlOf, since, sinceLine, tradeLine, type Trade } from "./pnl";
+import { books, gain, pnlOf, saleGain, since, sinceLine, tradeLine, type Trade } from "./pnl";
 
 const COIN = "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm";
 const trade = (side: Trade["side"], usdc: number, amount: number, at: string, extra: Partial<Trade> = {}): Trade => ({
@@ -58,6 +58,16 @@ describe("since you aped", () => {
     expect(since(b, { amount: 50, usd: 6 })!.usd).toBeCloseTo(1, 9);
     expect(since(b, null)).toBeNull();
     expect(since(books([trade("sell", 1, 1, "2026-10-12T19:26:00Z")]).get(COIN)!, { amount: 100, usd: 12 })).toBeNull();
+  });
+});
+
+describe("one sale", () => {
+  it("makes what it sold for less what that part cost", () => {
+    const b = books([trade("buy", 10, 100, "2026-10-12T19:25:00Z")]).get(COIN);
+    expect(saleGain(b, 50, 7)).toEqual({ usd: 2, pct: 40 });
+    expect(saleGain(b, 100, 9.3)!.usd).toBeCloseTo(-0.7, 9);
+    expect(saleGain(b, 200, 30)).toEqual({ usd: 5, pct: 50 });
+    expect(saleGain(undefined, 50, 7)).toBeNull();
   });
 });
 

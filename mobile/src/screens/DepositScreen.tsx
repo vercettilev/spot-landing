@@ -5,6 +5,7 @@ import { ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { USDC_MINT, executeOrder, fetchHoldings, placeOrder } from "../api";
 import { ICON_SVG } from "../art";
+import { celebrate } from "../components/Moment";
 import { Button, Card, Pill, TopBar, feel, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import { amount as fmtAmount, money, usd } from "../logic";
@@ -107,8 +108,7 @@ export function DepositScreen({ navigation }: Props) {
       switch (settled(res)) {
         case "landed":
           forgetHoldings(wallet.address);
-          feel("success");
-          toast(`${text}. Ready to ape.`);
+          celebrate({ kind: "cash", symbol: "USDC", usdc: chosen, amount: chosen });
           return;
         case "failed":
           feel("error");

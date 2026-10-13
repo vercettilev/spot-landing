@@ -3,7 +3,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { USDC_MINT } from "../api";
 import { isClaimed, restore, subscribe } from "../pending";
 import { useStore } from "../store";
+import { books, saleGain } from "../pnl";
 import { fateLine } from "../trade";
+import { celebrate } from "./Moment";
 import { feel, useToast } from "./ui";
 
 /**
@@ -26,12 +28,16 @@ export function TradeWatch() {
       const s = latest.current;
       /* Turning SOL into cash is not a trade: no book, no watch, just the word. */
       if (p.mint === USDC_MINT) {
-        if (fate === "landed") feel("success");
-        if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
+        if (fate === "landed") celebrate({ kind: "cash", symbol: "USDC", usdc: p.quote.usdc, amount: p.quote.usdc });
+        else if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
         return;
       }
       if (fate === "landed") {
         const f = fill ?? { ...p.quote, exact: false };
+        if (!p.landed) {
+          const gain = p.side === "sell" ? saleGain(books(s.trades.filter((t) => t.owner === p.owner)).get(p.mint), f.amount, f.usdc) : null;
+          celebrate({ kind: p.side === "buy" ? "ape" : "sell", symbol: p.token.symbol, usdc: f.usdc, amount: f.amount, gain });
+        }
         s.addTrade({
           id: p.signature ?? `${p.owner}-${p.mint}-${p.until}`,
           at: new Date().toISOString(),
@@ -51,10 +57,9 @@ export function TradeWatch() {
       if (fate === "landed") {
         s.addActivity({ kind: p.side === "buy" ? "ape" : "sell", mint: p.mint, symbol: p.token.symbol, text: p.text, signature: p.signature });
         if (p.side === "buy" && !s.isWatched(p.mint)) s.toggleWatch(p.token);
-        feel("success");
-      } else if (fate === "lost") {
-        feel("error");
+        return;
       }
+      if (fate === "lost") feel("error");
       if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -28,5 +28,5 @@ npx expo export --platform web   # the screens in a browser, share simulated by 
 - Benefit first: every screen opens with what the user gets (the verdict, the bag's worth, scams dodged), the details after. One loud element a screen; the rest quiet.
 - Pure black ground (OLED), one orange for actions, the white receipt for the sniff. Sizes and spacing come from `type` and `space` in `src/theme.ts`; lists are `Group` and `Row` from `src/components/ui.tsx`, not a card per row.
 - No all-caps labels and no monospace outside the receipt and wallet addresses; section headings are sentence case.
-- One orchestrated motion: the verdict (checks tick in, the stamp lands, the phone feels it). Everything else moves only when touched. Reduced motion is respected.
+- Two orchestrated motions: the verdict (checks tick in, the stamp lands, the phone feels it) and the moment a trade lands (`src/components/Moment.tsx`: orange bursts up, the puppy bounces in and barks, the word comes up, the phone thumps in rhythm). Everything else moves only when touched. Reduced motion is respected.
 - Words: plain CT (ape, bag, dev, rug, honeypot, GRRR, NOPE), dollars on buttons ("Ape $25"), every sniff question asked so "No" is the good answer, errors say what happened and what to do.

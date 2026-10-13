@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { Moment } from "./src/components/Moment";
 import { TradeWatch } from "./src/components/TradeWatch";
 import { Navigation } from "./src/navigation";
 import { StoreProvider, useStore } from "./src/store";
@@ -35,6 +36,8 @@ export default function App() {
             <Navigation />
             <TradeWatch />
           </SafeAreaView>
+          {/* Over the safe area too: the moment takes the whole screen, status bar and all. */}
+          <Moment />
         </WhenReady>
       </StoreProvider>
     </SafeAreaProvider>
