@@ -164,6 +164,8 @@ export const size = {
   mark: 28,
   /** The puppy across from the wordmark. */
   markHeader: 40,
+  /** The puppy over an empty tab's words. */
+  markEmpty: 72,
   /** The puppy over a status screen's words. */
   puppy: 112,
   /** A keypad key's height. */

@@ -475,3 +475,12 @@ export function coverWith(choices: number[], need: number | null, cash: number |
   const short = need - cash;
   return choices.find((c) => c >= short) ?? choices[choices.length - 1]!;
 }
+
+/** Under the bag's worth: what it is made of, and what is ready to ape. */
+export function bagLine(coins: number, cashUsd: number): string {
+  const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
+  return `${held} and ${usd(cashUsd)} ready to ape`;
+}
+
+/** A bag with nothing in it to trade: under a dollar, all told. */
+export const emptyBag = (totalUsd: number): boolean => !(totalUsd >= 1);

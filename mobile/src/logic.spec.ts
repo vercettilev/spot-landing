@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, actionFor, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, actionFor, bagLine, emptyBag, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -372,5 +372,19 @@ describe("adding cash", () => {
     expect(coverWith([25, 50, 89], 500, 0)).toBe(89);
     expect(coverWith([25, 50], null, null)).toBe(25);
     expect(coverWith([], 25, 0)).toBeNull();
+  });
+});
+
+describe("the bag", () => {
+  it("says what it is made of and what is ready to ape", () => {
+    expect(bagLine(2, 120)).toBe("2 coins and $120 ready to ape");
+    expect(bagLine(1, 0)).toBe("1 coin and $0 ready to ape");
+    expect(bagLine(0, 3.4)).toBe("No coins yet and $3 ready to ape");
+  });
+
+  it("is empty under a dollar", () => {
+    expect(emptyBag(0)).toBe(true);
+    expect(emptyBag(0.62)).toBe(true);
+    expect(emptyBag(255.55)).toBe(false);
   });
 });
