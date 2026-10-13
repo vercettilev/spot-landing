@@ -410,7 +410,9 @@ export function dockKey(s: DockState): Action {
   }
   if (s.restricted) return { label: "Not for US users", enabled: false, tone: "stop" };
   if (s.busy) return { label: "Aping…", enabled: false, tone: "wait" };
-  if (needsCash(s)) return { label: "Add cash", enabled: true, tone: "go" };
+  /* Short of cash with the coin already in the bag (as right after an ape): the next thing is not
+     to pay again, so the way to add cash is there but quiet. */
+  if (needsCash(s)) return s.held !== null ? { label: "Add cash to ape more", enabled: true, tone: "quiet" } : { label: "Add cash", enabled: true, tone: "go" };
   return actionFor(s.sniff, s.amount);
 }
 
@@ -421,6 +423,7 @@ export function dockNote(s: DockState): string {
   if (s.sniff === "loading") return "Checking it for scams…";
   if (s.sniff === "block") return "Share another post to sniff something else.";
   if (s.restricted) return "Coins like this aren't sold to people in the US.";
+  if (needsCash(s) && s.held !== null) return `You hold ${money(s.held)} of it. Sell it here or in your Bag anytime.`;
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
   if (s.wallet === "mwa") return s.cash === null ? "Your wallet approves every trade." : `${money(s.cash)} ready to ape. Your wallet approves every trade.`;
   if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";

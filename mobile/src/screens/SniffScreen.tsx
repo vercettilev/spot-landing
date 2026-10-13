@@ -22,7 +22,7 @@ const TRIES = ["$WIF", "$POPCAT", "$JUP"];
  * (ape anything you see, and nothing that can't be sold), then how, shown
  * rather than listed: a phone's share menu with Spot in it, and a coin to
  * try. After that the promise has been kept, so the screen gets out of the
- * way: the cash ready to ape, one field and one key for posts without a
+ * way: what the bag holds, one field and one key for posts without a
  * Share button, and the coins sniffed lately, one tap from their sniff.
  */
 export function SniffScreen({ navigation }: Props) {
@@ -79,10 +79,11 @@ export function SniffScreen({ navigation }: Props) {
               }}
               style={({ pressed }) => [styles.cash, pressed && styles.cashPressed]}
               accessibilityRole="button"
-              accessibilityLabel={bag.value ? `${money(bag.value.usdc.usd)} ready to ape. Open your bag.` : "Open your bag"}
+              accessibilityLabel={bag.value ? `Your bag: ${money(bag.value.totalUsd)}. Open it.` : "Open your bag"}
             >
-              <Text style={styles.cashText}>{bag.value ? money(bag.value.usdc.usd) : "$…"}</Text>
-              <Text style={styles.cashLabel}>to ape</Text>
+              {/* What you have, all told: "$0.00 to ape" right after an ape read as money gone. */}
+              <Text style={styles.cashText}>{bag.value ? money(bag.value.totalUsd) : "$…"}</Text>
+              <Text style={styles.cashLabel}>in your bag</Text>
               <Chevron tint={color.faint} />
             </Pressable>
           ) : (

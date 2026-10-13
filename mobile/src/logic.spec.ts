@@ -264,6 +264,9 @@ describe("the dock", () => {
     expect(dockNote({ ...base, cash: 3 })).toBe("Only $3.00 in USDC. Add cash, then ape.");
     expect(dockNote({ ...base, cash: 3, solCovers: true })).toBe("Only $3.00 in USDC. Turn some SOL into cash first.");
     expect(needsCash({ ...base, cash: null })).toBe(false);
+    /* Right after an ape the cash is spent and the coin is held: nothing to fix, so nothing shouts. */
+    expect(dockKey({ ...base, cash: 0, held: 25.09 })).toEqual({ label: "Add cash to ape more", enabled: true, tone: "quiet" });
+    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("You hold $25.09 of it. Sell it here or in your Bag anytime.");
     expect(needsCash({ ...base, cash: 3, wallet: "watch" })).toBe(false);
     expect(needsCash({ ...base, cash: 3, sniff: "block" })).toBe(false);
   });
