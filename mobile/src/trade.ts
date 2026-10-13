@@ -96,7 +96,7 @@ export function orderErrorLine(error: ApiError, detail: Record<string, unknown> 
   switch (error) {
     case "refused":
       if (/\bsol\b|lamport|rent|fee/i.test(said) && /insufficient|not enough/i.test(said)) return "Add a little SOL for fees first, about $1 worth.";
-      if (/insufficient|not enough|balance/i.test(said)) return side === "buy" ? "Not enough USDC or SOL. Add cash, then ape." : "Your wallet holds less than that now. Refresh your bag.";
+      if (/insufficient|not enough|balance/i.test(said)) return side === "buy" ? "Not enough USDC. Add cash, then ape." : "Your wallet holds less than that now. Refresh your bag.";
       return "Jupiter wouldn't take this trade. Try again.";
     case "busy":
       return "Spot is busy. Try again in a few seconds.";

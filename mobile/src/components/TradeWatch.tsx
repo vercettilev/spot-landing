@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { USDC_MINT } from "../api";
 import { isClaimed, restore, subscribe } from "../pending";
 import { useStore } from "../store";
 import { fateLine } from "../trade";
@@ -23,6 +24,12 @@ export function TradeWatch() {
     return subscribe((p, fate, fill) => {
       if (!fate) return;
       const s = latest.current;
+      /* Turning SOL into cash is not a trade: no book, no watch, just the word. */
+      if (p.mint === USDC_MINT) {
+        if (fate === "landed") feel("success");
+        if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
+        return;
+      }
       if (fate === "landed") {
         const f = fill ?? { ...p.quote, exact: false };
         s.addTrade({

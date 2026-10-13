@@ -17,7 +17,9 @@ const limit = makeRateLimiter(20);
  * here, whatever the app showed: a blocked coin gets no transaction, a
  * warned one none above its cap. A sell is never refused: getting out is
  * always the user's call. A buy is paid in USDC, or with `payWith: "sol"`
- * in SOL worth the same dollars at Jupiter's price of the moment.
+ * in SOL worth the same dollars at Jupiter's price of the moment; with
+ * USDC itself as the mint, that is "turn SOL into cash", and nothing is
+ * sniffed.
  *
  * CLOSED until SPOT_TRADING=1, and only for SPOT_TRADING_WALLETS when that
  * is set (a wallet off the list hears trading_closed, like everyone does
@@ -40,7 +42,9 @@ export async function POST(req: Request) {
   const b = isRecord(body) ? body : {};
   const mint = typeof b.mint === "string" ? b.mint.trim() : "";
   const taker = typeof b.taker === "string" ? b.taker.trim() : "";
-  if (!isAddress(mint) || mint === USDC_MINT) return fail(400, "invalid_mint");
+  if (!isAddress(mint)) return fail(400, "invalid_mint");
+  const toCash = mint === USDC_MINT;
+  if (toCash && !(b.side === "buy" && b.payWith === "sol")) return fail(400, "invalid_mint");
   if (b.side !== "buy" && b.side !== "sell") return fail(400, "invalid_side");
   if (!isAddress(taker)) return fail(400, "invalid_taker");
   if (!mayTrade(process.env, taker)) return fail(403, "trading_closed");
@@ -52,12 +56,14 @@ export async function POST(req: Request) {
   if (b.side === "buy") {
     const usdc = typeof b.amountUsdc === "number" ? Math.round(b.amountUsdc * 100) / 100 : NaN;
     if (!Number.isFinite(usdc) || usdc < 1 || usdc > 10_000) return fail(400, "invalid_amount");
-    const s = await sniff(mint, usdc, deps);
-    if (!s.ok) return s.reason === "lookup_failed" ? fail(503, "lookup_failed") : fail(404, s.reason);
-    if (s.value.level === "block") return fail(409, "blocked", { headline: s.value.headline });
-    if (s.value.level === "unknown") return fail(409, "unsniffed", { headline: s.value.headline });
-    if (s.value.level === "warn" && s.value.maxBuyUsdc !== null && usdc > s.value.maxBuyUsdc) {
-      return fail(409, "over_cap", { maxBuyUsdc: s.value.maxBuyUsdc });
+    if (!toCash) {
+      const s = await sniff(mint, usdc, deps);
+      if (!s.ok) return s.reason === "lookup_failed" ? fail(503, "lookup_failed") : fail(404, s.reason);
+      if (s.value.level === "block") return fail(409, "blocked", { headline: s.value.headline });
+      if (s.value.level === "unknown") return fail(409, "unsniffed", { headline: s.value.headline });
+      if (s.value.level === "warn" && s.value.maxBuyUsdc !== null && usdc > s.value.maxBuyUsdc) {
+        return fail(409, "over_cap", { maxBuyUsdc: s.value.maxBuyUsdc });
+      }
     }
     if (b.payWith === "sol") {
       const sol = await deps.search.search(SOL_MINT, { timeoutMs: 3_000 });
