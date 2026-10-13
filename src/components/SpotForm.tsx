@@ -51,7 +51,7 @@ const setMood = (mood: Mood) => window.dispatchEvent(new CustomEvent<Mood>("spot
  * and the pass asks after joining, one tap, once the question no longer
  * stands between anyone and the list.
  */
-export function SpotForm({ shareUrl }: { shareUrl: string }) {
+export function SpotForm({ shareUrl, next }: { shareUrl: string; next?: number | null }) {
   const [email, setEmail] = useState("");
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [website, setWebsite] = useState(""); // the honeypot: off-screen, never focused
@@ -63,6 +63,7 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
   const [invitedBy, setInvitedBy] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [thud, setThud] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const slot = useRef<HTMLDivElement>(null);
   const morphFrom = useRef<number | null>(null);
 
@@ -121,7 +122,7 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
     el.style.height = `${from}px`;
     el.style.overflow = "hidden";
     void el.offsetHeight;
-    el.style.transition = "height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)";
+    el.style.transition = "height 0.45s var(--ease-out)";
     el.style.height = `${to}px`;
     const done = () => {
       el.style.height = "";
@@ -188,17 +189,25 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
   function reset() {
     remember(MY_CODE, null);
     remember(MY_LAST, null);
-    morphFrom.current = slot.current?.getBoundingClientRect().height ?? null;
-    setSpot(null);
-    setEmail("");
-    setThud(false);
-    setStatus("idle");
+    const swap = () => {
+      morphFrom.current = slot.current?.getBoundingClientRect().height ?? null;
+      setLeaving(false);
+      setSpot(null);
+      setEmail("");
+      setThud(false);
+      setStatus("idle");
+    };
+    /* OUT FASTER THAN IN. The pass arrived over 1.15s; it leaves in 0.2s
+       (.leaving in the module), then the form takes its place. */
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return swap();
+    setLeaving(true);
+    window.setTimeout(swap, 200);
   }
 
   return (
     <div ref={slot} className={styles.slot}>
       {status === "done" ? (
-        <div className={`${styles.card} ${thud ? styles.thud : ""}`}>
+        <div className={`${styles.card} ${thud ? styles.thud : ""} ${leaving ? styles.leaving : ""}`}>
           <SpotPass
             spot={spot}
             mode={mode}
@@ -213,7 +222,7 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
         <form onSubmit={submit} className={styles.form}>
           {invitedBy && <p className={styles.invited}>A friend sent you. Joining moves them up the line.</p>}
           <div className={styles.row}>
-            <label className={styles.sr} htmlFor="spot-email">
+            <label className="sr-only" htmlFor="spot-email">
               Email
             </label>
             <input
@@ -224,6 +233,8 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
               autoComplete="email"
               inputMode="email"
               placeholder="Your email"
+              aria-describedby={status === "error" ? "spot-email-error" : "spot-email-help"}
+              aria-invalid={status === "error" ? true : undefined}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setTyping(true)}
@@ -246,16 +257,25 @@ export function SpotForm({ shareUrl }: { shareUrl: string }) {
           />
 
           {status === "error" ? (
-            <p className={styles.error} role="alert">
+            <p id="spot-email-error" className={styles.error} role="alert">
               {error}
             </p>
           ) : (
-            <p className={styles.helper}>
+            <p id="spot-email-help" className={styles.helper}>
               <svg className={styles.up} viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
                 <circle cx="12" cy="12" r="12" fill="currentColor" />
                 <path d="M12 17.5V7M7.5 11.5 12 7l4.5 4.5" fill="none" stroke="#0b0b0c" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Friends who join move you up {REF_BONUS}&nbsp;spots.
+              <span>
+                {/* The number a newcomer gets, when the page was handed one
+                    (page.tsx): the line's own counter, nothing invented. */}
+                {next ? (
+                  <>
+                    You&apos;d be <b>#{next.toLocaleString("en-US")}</b>.{" "}
+                  </>
+                ) : null}
+                Friends who join move you up {REF_BONUS}&nbsp;spots.
+              </span>
             </p>
           )}
         </form>

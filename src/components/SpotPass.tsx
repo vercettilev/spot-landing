@@ -207,7 +207,7 @@ export function SpotPass({
               <p className={`${styles.number} ${spot.rank >= 10000 ? styles.long : ""}`}>
                 <span className={styles.hash} aria-hidden="true">#</span>
                 <Odometer value={spot.rank} from={mode === "back" ? (lastRank ?? spot.rank) : 0} roll={motion && (mode !== "back" || moved > 0)} />
-                <span className={styles.sr}>Number {spot.rank.toLocaleString("en-US")} in line.</span>
+                <span className="sr-only">Number {spot.rank.toLocaleString("en-US")} in line.</span>
               </p>
               <Stamp slam={entering} />
             </div>

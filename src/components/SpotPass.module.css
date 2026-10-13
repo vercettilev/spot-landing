@@ -24,8 +24,11 @@
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 16px;
-  background: #f5f3ef;
+  border-radius: var(--radius-xl);
+  background: var(--paper);
+  /* A hairline, so the ticket reads as a ticket on the white card and not
+     as a slightly dirtier white. */
+  box-shadow: inset 0 0 0 1px var(--paper-line);
   -webkit-mask: radial-gradient(circle 9px at 0 var(--notch-y, 104px), transparent 96%, #000 100%) left / 51% 100% no-repeat,
     radial-gradient(circle 9px at 100% var(--notch-y, 104px), transparent 96%, #000 100%) right / 51% 100% no-repeat;
   mask: radial-gradient(circle 9px at 0 var(--notch-y, 104px), transparent 96%, #000 100%) left / 51% 100% no-repeat,
@@ -47,12 +50,13 @@
   height: 78px;
 }
 
+/* 12px, not 11.5, and dark enough to clear 4.5:1 on the ticket paper. */
 .placeLabel {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #77757a;
+  color: var(--muted-light);
 }
 
 .number {
@@ -139,7 +143,7 @@
 
 /* Lands once: from above and turned, overshoots into the paper, settles. */
 .slam {
-  animation: slam 0.46s cubic-bezier(0.2, 0.75, 0.25, 1) 0.74s both;
+  animation: slam 0.46s var(--ease-settle) 0.74s both;
 }
 
 @keyframes slam {
@@ -174,10 +178,10 @@
 .note {
   margin-top: 12px;
   padding-top: 11px;
-  border-top: 1.5px dashed #d8d4cc;
-  font-size: 14.5px;
+  border-top: 1.5px dashed var(--paper-line);
+  font-size: var(--text-md);
   line-height: 1.45;
-  color: #3a3a40;
+  color: var(--ink-soft);
 }
 
 /* The phone, asked on the pass: three buttons, or one line for a Seeker. */
@@ -189,24 +193,37 @@
 }
 
 .phone {
+  --ring: var(--ink);
   height: 44px;
   border: 1.5px solid var(--paper-line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--white);
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--ink);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform var(--dur-fast);
 }
 
 .phone:hover {
   border-color: var(--ink);
 }
 
+/* Every key on the pass gives on the way down. The same 80ms as the big ones. */
+.phone:active,
+.seeker:active,
+.copy:active,
+.shareX:active,
+.shareMore:active,
+.follow:active,
+.notYou:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* 37px tall: the text line plus padding, so a thumb finds it (it was 25). */
 .seeker {
-  margin-top: 4px;
-  padding: 4px 0;
+  margin-top: 0;
+  padding: 10px 0;
   border: 0;
   background: none;
   font-size: 14px;
@@ -232,9 +249,9 @@
 
 .moveText {
   margin-top: 3px;
-  font-size: 14.5px;
+  font-size: var(--text-md);
   line-height: 1.45;
-  color: #3a3a40;
+  color: var(--ink-soft);
 }
 
 .linkRow {
@@ -244,7 +261,7 @@
   height: 50px;
   margin-top: 12px;
   padding: 0 6px 0 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1.5px solid var(--paper-line);
   background: var(--paper);
 }
@@ -255,23 +272,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 600;
   color: var(--ink);
 }
 
 .copy {
+  --ring: var(--ink);
   flex: none;
   min-width: 76px;
   height: 38px;
   padding: 0 14px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--ink);
   color: var(--white);
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.15s, transform var(--dur-fast);
+}
+
+.copy:hover {
+  background: var(--ink-3);
 }
 
 .shareRow {
@@ -291,30 +314,43 @@
   align-items: center;
   justify-content: center;
   height: 48px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1.5px solid var(--ink);
-  font-size: 15px;
+  font-size: var(--text-md);
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform var(--dur-fast);
 }
 
 .shareX {
+  /* An orange key on the white card: the ring is ink. */
+  --ring: var(--ink);
   background: var(--orange);
   border-color: var(--orange);
   color: var(--ink);
 }
 
+.shareX:hover {
+  background: var(--orange-hover);
+  border-color: var(--orange-hover);
+}
+
 .shareMore {
+  --ring: var(--ink);
   background: var(--white);
   color: var(--ink);
 }
 
+.shareMore:hover {
+  background: var(--paper);
+}
+
 .count {
   margin-top: 12px;
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: #3a3a40;
+  color: var(--ink-soft);
 }
 
 /* Spot on X: the pass's last line, quieter than the two ways to share. */
@@ -323,9 +359,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 18px;
-  padding: 4px;
-  font-size: 14px;
+  margin-top: 12px;
+  padding: 10px 4px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
@@ -342,12 +378,12 @@
 
 .notYou {
   display: block;
-  margin: 16px auto 0;
-  padding: 4px;
+  margin: 8px auto 0;
+  padding: 10px 12px;
   border: 0;
   background: none;
-  font-size: 13px;
-  color: #6e6e76;
+  font-size: var(--text-xs);
+  color: var(--muted-light);
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -381,36 +417,28 @@
   font-size: 15px;
 }
 
-.sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
 
 /* ---------- arriving ---------- */
 
 .enter .title {
-  animation: rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: rise 0.42s var(--ease-out) both;
 }
 .enter .placeLabel {
-  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.14s both;
+  animation: rise 0.45s var(--ease-out) 0.14s both;
 }
 .enter .number {
-  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s both;
+  animation: rise 0.45s var(--ease-out) 0.18s both;
 }
 .enter .place::before {
-  animation: paper 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.08s both;
+  animation: paper 0.5s var(--ease-out) 0.08s both;
 }
 .enter .note {
-  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+  animation: rise 0.45s var(--ease-out) 0.5s both;
 }
 .enter .moveUp,
 .enter .plain .moveTitle,
 .enter .plain .shareRow {
-  animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.15s both;
+  animation: rise 0.5s var(--ease-out) 1.15s both;
 }
 
 @keyframes rise {

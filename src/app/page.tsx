@@ -6,8 +6,29 @@ import { Reveal } from "@/components/Reveal";
 import { Sources } from "@/components/Sources";
 import { SpotForm } from "@/components/SpotForm";
 import { SpotPuppy } from "@/components/SpotPuppy";
+import { getKv, nextPlace } from "@/lib/line";
 import { OPERATOR, SITE_URL, X_URL } from "@/lib/site";
 import styles from "./page.module.css";
+
+/* THE NUMBER A NEWCOMER WOULD GET, printed under the form as it is: the
+   line's own counter, nothing invented. Rendered on the server so it is in
+   the first paint and nothing shifts; the page is revalidated every 30
+   seconds, so it stays about right without a database read per visit. It is
+   withheld while the line is short: a true "#14" says more about the list
+   than about Spot. Without Redis (a local run) there is no number. */
+export const revalidate = 30;
+const SHOW_NEXT_FROM = 100;
+
+async function nextInLine(): Promise<number | null> {
+  const kv = getKv();
+  if (!kv) return null;
+  try {
+    const n = await Promise.race([nextPlace(kv), new Promise<null>((done) => setTimeout(() => done(null), 800))]);
+    return n !== null && n >= SHOW_NEXT_FROM ? n : null;
+  } catch {
+    return null;
+  }
+}
 
 /* One example coin's sniff, in the engine's own words (src/engine/sniff.ts):
    every question asked so that "No" is the good answer. Not a trap, just new
@@ -62,7 +83,8 @@ function Notice({ title, text, when, action }: { title: string; text: string; wh
  *
  * Every line is a promise about the first version (see README, "Claims").
  */
-export default function Home() {
+export default async function Home() {
+  const next = await nextInLine();
   return (
     <div className={styles.page}>
       <header className={`${styles.wrap} ${styles.header}`}>
@@ -87,7 +109,7 @@ export default function Home() {
               <span className={styles.line}>Spot sniffs out the rugs on the&nbsp;way.</span>
             </p>
             <div className={styles.join} id="join">
-              <SpotForm shareUrl={SITE_URL} />
+              <SpotForm shareUrl={SITE_URL} next={next} />
             </div>
           </div>
           <PhoneDemo />
@@ -152,7 +174,7 @@ export default function Home() {
                   <p className={styles.verdict}>Risky. Ape $18&nbsp;max.</p>
                   <p className={styles.grrr}>
                     <span aria-hidden="true">GRRR</span>
-                    <span className={styles.sr}>Spot growls at this one.</span>
+                    <span className="sr-only">Spot growls at this one.</span>
                   </p>
                 </div>
               </Reveal>

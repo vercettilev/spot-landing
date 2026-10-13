@@ -38,7 +38,7 @@
   transform: translateX(-50%);
   font-size: 14px;
   font-weight: 600;
-  color: #8f8b84;
+  color: var(--faint-light);
   white-space: nowrap;
 }
 
@@ -55,9 +55,11 @@
   box-shadow: 0 0 0 4px var(--ink), 0 0 0 6px var(--orange);
 }
 
+/* The ring carries the meaning (this dot is the people who bought the top),
+   so it clears 3:1 on the ink: 4.3, where #5d5a55 gave 2.9. */
 .them {
   background: #3a3936;
-  box-shadow: 0 0 0 4px var(--ink), 0 0 0 6px #5d5a55;
+  box-shadow: 0 0 0 4px var(--ink), 0 0 0 6px #7a766f;
 }
 
 .label {
@@ -81,7 +83,7 @@
 
 .them .label {
   right: 30px;
-  color: #a8a49c;
+  color: var(--stone);
   font-weight: 600;
 }
 
@@ -91,7 +93,7 @@
   left: 0;
   font-size: 13px;
   font-weight: 600;
-  color: #6f6b65;
+  color: var(--faint-light);
 }
 
 @media (min-width: 720px) {

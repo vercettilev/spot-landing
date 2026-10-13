@@ -5,6 +5,18 @@
 .demo {
   --t: 12s;
   --d: -0.45s;
+  /* The phone's own palette: a feed's blacks and a sheet's greys, named once. */
+  --mock-body: #232327;
+  --mock-screen: #141416;
+  --mock-post: #26262b;
+  --mock-post-warm: #2b2a26;
+  --mock-text: #e6e3dd;
+  --mock-muted: #8e8b85;
+  --mock-muted-light: #8a8780;
+  --mock-key: #dedcd7;
+  --mock-line: #e2dfd9;
+  --mock-grab: #c9c6c0;
+  --mock-off: #d6d3cd;
   --phone-w: min(268px, 70vw);
   --pup-w: calc(var(--phone-w) * 0.72);
   position: relative;
@@ -31,6 +43,18 @@
 
 .device {
   container-type: inline-size;
+  cursor: pointer;
+}
+
+/* ---------- the pause ---------- */
+/* Stopped by the reader, or scrolled away: every clock in the phone and in
+   the caption holds its frame. The puppy is left out, so a press still barks. */
+.paused .device *,
+.paused .device *::before,
+.paused .device *::after,
+.paused .caption *,
+.paused .caption *::after {
+  animation-play-state: paused;
 }
 
 .phone {
@@ -39,7 +63,7 @@
   aspect-ratio: 9 / 18.5;
   padding: calc(9 * var(--u));
   border-radius: calc(40 * var(--u));
-  background: #232327;
+  background: var(--mock-body);
   box-shadow: inset 0 0 0 calc(1.5 * var(--u)) rgba(255, 255, 255, 0.14);
   font-size: calc(12 * var(--u));
   line-height: 1.35;
@@ -52,7 +76,7 @@
   border-radius: calc(31 * var(--u));
   overflow: hidden;
   isolation: isolate;
-  background: #141416;
+  background: var(--mock-screen);
   color: var(--white);
 }
 
@@ -73,7 +97,7 @@
 }
 
 .dim {
-  color: #8e8b85;
+  color: var(--mock-muted);
 }
 
 .post {
@@ -86,11 +110,24 @@
   margin: calc(14 * var(--u)) calc(12 * var(--u)) calc(64 * var(--u));
   padding: calc(14 * var(--u)) calc(48 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u));
   border-radius: calc(16 * var(--u));
-  background: #26262b;
+  background: var(--mock-post);
 }
 
 .postWarm {
-  background: #2b2a26;
+  background: var(--mock-post-warm);
+}
+
+/* The ramen video's still: a warm frame where the chart sits on the other post. */
+.still {
+  position: absolute;
+  left: calc(14 * var(--u));
+  top: calc(16 * var(--u));
+  right: calc(14 * var(--u));
+  height: calc(118 * var(--u));
+  border-radius: calc(10 * var(--u));
+  background:
+    radial-gradient(60% 50% at 30% 40%, rgba(252, 78, 2, 0.22), transparent 70%),
+    linear-gradient(160deg, #3d372d, var(--mock-post-warm));
 }
 
 .chart {
@@ -117,7 +154,7 @@
 }
 
 .postText {
-  color: #e6e3dd;
+  color: var(--mock-text);
 }
 
 .rail {
@@ -190,12 +227,12 @@
   height: calc(4 * var(--u));
   margin: 0 auto;
   border-radius: calc(2 * var(--u));
-  background: #c9c6c0;
+  background: var(--mock-grab);
 }
 
 .shareSheet {
   padding: calc(12 * var(--u)) calc(14 * var(--u)) calc(24 * var(--u));
-  background: #f4f3f1;
+  background: var(--paper);
   transform: translateY(105%);
 }
 
@@ -231,7 +268,7 @@
   width: calc(42 * var(--u));
   height: calc(42 * var(--u));
   border-radius: calc(12 * var(--u));
-  background: #dedcd7;
+  background: var(--mock-key);
 }
 
 .appSpot {
@@ -321,7 +358,7 @@
 
 .chips span {
   padding: calc(7 * var(--u)) 0;
-  border: calc(1.5 * var(--u)) solid #e2dfd9;
+  border: calc(1.5 * var(--u)) solid var(--mock-line);
   border-radius: calc(9 * var(--u));
 }
 
@@ -346,6 +383,16 @@
   width: calc(30 * var(--u));
   height: calc(18 * var(--u));
   border-radius: calc(9 * var(--u));
+  background: var(--mock-off);
+}
+
+/* The orange is a layer whose opacity comes up, not a background colour that
+   animates: a colour change repaints every frame, opacity is the compositor's. */
+.toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: var(--orange);
 }
 
@@ -375,12 +422,12 @@
 }
 
 .sniffing {
-  color: #8a8780;
+  color: var(--mock-muted-light);
   opacity: 0;
 }
 
 .passed {
-  color: #1f6b45;
+  color: var(--good);
 }
 
 .passed svg {
@@ -477,6 +524,39 @@
   opacity: 1;
 }
 
+/* The one control the loop needs. Quiet: a hairline pill in the muted text
+   colour, the display face so it matches the step words above it. */
+.pause {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: none;
+  color: var(--dim);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, transform 0.08s;
+}
+
+.pause:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--white);
+}
+
+.pause:active {
+  transform: translateY(1px);
+}
+
+/* No loop under reduced motion, so nothing to pause. */
+@media (prefers-reduced-motion: reduce) {
+  .pause {
+    display: none;
+  }
+}
+
 /* ---------- the loop ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .feedA { animation: feedA var(--t) var(--d) infinite ease; }
@@ -484,8 +564,8 @@
   .chart polyline { animation: chart var(--t) var(--d) infinite ease-out; }
   .banner { animation: banner var(--t) var(--d) infinite cubic-bezier(0.2, 0.9, 0.3, 1.2); }
   .shade { animation: shade var(--t) var(--d) infinite ease; }
-  .shareSheet { animation: shareSheet var(--t) var(--d) infinite cubic-bezier(0.2, 0.8, 0.2, 1); }
-  .buySheet { animation: buySheet var(--t) var(--d) infinite cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .shareSheet { animation: shareSheet var(--t) var(--d) infinite var(--ease-out); }
+  .buySheet { animation: buySheet var(--t) var(--d) infinite var(--ease-out); }
   .shareRing { animation: ring var(--t) var(--d) infinite ease; }
   .tileSpot { animation: tile var(--t) var(--d) infinite ease; }
   .confirm { animation: press var(--t) var(--d) infinite ease; }
@@ -493,7 +573,7 @@
   .tap2 { animation: tap2 var(--t) var(--d) infinite ease-out; }
   .tap3 { animation: tap3 var(--t) var(--d) infinite ease-out; }
   .tap4 { animation: tap4 var(--t) var(--d) infinite ease-out; }
-  .toggle { animation: toggleBg var(--t) var(--d) infinite ease; }
+  .toggle::before { animation: toggleOn var(--t) var(--d) infinite ease; }
   .toggle::after { animation: toggleKnob var(--t) var(--d) infinite cubic-bezier(0.3, 0.7, 0.3, 1.3); }
   .sniffing { animation: sniffing var(--t) var(--d) infinite ease; }
   .passed { animation: passed var(--t) var(--d) infinite ease; }
@@ -561,7 +641,7 @@
   58% { opacity: 0; transform: scale(1.6); }
   100% { opacity: 0; transform: scale(1.6); }
 }
-@keyframes toggleBg { 0%, 54% { background: #d6d3cd; } 56% { background: var(--orange); } 100% { background: var(--orange); } }
+@keyframes toggleOn { 0%, 54% { opacity: 0; } 56% { opacity: 1; } 100% { opacity: 1; } }
 @keyframes toggleKnob {
   0%, 54% { transform: translateX(calc(-12 * var(--u))); }
   56% { transform: none; }
