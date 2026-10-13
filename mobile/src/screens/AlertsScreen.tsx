@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   hero: { flexDirection: "row", alignItems: "flex-start", gap: 14, marginTop: 18, padding: 20, borderRadius: 24, backgroundColor: color.orange },
   heroText: { flex: 1 },
   heroTitle: { fontFamily: font.display, fontSize: type.headline, lineHeight: 29, letterSpacing: -0.4, color: color.ink },
-  heroLine: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 15, lineHeight: 21, color: "rgba(0, 0, 0, 0.72)" },
+  heroLine: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 15, lineHeight: 21, color: color.inkDim },
   empty: { marginLeft: 4, fontFamily: font.body, fontSize: type.body, lineHeight: 23, color: color.faint },
   watch: { paddingVertical: 14, paddingHorizontal: 16 },
   watchHead: { flexDirection: "row", alignItems: "center", gap: 12 },

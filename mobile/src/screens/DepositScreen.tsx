@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   h1: { marginTop: 10, fontFamily: font.display, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: color.white },
   lede: { marginTop: 10, fontFamily: font.body, fontSize: 16.5, lineHeight: 23, color: color.dim },
   cta: { marginTop: 24 },
-  watch: { marginTop: 16, borderColor: "rgba(252, 78, 2, 0.45)" },
+  watch: { marginTop: 16, borderColor: color.orangeLine },
   watchText: { fontFamily: font.body, fontSize: 14.5, lineHeight: 20, color: color.dim },
   turn: { marginTop: 18 },
   turnTitle: { fontFamily: font.displayBold, fontSize: 19, color: color.white },

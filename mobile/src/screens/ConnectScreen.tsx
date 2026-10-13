@@ -80,7 +80,7 @@ export function ConnectScreen({ navigation }: Props) {
           value={input}
           onChangeText={setInput}
           placeholder="Wallet address"
-          placeholderTextColor="#8e8a82"
+          placeholderTextColor={color.placeholder}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"

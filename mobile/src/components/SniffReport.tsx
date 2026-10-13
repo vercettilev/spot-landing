@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { errorLine, type ApiError } from "../api";
 import { ordered, verdictLine } from "../logic";
-import { color, font, stamp } from "../theme";
+import { color, font, shadow, stamp } from "../theme";
 import type { Sniff } from "../types";
 import { Answer, Breathing, feel } from "./ui";
 
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 18,
     transform: [{ rotate: "-0.8deg" }],
-    boxShadow: "0px 22px 44px rgba(0, 0, 0, 0.6)",
+    boxShadow: shadow.paper,
   },
   stamped: { paddingBottom: 40 },
   head: { flexDirection: "row", justifyContent: "space-between" },
   kicker: { fontFamily: font.mono, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase", color: color.paperDim },
-  verdict: { marginTop: 10, paddingBottom: 16, borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: "#bdb7ab" },
+  verdict: { marginTop: 10, paddingBottom: 16, borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: color.paperRule },
   headline: { fontFamily: font.display, fontSize: 25, lineHeight: 29, letterSpacing: -0.4, color: color.ink },
   line: { marginTop: 6, fontFamily: font.body, fontSize: 15, lineHeight: 21, color: color.paperDim },
   row: {
@@ -170,12 +170,12 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 13,
     borderBottomWidth: 1,
-    borderColor: "#eee9df",
+    borderColor: color.paperHair,
   },
   labelCol: { flex: 1 },
   label: { fontFamily: font.bodySemi, fontSize: 16, color: color.paperInk },
   note: { marginTop: 3, fontFamily: font.body, fontSize: 13.5, lineHeight: 18, color: color.paperDim },
-  pending: { width: 54, height: 26, borderRadius: 999, backgroundColor: "#ecebe7" },
+  pending: { width: 54, height: 26, borderRadius: 999, backgroundColor: color.paperWell },
   trip: { marginTop: 14, fontFamily: font.mono, fontSize: 13, color: color.paperDim },
   stamp: {
     position: "absolute",
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     fontFamily: font.display,
     fontSize: 30,
     letterSpacing: 1.5,
-    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    backgroundColor: color.stampGround,
   },
   errorHead: { marginTop: 10 },
   errorText: { marginTop: 10, fontFamily: font.body, fontSize: 15, lineHeight: 21, color: color.paperDim },

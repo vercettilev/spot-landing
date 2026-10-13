@@ -4,7 +4,7 @@ import { Children, Fragment, useEffect, useRef, useState, type ReactNode } from 
 import { Animated, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Path, SvgXml } from "react-native-svg";
 import { ICON_SVG, WORDMARK_SVG } from "../art";
-import { color, font, tone } from "../theme";
+import { color, font, leading, motion, radius, size, space, tone, tracking, type } from "../theme";
 import type { Status } from "../types";
 
 /* The small parts every screen shares: the marks, the buttons, the chips,
@@ -36,15 +36,17 @@ export const feel = (kind: "success" | "warning" | "error") => {
   Haptics.notificationAsync(type).catch(() => {});
 };
 
+const native = Platform.OS !== "web";
+
 export function Wordmark({ width = 76 }: { width?: number }) {
   return <SvgXml xml={WORDMARK_SVG} width={width} height={(width * 354) / 868} />;
 }
 
-export function PuppyIcon({ size = 56 }: { size?: number }) {
-  return <SvgXml xml={ICON_SVG} width={size} height={(size * 423) / 444} />;
+export function PuppyIcon({ size: s = 56 }: { size?: number }) {
+  return <SvgXml xml={ICON_SVG} width={s} height={(s * 423) / 444} />;
 }
 
-/** The orange key with travel, as on the landing: it sits on its shadow and goes down when pressed. */
+/** The orange key with travel, as on the landing: it sits on its edge and goes down when pressed. */
 export function Button({
   label,
   onPress,
@@ -75,7 +77,9 @@ export function Button({
         return [
           styles.button,
           { backgroundColor: look.bg, borderColor: look.border },
-          look.shadow ? { boxShadow: `0px ${down ? 1 : 4}px 0px ${look.shadow}`, marginBottom: 4 } : null,
+          look.edge
+            ? { boxShadow: `0px ${down ? size.keyEdge - size.keyTravel : size.keyEdge}px 0px ${look.edge}`, marginBottom: size.keyEdge }
+            : null,
           down ? styles.buttonPressed : null,
           disabled ? styles.buttonDisabled : null,
           style,
@@ -90,22 +94,22 @@ export function Button({
 }
 
 const BUTTON = {
-  go: { bg: color.orange, fg: color.ink, border: color.orange, shadow: "#9e3000" },
+  go: { bg: color.orange, fg: color.ink, border: color.orange, edge: color.orangeEdge },
   /* Buy green and sell red, the trading apps' own colours: a buy on a coin
      that growled keeps the warning's orange, because green says "clean". */
-  buy: { bg: color.green, fg: color.ink, border: color.green, shadow: "#1f8a4c" },
-  sell: { bg: color.red, fg: color.white, border: color.red, shadow: "#a8261c" },
-  growl: { bg: color.orange, fg: color.ink, border: color.orange, shadow: "#9e3000" },
-  stop: { bg: color.ink3, fg: color.faint, border: color.line, shadow: undefined },
-  wait: { bg: color.white, fg: color.ink, border: color.white, shadow: "#8f8a82" },
-  quiet: { bg: "transparent", fg: color.white, border: color.line, shadow: undefined },
+  buy: { bg: color.green, fg: color.ink, border: color.green, edge: color.greenEdge },
+  sell: { bg: color.red, fg: color.white, border: color.red, edge: color.redEdge },
+  growl: { bg: color.orange, fg: color.ink, border: color.orange, edge: color.orangeEdge },
+  stop: { bg: color.ink3, fg: color.faint, border: color.line, edge: undefined },
+  wait: { bg: color.white, fg: color.ink, border: color.white, edge: color.whiteEdge },
+  quiet: { bg: "transparent", fg: color.white, border: color.line, edge: undefined },
 } as const;
 
 /** The landing's toggle: orange when on, its knob sliding over. The same on every platform. */
 export function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   const v = useRef(new Animated.Value(value ? 1 : 0)).current;
   useEffect(() => {
-    Animated.timing(v, { toValue: value ? 1 : 0, duration: 160, useNativeDriver: false }).start();
+    Animated.timing(v, { toValue: value ? 1 : 0, duration: motion.toggle, useNativeDriver: false }).start();
   }, [value, v]);
   return (
     <Pressable
@@ -113,7 +117,7 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
         tap();
         onChange(!value);
       }}
-      hitSlop={10}
+      hitSlop={space.x3}
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: value }}
@@ -125,12 +129,16 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
         ]}
       >
         <Animated.View
-          style={[styles.knob, { transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [0, 22] }) }] }]}
+          style={[styles.knob, { transform: [{ translateX: v.interpolate({ inputRange: [0, 1], outputRange: [0, KNOB_TRAVEL] }) }] }]}
         />
       </Animated.View>
     </Pressable>
   );
 }
+
+const TRACK = { width: 54, height: 32, pad: 3 };
+const KNOB = TRACK.height - 2 * TRACK.pad - 2 * size.hairline;
+const KNOB_TRAVEL = TRACK.width - 2 * TRACK.pad - 2 * size.hairline - KNOB;
 
 /** An answer on the sniff report: "No", "Only 38", "Kinda". */
 export function Answer({ status, children }: { status: Status; children: ReactNode }) {
@@ -143,13 +151,13 @@ export function Answer({ status, children }: { status: Status; children: ReactNo
 }
 
 /** A coin's icon, or its first letter on orange when it has none or it will not load. */
-export function CoinFace({ uri, symbol, size = 52 }: { uri: string | null; symbol: string; size?: number }) {
+export function CoinFace({ uri, symbol, size: s = size.faceCoin }: { uri: string | null; symbol: string; size?: number }) {
   const [failed, setFailed] = useState(false);
-  const round = { width: size, height: size, borderRadius: size / 2 };
+  const round = { width: s, height: s, borderRadius: s / 2 };
   if (!uri || failed) {
     return (
       <View style={[round, styles.faceFallback]}>
-        <Text style={[styles.faceLetter, { fontSize: size * 0.42 }]}>{(symbol[0] ?? "?").toUpperCase()}</Text>
+        <Text style={[styles.faceLetter, { fontSize: s * 0.42 }]}>{(symbol[0] ?? "?").toUpperCase()}</Text>
       </View>
     );
   }
@@ -162,8 +170,8 @@ export function Breathing({ children, style }: { children: ReactNode; style?: St
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(v, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== "web" }),
-        Animated.timing(v, { toValue: 0.45, duration: 700, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(v, { toValue: 1, duration: 700, useNativeDriver: native }),
+        Animated.timing(v, { toValue: 0.45, duration: 700, useNativeDriver: native }),
       ]),
     );
     loop.start();
@@ -180,10 +188,10 @@ export function useToast(bottom = 120): [ReactNode, (message: string) => void] {
   const show = (m: string) => {
     setMessage(m);
     if (timer.current) clearTimeout(timer.current);
-    Animated.timing(v, { toValue: 1, duration: 180, useNativeDriver: Platform.OS !== "web" }).start();
+    Animated.timing(v, { toValue: 1, duration: motion.toastIn, useNativeDriver: native }).start();
     timer.current = setTimeout(() => {
-      Animated.timing(v, { toValue: 0, duration: 220, useNativeDriver: Platform.OS !== "web" }).start(() => setMessage(null));
-    }, 3200);
+      Animated.timing(v, { toValue: 0, duration: motion.toastOut, useNativeDriver: native }).start(() => setMessage(null));
+    }, motion.toastHold);
   };
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
@@ -193,7 +201,7 @@ export function useToast(bottom = 120): [ReactNode, (message: string) => void] {
       style={[
         styles.toast,
         { pointerEvents: "none", bottom },
-        { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] },
+        { opacity: v, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [space.x4, 0] }) }] },
       ]}
     >
       <PuppyIcon size={28} />
@@ -205,59 +213,58 @@ export function useToast(bottom = 120): [ReactNode, (message: string) => void] {
 
 const styles = StyleSheet.create({
   button: {
-    height: 60,
-    borderRadius: 16,
-    borderWidth: 1,
+    height: size.key,
+    borderRadius: radius.key,
+    borderWidth: size.hairline,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: space.x6,
   },
-  buttonPressed: { transform: [{ translateY: 3 }] },
+  buttonPressed: { transform: [{ translateY: size.keyTravel }] },
   buttonDisabled: { opacity: 0.85 },
-  buttonText: { fontFamily: font.displayBold, fontSize: 19, letterSpacing: -0.2 },
-  track: { width: 54, height: 32, borderRadius: 16, padding: 3, borderWidth: 1, borderColor: color.line },
-  knob: { width: 24, height: 24, borderRadius: 12, backgroundColor: color.white },
-  answer: { borderRadius: 999, paddingVertical: 5, paddingHorizontal: 12 },
-  answerText: { fontFamily: font.bodyBold, fontSize: 15 },
+  buttonText: { fontFamily: font.displayBold, fontSize: type.key, letterSpacing: tracking.key },
+  track: { width: TRACK.width, height: TRACK.height, borderRadius: TRACK.height / 2, padding: TRACK.pad, borderWidth: size.hairline, borderColor: color.line },
+  knob: { width: KNOB, height: KNOB, borderRadius: KNOB / 2, backgroundColor: color.white },
+  answer: { borderRadius: radius.pill, paddingVertical: space.x1, paddingHorizontal: space.x3 },
+  answerText: { fontFamily: font.bodyBold, fontSize: type.callout },
   face: { backgroundColor: color.ink3 },
   faceFallback: { backgroundColor: color.orange, alignItems: "center", justifyContent: "center" },
   faceLetter: { fontFamily: font.display, color: color.ink },
   toast: {
     position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 120,
+    left: space.x4,
+    right: space.x4,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.97)",
+    gap: space.x3,
+    padding: space.x4,
+    borderRadius: radius.card,
+    backgroundColor: color.white,
   },
-  toastText: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, lineHeight: 20, color: color.ink },
-  topBar: { flexDirection: "row", alignItems: "center", gap: 14, height: 48 },
+  toastText: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, lineHeight: leading.caption, color: color.ink },
+  topBar: { flexDirection: "row", alignItems: "center", gap: space.x3, height: size.tap },
   topBack: { fontFamily: font.bodyBold, fontSize: 26, color: color.white, marginTop: -3 },
-  topTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, color: color.dim },
-  title: { marginTop: 6, fontFamily: font.display, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: color.white },
-  section: { marginTop: 32, marginBottom: 10, marginLeft: 4, fontFamily: font.bodySemi, fontSize: 15, color: color.faint },
-  card: { padding: 16, borderRadius: 20, backgroundColor: color.ink2, borderWidth: 1, borderColor: color.line },
-  settingRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 14, paddingHorizontal: 16 },
+  topTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
+  title: { marginTop: space.x2, fontFamily: font.display, fontSize: type.title, lineHeight: leading.title, letterSpacing: tracking.title, color: color.white },
+  section: { marginTop: space.section, marginBottom: space.x3, marginLeft: space.x1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.faint },
+  card: { padding: space.x4, borderRadius: radius.card, backgroundColor: color.ink2, borderWidth: size.hairline, borderColor: color.line },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: space.x3, minHeight: size.row, paddingVertical: space.x4, paddingHorizontal: space.x4 },
   settingText: { flex: 1 },
-  settingTitle: { fontFamily: font.bodyBold, fontSize: 16, color: color.white },
-  settingNote: { marginTop: 2, fontFamily: font.body, fontSize: 13.5, lineHeight: 18, color: color.faint },
+  settingTitle: { fontFamily: font.bodyBold, fontSize: type.body, color: color.white },
+  settingNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   pill: {
-    minWidth: 56,
+    minWidth: space.x14,
     alignItems: "center",
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    borderWidth: 1,
+    paddingVertical: space.x2,
+    paddingHorizontal: space.x4,
+    borderRadius: radius.pill,
+    borderWidth: size.hairline,
     borderColor: color.line,
     backgroundColor: color.ink2,
   },
   pillOn: { backgroundColor: color.orange, borderColor: color.orange },
   pillOff: { opacity: 0.35 },
-  pillText: { fontFamily: font.bodyBold, fontSize: 15, color: color.white },
+  pillText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.white },
   pillTextOn: { color: color.ink },
 });
 
@@ -266,7 +273,7 @@ export function TopBar({ title, onBack, right }: { title?: string; onBack?: () =
   return (
     <View style={styles.topBar}>
       {onBack ? (
-        <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
+        <Pressable onPress={onBack} hitSlop={space.x3} accessibilityRole="button" accessibilityLabel="Back">
           <Text style={styles.topBack}>←</Text>
         </Pressable>
       ) : null}
@@ -393,20 +400,20 @@ export function Row({
 }
 
 const group = StyleSheet.create({
-  wrap: { borderRadius: 20, backgroundColor: color.ink2, overflow: "hidden" },
-  hairline: { height: StyleSheet.hairlineWidth, marginLeft: 16, backgroundColor: color.line },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 12, paddingHorizontal: 16 },
+  wrap: { borderRadius: radius.card, backgroundColor: color.ink2, overflow: "hidden" },
+  hairline: { height: StyleSheet.hairlineWidth, marginLeft: space.x4, backgroundColor: color.line },
+  row: { flexDirection: "row", alignItems: "center", gap: space.x3, minHeight: size.row, paddingVertical: space.x3, paddingHorizontal: space.x4 },
   pressed: { backgroundColor: color.ink3 },
   text: { flex: 1, minWidth: 0 },
-  title: { fontFamily: font.bodyBold, fontSize: 16, color: color.white },
-  subtitle: { marginTop: 2, fontFamily: font.body, fontSize: 14, color: color.faint },
+  title: { fontFamily: font.bodyBold, fontSize: type.body, color: color.white },
+  subtitle: { marginTop: space.hair, fontFamily: font.body, fontSize: type.caption, color: color.faint },
 });
 
 /* ---- icons, drawn on one 24-unit grid with one stroke ---- */
 
-function Glyph({ d, size = 20, tint = color.faint, fill = "none" }: { d: string; size?: number; tint?: string; fill?: string }) {
+function Glyph({ d, size: s = size.glyph, tint = color.faint, fill = "none" }: { d: string; size?: number; tint?: string; fill?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={tint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={s} height={s} viewBox="0 0 24 24" fill={fill} stroke={tint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d={d} />
     </Svg>
   );

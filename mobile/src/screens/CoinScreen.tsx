@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   caLabel: { fontFamily: font.bodyBold, fontSize: 13, color: color.faint },
   caText: { fontFamily: font.mono, fontSize: 13, color: color.dim },
   caLink: { fontFamily: font.bodySemi, fontSize: 14, color: color.orange },
-  restricted: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 14, color: "#ffb08a" },
+  restricted: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 14, color: color.caution },
   notThis: { marginTop: 10, fontFamily: font.bodySemi, fontSize: 15, color: color.orange },
   side: {
     flexDirection: "row",
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingTop: 12,
     paddingHorizontal: 20,
-    backgroundColor: "rgba(11, 11, 12, 0.97)",
+    backgroundColor: color.ink,
     borderTopWidth: 1,
     borderColor: color.line,
   },

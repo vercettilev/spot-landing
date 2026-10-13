@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   head: { fontFamily: font.display, fontSize: 76, lineHeight: 80, letterSpacing: -3, color: color.ink, textAlign: "center" },
   big: { marginTop: 6, fontFamily: font.displayBold, fontSize: 26, lineHeight: 32, color: color.ink, textAlign: "center" },
   bigLoud: { fontSize: 38, lineHeight: 44, letterSpacing: -1 },
-  small: { marginTop: 14, maxWidth: 320, fontFamily: font.bodySemi, fontSize: 17, lineHeight: 23, color: "rgba(0, 0, 0, 0.68)", textAlign: "center" },
+  small: { marginTop: 14, maxWidth: 320, fontFamily: font.bodySemi, fontSize: 17, lineHeight: 23, color: color.inkDim, textAlign: "center" },
   share: { marginTop: 28, paddingVertical: 14, paddingHorizontal: 40, borderRadius: 999, backgroundColor: color.ink },
   sharePressed: { opacity: 0.8 },
   shareText: { fontFamily: font.displayBold, fontSize: 18, color: color.white },

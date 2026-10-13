@@ -42,7 +42,7 @@ const WIDTH = 540;
 const PAD = 44;
 
 const styles = StyleSheet.create({
-  card: { width: WIDTH, height: 675, padding: PAD, backgroundColor: "#000000", justifyContent: "space-between" },
+  card: { width: WIDTH, height: 675, padding: PAD, backgroundColor: color.ink, justifyContent: "space-between" },
   offScreen: { position: "absolute", left: -2000, top: 0 },
   onScreen: { position: "absolute", left: 0, top: 0, transform: [{ scale: 0.6 }], transformOrigin: "top left" },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

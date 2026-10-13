@@ -62,7 +62,7 @@ export function SniffScreen({ navigation }: Props) {
           value={input}
           onChangeText={setInput}
           placeholder="Or paste a CA, $ticker or link"
-          placeholderTextColor="#8e8a82"
+          placeholderTextColor={color.placeholder}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="go"
