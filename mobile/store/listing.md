@@ -14,7 +14,7 @@ What to paste into the publisher portal, and the files next to this one.
 - **Copyright:** © 2026 Poppin Social, Inc.
 - **Support email:** (set NEXT_PUBLIC_CONTACT_EMAIL on the site and use the same address here)
 - **Icon:** `icon-512.png` (512×512)
-- **Screenshots:** `shot-1-sniff.png` … `shot-5-me.png` (1080×2341, portrait)
+- **Screenshots:** `shot-1-sniff.png` … `shot-6-moment.png` (1080×2341, portrait)
 
 ## Short description (one line)
 
@@ -40,13 +40,14 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.4.0)
+## What's new (0.5.0)
 
-• Got SOL and no USDC? Turn it into cash in Add cash.
-• Any amount: type your own next to $10, $25 and $50.
-• The CA under every coin, with a tap to copy and a link to Solscan.
-• Your bag keeps the books: what your apes made, every trade.
-• A trade that is slow to land is never offered twice.
+• The verdict first: CLEAN, GRRR or NOPE is stamped at the top of every sniff.
+• Any amount, buying or selling: tap Other for a keypad.
+• Your first ape stays on the coin: connecting your wallet and adding cash rise over it, one after the other.
+• Selling is quicker: a coin in your bag opens on Sell, with half ready.
+• A loss is never shown in red, and coin pictures come through even when IPFS is busy.
+• Alerts are gone until Spot can really ping you.
 
 ## Release notes for the next version
 

@@ -3,18 +3,18 @@
     "name": "Spot",
     "slug": "spot",
     "scheme": "spot",
-    "version": "0.4.4",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0b0b0c",
+    "backgroundColor": "#000000",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "fun.usespot.app"
     },
     "android": {
       "package": "fun.usespot.app",
-      "versionCode": 9,
+      "versionCode": 10,
       "adaptiveIcon": {
         "backgroundColor": "#fc4e02",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -47,7 +47,7 @@
         {
           "image": "./assets/splash-icon.png",
           "imageWidth": 140,
-          "backgroundColor": "#0b0b0c"
+          "backgroundColor": "#000000"
         }
       ],
       "expo-image",

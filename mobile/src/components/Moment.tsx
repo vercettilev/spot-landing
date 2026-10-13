@@ -1,21 +1,23 @@
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Dimensions, Easing, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { Animated, Dimensions, Easing, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { momentLines, shareText, type MomentData } from "../logic";
-import { color, font } from "../theme";
+import { color, font, layer, leading, motion, radius, size, space, tracking, type } from "../theme";
 import { ShareCard } from "./ShareCard";
-import { PuppyIcon, feel, tap, thud } from "./ui";
+import { PuppyMark, feel, tap, thud, useReducedMotion } from "./ui";
 
 /**
  * THE MOMENT. A trade landed, and the phone says so with its whole screen:
- * orange bursts up from where the button was, the puppy lands with a
+ * orange bursts up from where the key was, the puppy lands on it with a
  * bounce and barks (rings), the word comes up under it, and the phone
- * thumps in rhythm. A few seconds, or a tap. The colour says the outcome:
- * green for a sell that made money, orange for the rest, never red. An ape
- * or a sell can be shared as a card. Reduced motion gets the same screen
- * without the bounce and the rings. Mounted once, over everything, so a
- * trade that lands while the user is elsewhere still gets it.
+ * thumps in rhythm. A few seconds, Done, or a tap anywhere. The colour
+ * says the outcome: green for a sell that made money, orange for the rest,
+ * never red; the puppy stands on that colour without its tile, which would
+ * vanish into the orange. An ape or a sell can be shared as a card. Reduced
+ * motion gets the same screen without the bounce and the rings. Mounted
+ * once, over everything, so a trade that lands while the user is elsewhere
+ * still gets it.
  */
 
 export type { MomentData };
@@ -26,6 +28,30 @@ export function celebrate(m: MomentData): void {
   for (const fn of listeners) fn(m);
 }
 
+/** Hears every moment as it starts: a sheet waiting on cash closes when the cash lands. */
+export function onCelebrate(fn: (m: MomentData) => void): () => void {
+  listeners.add(fn);
+  return () => void listeners.delete(fn);
+}
+
+/* Whether a moment is up, for the app under it to step out of a screen reader's way. */
+let up = false;
+const upListeners = new Set<(on: boolean) => void>();
+const setUp = (on: boolean) => {
+  up = on;
+  for (const fn of upListeners) fn(on);
+};
+
+export function useMomentUp(): boolean {
+  const [on, setOn] = useState(up);
+  useEffect(() => {
+    upListeners.add(setOn);
+    setOn(up);
+    return () => void upListeners.delete(setOn);
+  }, []);
+  return on;
+}
+
 const native = Platform.OS !== "web";
 const SHOW_MS = { ape: 6_000, sell: 6_000, cash: 2_600 } as const;
 
@@ -34,7 +60,7 @@ const cardOnScreen = () => Boolean((globalThis as { __SPOT_QA_CARD?: boolean }).
 
 export function Moment() {
   const [m, setM] = useState<MomentData | null>(null);
-  const [reduced, setReduced] = useState(false);
+  const reduced = useReducedMotion();
   const burst = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
   const pup = useRef(new Animated.Value(0)).current;
@@ -44,10 +70,9 @@ export function Moment() {
   const card = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
 
+  useEffect(() => setUp(m !== null), [m]);
+
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((on) => setReduced(Boolean(on)))
-      .catch(() => {});
     listeners.add(setM);
     return () => {
       listeners.delete(setM);
@@ -98,7 +123,7 @@ export function Moment() {
 
   function dismiss() {
     if (timer.current) clearTimeout(timer.current);
-    Animated.timing(fade, { toValue: 0, duration: 220, useNativeDriver: native }).start(() => setM(null));
+    Animated.timing(fade, { toValue: 0, duration: motion.toastOut, useNativeDriver: native }).start(() => setM(null));
   }
 
   /* The card as a picture through the phone's share sheet; words where there is no picture. */
@@ -125,70 +150,96 @@ export function Moment() {
 
   if (!m) return null;
   const { width, height } = Dimensions.get("window");
-  /* Big enough that the disc, centred where the button was, covers every corner. */
+  /* Big enough that the disc, centred where the key was, covers every corner. */
   const d = Math.max(width, height) * 2.3;
   const l = momentLines(m);
   const ground = l.backdrop === "green" ? color.green : color.orange;
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, { opacity: fade }]} accessible accessibilityRole="alert" accessibilityLabel={`${l.head} ${l.big}. ${l.small}`}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityLabel="Close">
+    <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, { opacity: fade }]} accessibilityViewIsModal>
+      {/* Behind everything: a tap anywhere puts the moment away. A screen reader gets Done instead. */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} aria-hidden>
         <Animated.View
-          style={[styles.burst, { backgroundColor: ground, width: d, height: d, borderRadius: d / 2, left: width / 2 - d / 2, top: height - 80 - d / 2, transform: [{ scale: burst }] }]}
+          style={[styles.burst, { backgroundColor: ground, width: d, height: d, borderRadius: d / 2, left: width / 2 - d / 2, top: height - FROM_BOTTOM - d / 2, transform: [{ scale: burst }] }]}
         />
-        <View style={styles.center}>
-          <View style={styles.stage}>
-            {rings.map((r, i) => (
-              <Animated.View
-                key={i}
-                style={[
-                  styles.ring,
-                  {
-                    opacity: r.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 0.6, 0] }),
-                    transform: [{ scale: r.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.7] }) }],
-                  },
-                ]}
-              />
-            ))}
+      </Pressable>
+      <View style={[styles.center, { pointerEvents: "box-none" }]}>
+        <View style={[styles.stage, { pointerEvents: "none" }]} aria-hidden>
+          {rings.map((r, i) => (
             <Animated.View
-              style={{
-                transform: [
-                  { scale: pup.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) },
-                  { rotate: pup.interpolate({ inputRange: [0, 1], outputRange: ["-16deg", "0deg"] }) },
-                ],
-              }}
-            >
-              <PuppyIcon size={140} />
-            </Animated.View>
-          </View>
-          <Animated.View style={[styles.words, { opacity: words, transform: [{ translateY: words.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
+              key={i}
+              style={[
+                styles.ring,
+                {
+                  opacity: r.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 0.6, 0] }),
+                  transform: [{ scale: r.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.7] }) }],
+                },
+              ]}
+            />
+          ))}
+          <Animated.View
+            style={{
+              transform: [
+                { scale: pup.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) },
+                { rotate: pup.interpolate({ inputRange: [0, 1], outputRange: ["-16deg", "0deg"] }) },
+              ],
+            }}
+          >
+            <PuppyMark width={MARK} />
+          </Animated.View>
+        </View>
+        <Animated.View style={[styles.words, { pointerEvents: "box-none", opacity: words, transform: [{ translateY: words.interpolate({ inputRange: [0, 1], outputRange: [space.x7, 0] }) }] }]}>
+          <View
+            style={{ pointerEvents: "none" }}
+            accessible
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            accessibilityLabel={`${l.head} ${l.big}. ${l.small.replace("\n", ". ")}`}
+          >
             <Text style={styles.head}>{l.head}</Text>
             <Text style={[styles.big, l.backdrop === "green" && styles.bigLoud]}>{l.big}</Text>
             <Text style={styles.small}>{l.small}</Text>
+          </View>
+          <View style={[styles.actions, { pointerEvents: "box-none" }]}>
             {m.kind !== "cash" && (
-              <Pressable onPress={() => void share()} disabled={sharing} style={({ pressed }) => [styles.share, pressed && styles.sharePressed]} accessibilityRole="button" accessibilityLabel="Share">
+              <Pressable onPress={() => void share()} disabled={sharing} style={({ pressed }) => [styles.share, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Share">
                 <Text style={styles.shareText}>{sharing ? "Sharing…" : "Share"}</Text>
               </Pressable>
             )}
-          </Animated.View>
-        </View>
-      </Pressable>
+            <Pressable onPress={dismiss} style={({ pressed }) => [styles.done, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Done">
+              <Text style={styles.doneText}>Done</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </View>
       {m.kind !== "cash" && <ShareCard ref={card} data={m} onScreen={cardOnScreen()} />}
     </Animated.View>
   );
 }
 
+/* Where the key was, about: the burst grows from there. */
+const FROM_BOTTOM = size.key + space.x5;
+/* The puppy, its stage, and the rings it barks. */
+const MARK = 176;
+const STAGE = { width: 220, height: 176 };
+const RING = 160;
+/* The small line's measure. */
+const MEASURE = 320;
+
 const styles = StyleSheet.create({
-  wrap: { zIndex: 100, elevation: 100 },
+  wrap: { zIndex: layer.moment, elevation: layer.moment },
   burst: { position: "absolute" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, paddingBottom: 40 },
-  stage: { width: 220, height: 220, alignItems: "center", justifyContent: "center" },
-  ring: { position: "absolute", width: 160, height: 160, borderRadius: 80, borderWidth: 4, borderColor: color.white },
-  words: { alignItems: "center", marginTop: 8 },
-  head: { fontFamily: font.display, fontSize: 76, lineHeight: 80, letterSpacing: -3, color: color.ink, textAlign: "center" },
-  big: { marginTop: 6, fontFamily: font.displayBold, fontSize: 26, lineHeight: 32, color: color.ink, textAlign: "center" },
-  bigLoud: { fontSize: 38, lineHeight: 44, letterSpacing: -1 },
-  small: { marginTop: 14, maxWidth: 320, fontFamily: font.bodySemi, fontSize: 17, lineHeight: 23, color: "rgba(0, 0, 0, 0.68)", textAlign: "center" },
-  share: { marginTop: 28, paddingVertical: 14, paddingHorizontal: 40, borderRadius: 999, backgroundColor: color.ink },
-  sharePressed: { opacity: 0.8 },
-  shareText: { fontFamily: font.displayBold, fontSize: 18, color: color.white },
+  center: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: space.x7, paddingBottom: space.x10 },
+  stage: { width: STAGE.width, height: STAGE.height, alignItems: "center", justifyContent: "center" },
+  ring: { position: "absolute", width: RING, height: RING, borderRadius: RING / 2, borderWidth: space.x1, borderColor: color.white },
+  words: { alignItems: "center" },
+  head: { fontFamily: font.display, fontSize: type.moment, lineHeight: leading.moment, letterSpacing: tracking.moment, color: color.ink, textAlign: "center" },
+  big: { marginTop: space.x2, fontFamily: font.displayBold, fontSize: type.headline, lineHeight: leading.headline, color: color.ink, textAlign: "center" },
+  bigLoud: { fontFamily: font.display, fontSize: type.title, lineHeight: leading.title, letterSpacing: tracking.display },
+  small: { marginTop: space.x3, maxWidth: MEASURE, fontFamily: font.bodySemi, fontSize: type.lead, lineHeight: leading.lead, color: color.inkDim, textAlign: "center" },
+  actions: { flexDirection: "row", gap: space.x3, marginTop: space.x7 },
+  share: { minHeight: size.tap, justifyContent: "center", paddingHorizontal: space.x10, borderRadius: radius.pill, backgroundColor: color.ink },
+  done: { minHeight: size.tap, justifyContent: "center", paddingHorizontal: space.x8, borderRadius: radius.pill, borderWidth: 2, borderColor: color.ink },
+  pressed: { opacity: 0.8 },
+  shareText: { fontFamily: font.displayBold, fontSize: type.lead, color: color.white },
+  doneText: { fontFamily: font.displayBold, fontSize: type.lead, color: color.ink },
 });

@@ -1,19 +1,19 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
-import { useState } from "react";
-import { ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { USDC_MINT, executeOrder, fetchHoldings, placeOrder } from "../api";
 import { ICON_SVG } from "../art";
-import { celebrate } from "../components/Moment";
-import { Button, Card, Pill, TopBar, feel, useToast } from "../components/ui";
+import { celebrate, onCelebrate } from "../components/Moment";
+import { Button, Card, Pill, Section, Sheet, feel, useRouteSheet, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
-import { amount as fmtAmount, money, usd } from "../logic";
+import { amount as fmtAmount, cashLede, coverWith, money, turnKey, usd } from "../logic";
 import type { RootParams } from "../navigation";
-import { hold } from "../pending";
+import { hold, pendingFor, subscribe } from "../pending";
 import { useStore } from "../store";
-import { color, font } from "../theme";
-import { LAND_WINDOW_MS, failedLine, orderErrorLine, settled, snapshotOf } from "../trade";
+import { color, font, leading, radius, space, type } from "../theme";
+import { LAND_WINDOW_MS, failedLine, orderErrorLine, secondsLeft, settled, snapshotOf, type Pending } from "../trade";
 import type { TokenCard } from "../types";
 import { signTransaction, walletError } from "../wallet/mwa";
 
@@ -45,30 +45,71 @@ const USDC: TokenCard = {
 const CASH_CHIPS = [25, 50, 100];
 
 /**
- * ADDING CASH. Spot apes in dollars (USDC), and dollars go straight to the
- * wallet's own address: Spot never holds them. A wallet that holds SOL
- * instead turns some into cash here, in one approval, and keeps a little
- * for fees. The code is the plain address, which every exchange and wallet
- * scanner reads.
+ * ADDING CASH, as a sheet over whatever needed it. Spot apes in dollars
+ * (USDC), and dollars go straight to the wallet's own address: Spot never
+ * holds them. A wallet that holds SOL turns some into cash here, in one
+ * approval, keeping a little for fees; opened from a coin, the swap that
+ * covers the ape is picked already. When the cash lands, the moment says
+ * so and the sheet goes, back to the coin with the key ready. The code is
+ * the plain address, which every exchange and wallet scanner reads.
  */
-export function DepositScreen({ navigation }: Props) {
+export function DepositScreen({ navigation, route }: Props) {
+  const { ref, onDismiss } = useRouteSheet(navigation);
+  const [toastNode, toast] = useToast(space.x6);
+  const [busy, setBusy] = useState(false);
+  const need = route.params?.need ?? null;
+  useEffect(
+    () =>
+      onCelebrate((m) => {
+        if (m.kind === "cash") ref.current?.close();
+      }),
+    [ref],
+  );
+  return (
+    <View style={styles.fill}>
+      <Sheet ref={ref} visible onDismiss={onDismiss} dismissable={!busy} title={need !== null ? `Add cash to ape $${need}` : "Add cash"} label="Add cash">
+        <CashPanel need={need} toast={toast} onBusy={setBusy} onConnect={() => navigation.replace("Connect", need !== null ? { ape: need } : undefined)} />
+      </Sheet>
+      {toastNode}
+    </View>
+  );
+}
+
+/** What Add cash holds, in its own sheet or as the step after connecting from a coin. */
+export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | null; toast: (m: string) => void; onBusy?: (busy: boolean) => void; onConnect?: () => void }) {
   const store = useStore();
   const { wallet } = store;
   const bag = useHoldings(wallet?.address ?? null);
-  const [toastNode, toast] = useToast();
   const [pick, setPick] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  /* A swap that may still land locks the key, as a trade does on a coin. */
+  const [pending, setPending] = useState<Pending | null>(() => (wallet ? pendingFor(wallet.address, USDC_MINT) : null));
+  const [now, setNow] = useState(() => Date.now());
+  const owner = wallet?.address ?? null;
+
+  useEffect(() => onBusy?.(busy), [busy, onBusy]);
+
+  useEffect(() => {
+    if (!owner) return;
+    setPending(pendingFor(owner, USDC_MINT));
+    return subscribe((p, fate) => {
+      if (p.owner === owner && p.mint === USDC_MINT) setPending(fate ? null : p);
+    });
+  }, [owner]);
+
+  useEffect(() => {
+    if (!pending) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [pending]);
 
   if (!wallet) {
     return (
-      <View style={styles.fill}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <TopBar title="Add cash" onBack={() => navigation.goBack()} />
-          <Text style={styles.h1}>Connect first.</Text>
-          <Text style={styles.lede}>Cash goes to your own wallet, so connect it first.</Text>
-          <Button label="Connect wallet" onPress={() => navigation.replace("Connect")} style={styles.cta} />
-        </ScrollView>
-      </View>
+      <>
+        <Text style={styles.lede}>Cash goes to your own wallet, so connect it first.</Text>
+        <Button label="Connect wallet" onPress={onConnect} style={styles.cta} />
+      </>
     );
   }
 
@@ -84,8 +125,11 @@ export function DepositScreen({ navigation }: Props) {
   const options = CASH_CHIPS.filter((c) => c <= spare);
   const all = spare >= 5 && !options.includes(spare) ? spare : null;
   const choices = all === null ? options : [...options, all];
-  const chosen = pick !== null && choices.includes(pick) ? pick : (choices[0] ?? null);
+  const cashNow = bag.value?.usdc.usd ?? null;
+  const chosen = pick !== null && choices.includes(pick) ? pick : coverWith(choices, need, cashNow);
   const canTurn = wallet.kind === "mwa" && spare >= 5 && chosen !== null;
+  const key = turnKey({ pending: pending ? { landed: pending.landed, seconds: secondsLeft(pending, now) } : null, busy, chosen });
+
 
   async function turn() {
     if (!canTurn || busy || wallet === null || wallet.kind !== "mwa" || chosen === null) return;
@@ -138,84 +182,83 @@ export function DepositScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.fill}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <TopBar title="Add cash" onBack={() => navigation.goBack()} />
-        <Text style={styles.h1}>Add cash.</Text>
-        <Text style={styles.lede}>Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.</Text>
-        {wallet.kind === "watch" ? (
-          <Card style={styles.watch}>
-            <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
-          </Card>
-        ) : null}
+    <>
+      <Text style={styles.lede}>{cashLede(need, cashNow)}</Text>
+      {wallet.kind === "watch" ? (
+        <Card style={styles.watch}>
+          <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
+        </Card>
+      ) : null}
 
-        {canTurn && sol && (
-          <Card style={styles.turn}>
-            <Text style={styles.turnTitle}>Got SOL? Turn it into cash.</Text>
-            <Text style={styles.turnNote}>
-              You have {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. One approval, and a little SOL stays for fees.
-            </Text>
-            <View style={styles.turnChips}>
-              {choices.map((c) => (
-                <Pill key={c} label={c === all ? `All ($${c})` : `$${c}`} on={c === chosen} onPress={() => setPick(c)} />
-              ))}
-            </View>
-            <Button label={busy ? "Turning…" : `Turn ${usd(chosen)} into cash`} disabled={busy} onPress={() => void turn()} style={styles.turnButton} />
-          </Card>
-        )}
-
-        <View style={styles.paper}>
-          <QRCode value={address} size={232} color={color.ink} backgroundColor={color.white} ecl="H" logoSVG={ICON_SVG} logoSize={46} logoMargin={6} logoBackgroundColor={color.white} />
-          {/* Two even lines: a Solana address is too wide for one, and halves
-              are easier to check against the wallet's own screen. */}
-          <Text style={styles.address} selectable>
-            {address.slice(0, Math.ceil(address.length / 2))}
-            {"\n"}
-            {address.slice(Math.ceil(address.length / 2))}
+      {canTurn && sol && (
+        <Card style={styles.turn}>
+          <Text style={styles.turnTitle}>Got SOL? Turn it into cash.</Text>
+          <Text style={styles.turnNote}>
+            You have {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. One approval, and a little SOL stays for fees.
           </Text>
-          <Text style={styles.network}>USDC or SOL, on Solana</Text>
-        </View>
+          <View style={styles.turnChips}>
+            {choices.map((c) => (
+              <Pill key={c} label={c === all ? `All ($${c})` : `$${c}`} on={c === chosen} onPress={() => setPick(c)} disabled={Boolean(pending) || busy} />
+            ))}
+          </View>
+          <Button label={key.label} kind={pending ? "wait" : "go"} disabled={!key.enabled} onPress={() => void turn()} style={styles.turnButton} />
+        </Card>
+      )}
 
-        <View style={styles.actions}>
-          <Button label="Copy address" onPress={() => void copy()} style={styles.action} />
-          <Button label="Share" kind="quiet" onPress={() => void Share.share({ message: address }).catch(() => {})} style={styles.share} />
-        </View>
+      {canTurn ? <Section>Or send it to your wallet</Section> : null}
+      <View style={[styles.paper, !canTurn && styles.paperFirst]}>
+        <QRCode value={address} size={QR} color={color.ink} backgroundColor={color.white} ecl="H" logoSVG={ICON_SVG} logoSize={QR / 5} logoMargin={space.x1 + space.hair} logoBackgroundColor={color.white} />
+        {/* Two even lines: a Solana address is too wide for one, and halves
+            are easier to check against the wallet's own screen. */}
+        <Text style={styles.address} selectable>
+          {address.slice(0, Math.ceil(address.length / 2))}
+          {"\n"}
+          {address.slice(Math.ceil(address.length / 2))}
+        </Text>
+        <Text style={styles.network}>USDC or SOL, on Solana</Text>
+      </View>
 
-        <View style={styles.notes}>
-          {NOTES.map((n) => (
-            <View key={n} style={styles.note}>
-              <Text style={styles.dot}>•</Text>
-              <Text style={styles.noteText}>{n}</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-      {toastNode}
-    </View>
+      <View style={styles.actions}>
+        <Button label="Copy address" onPress={() => void copy()} style={styles.action} />
+        <Button label="Share" kind="quiet" onPress={() => void Share.share({ message: address }).catch(() => {})} style={styles.share} />
+      </View>
+
+      <View style={styles.notes}>
+        {NOTES.map((n) => (
+          <View key={n} style={styles.note}>
+            <Text style={styles.dot}>•</Text>
+            <Text style={styles.noteText}>{n}</Text>
+          </View>
+        ))}
+      </View>
+    </>
   );
 }
 
+/* The code's size, and the Share key beside Copy address. */
+const QR = 216;
+const SHARE = 112;
+
 const styles = StyleSheet.create({
-  fill: { flex: 1, backgroundColor: color.ink },
-  scroll: { paddingHorizontal: 20, paddingBottom: 48 },
-  h1: { marginTop: 10, fontFamily: font.display, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: color.white },
-  lede: { marginTop: 10, fontFamily: font.body, fontSize: 16.5, lineHeight: 23, color: color.dim },
-  cta: { marginTop: 24 },
-  watch: { marginTop: 16, borderColor: "rgba(252, 78, 2, 0.45)" },
-  watchText: { fontFamily: font.body, fontSize: 14.5, lineHeight: 20, color: color.dim },
-  turn: { marginTop: 18 },
-  turnTitle: { fontFamily: font.displayBold, fontSize: 19, color: color.white },
-  turnNote: { marginTop: 6, fontFamily: font.body, fontSize: 14.5, lineHeight: 20, color: color.dim },
-  turnChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
-  turnButton: { marginTop: 14 },
-  paper: { alignItems: "center", marginTop: 22, paddingTop: 24, paddingBottom: 18, paddingHorizontal: 18, borderRadius: 24, backgroundColor: color.white },
-  address: { marginTop: 18, textAlign: "center", fontFamily: font.mono, fontSize: 16, lineHeight: 23, letterSpacing: 0.3, color: color.paperInk },
-  network: { marginTop: 8, fontFamily: font.bodyBold, fontSize: 13, letterSpacing: 0.4, color: color.paperDim },
-  actions: { flexDirection: "row", gap: 10, marginTop: 18 },
+  fill: { flex: 1 },
+  lede: { fontFamily: font.body, fontSize: type.body, lineHeight: leading.body, color: color.dim },
+  cta: { marginTop: space.x6 },
+  watch: { marginTop: space.x4, borderColor: color.orangeLine },
+  watchText: { fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
+  turn: { marginTop: space.x5, backgroundColor: color.ink3 },
+  turnTitle: { fontFamily: font.displayBold, fontSize: type.key, color: color.white },
+  turnNote: { marginTop: space.x2, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
+  turnChips: { flexDirection: "row", flexWrap: "wrap", gap: space.x2, marginTop: space.x4 },
+  turnButton: { marginTop: space.x4 },
+  paper: { alignItems: "center", paddingTop: space.x6, paddingBottom: space.x5, paddingHorizontal: space.x5, borderRadius: radius.block, backgroundColor: color.white },
+  paperFirst: { marginTop: space.x5 },
+  address: { marginTop: space.x5, textAlign: "center", fontFamily: font.mono, fontSize: type.body, lineHeight: leading.body, color: color.paperInk },
+  network: { marginTop: space.x2, fontFamily: font.bodyBold, fontSize: type.footnote, color: color.paperDim },
+  actions: { flexDirection: "row", gap: space.x2, marginTop: space.x5 },
   action: { flex: 1 },
-  share: { width: 110 },
-  notes: { marginTop: 18, gap: 10 },
-  note: { flexDirection: "row", gap: 10 },
-  dot: { fontFamily: font.bodyBold, fontSize: 15, lineHeight: 21, color: color.orange },
-  noteText: { flex: 1, fontFamily: font.body, fontSize: 14.5, lineHeight: 21, color: color.dim },
+  share: { width: SHARE },
+  notes: { marginTop: space.x5, gap: space.x3 },
+  note: { flexDirection: "row", gap: space.x3 },
+  dot: { fontFamily: font.bodyBold, fontSize: type.callout, lineHeight: leading.callout, color: color.orange },
+  noteText: { flex: 1, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.callout, color: color.dim },
 });

@@ -64,14 +64,14 @@ const signed = (n: number) => `${n < 0 ? "−" : "+"}${money(Math.abs(n))}`;
 
 export function momentLines(m: MomentData): MomentLines {
   const coins = `${amount(m.amount)} ${m.symbol}`;
-  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Spot keeps an eye on it.", backdrop: "orange" };
+  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Sniffed for rugs first.", backdrop: "orange" };
   if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", backdrop: "orange" };
   const trade = `${coins} → ${money(m.usdc)}`;
   if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", backdrop: "orange" };
   const figure = m.gain.pct === null ? signed(m.gain.usd) : `${signed(m.gain.usd)} (${pct(m.gain.pct)})`;
   return m.gain.usd >= 0
-    ? { head: "Sold.", big: figure, small: `since you aped · ${trade}`, backdrop: "green" }
-    : { head: "Sold.", big: figure, small: `It happens. ${trade}`, backdrop: "orange" };
+    ? { head: "Sold.", big: figure, small: `since you aped\n${trade}`, backdrop: "green" }
+    : { head: "Sold.", big: figure, small: `It happens.\n${trade}`, backdrop: "orange" };
 }
 
 /** The card people post: one figure, one line under it, and where it came from. */
@@ -325,4 +325,190 @@ export function shareOf(raw: string, pctOf100: number): string {
    comes off first. */
 export function readablePath(uri: string, os: string): string {
   return os === "android" && uri.startsWith("file://") ? uri.slice("file://".length) : uri;
+}
+
+/** What tells same-named coins apart, under each in "which one?": its name, its size, its holders. */
+export function candidateLine(t: { name: string; mcapUsd: number | null; holders: number | null }): string {
+  const parts = [t.mcapUsd !== null ? `${usd(t.mcapUsd)} market cap` : null, t.holders !== null ? `${count(t.holders)} holders` : null].filter(Boolean);
+  return parts.length ? `${t.name}. ${parts.join(", ")}` : t.name;
+}
+
+/** The receipt's line under the stamp: the stamp already says GRRR, so the line doesn't say it twice. */
+export function verdictHead(level: Level, headline: string): string {
+  if (level !== "warn") return headline;
+  return headline.replace(/^GRRR\.\s*/, "") || headline;
+}
+
+/* ---- the dock: the key, the line under it, and the amount being typed ---- */
+
+/** The most one trade can be, on the server ($1 to $10,000). */
+export const MAX_TRADE = 10_000;
+
+/** Dollars the way a button says them: cents under $10 ($0.42), round past that ($15, $1.2k). */
+export const approx = (n: number): string => `~${n < 10 ? money(n) : usd(n)}`;
+
+/** A share of a holding in words: "all", "50%", "48.4%". */
+export function shareWord(pctOf100: number): string {
+  if (pctOf100 >= 100) return "all";
+  return `${Number(pctOf100.toFixed(1))}%`;
+}
+
+/** The share of a holding a dollar amount is, to a tenth of a percent, never more than all of it. */
+export function shareFor(dollars: number, holdingUsd: number): number {
+  if (!(holdingUsd > 0) || !(dollars > 0)) return 0;
+  if (dollars >= holdingUsd) return 100;
+  return Math.max(0.1, Math.round((dollars / holdingUsd) * 1000) / 10);
+}
+
+export interface DockState {
+  side: "buy" | "sell";
+  sniff: "loading" | "error" | Level;
+  /** Dollars a buy would spend. */
+  amount: number;
+  /** The keypad is open with nothing typed yet. */
+  empty?: boolean;
+  wallet: "none" | "watch" | "mwa";
+  /** USDC in the wallet, in dollars, once the bag is read. */
+  cash: number | null;
+  /** The SOL in the wallet could become enough cash. */
+  solCovers: boolean;
+  restricted: boolean;
+  busy: boolean;
+  /** A trade that may still land (or has, and the bag is behind), and the seconds left on it. */
+  checking: { landed: boolean; seconds: number } | null;
+  /** What the wallet holds of the coin, in dollars; null when none. */
+  held: number | null;
+  sellPct: number;
+}
+
+/** A buy can be sized: the coin is clean or growls, and it may be sold to this user. */
+export const canSize = (s: Pick<DockState, "sniff" | "restricted">): boolean => (s.sniff === "ok" || s.sniff === "warn") && !s.restricted;
+
+/** Spot apes in dollars: short of them, the one thing to do is add cash. */
+export const needsCash = (s: DockState): boolean =>
+  s.side === "buy" && canSize(s) && s.wallet === "mwa" && s.cash !== null && s.cash < s.amount;
+
+/**
+ * THE KEY. In order: a trade that may still land locks it, whatever else
+ * is true; an empty keypad waits for a number; a sell says what it sells for; a buy is refused to the US on a
+ * coin that isn't sold there, waits while it is sent, asks for cash when
+ * short, and otherwise says what the sniff allows.
+ */
+export function dockKey(s: DockState): Action {
+  if (s.checking) return { label: s.checking.landed ? "Updating your bag…" : `Checking… ${s.checking.seconds}s`, enabled: false, tone: "wait" };
+  if (s.empty) return { label: "Type an amount", enabled: false, tone: "stop" };
+  if (s.side === "sell") {
+    if (s.busy) return { label: "Selling…", enabled: false, tone: "wait" };
+    if (s.held === null) return { label: "Counting your bag…", enabled: false, tone: "wait" };
+    return { label: `Sell ${shareWord(s.sellPct)} for ${approx((s.held * s.sellPct) / 100)}`, enabled: true, tone: "sell" };
+  }
+  if (s.restricted) return { label: "Not for US users", enabled: false, tone: "stop" };
+  if (s.busy) return { label: "Aping…", enabled: false, tone: "wait" };
+  if (needsCash(s)) return { label: "Add cash", enabled: true, tone: "go" };
+  return actionFor(s.sniff, s.amount);
+}
+
+/** The line under the key: what happens next, or what to do instead. */
+export function dockNote(s: DockState): string {
+  if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it landed. You can leave, Spot will tell you.";
+  if (s.side === "sell") return s.wallet === "mwa" ? "Sells into USDC. Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
+  if (s.sniff === "loading") return "Checking it for scams…";
+  if (s.sniff === "block") return "Share another post to sniff something else.";
+  if (s.restricted) return "Coins like this aren't sold to people in the US.";
+  if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
+  if (s.wallet === "mwa") return s.cash === null ? "Your wallet approves every trade." : `${money(s.cash)} ready to ape. Your wallet approves every trade.`;
+  if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";
+  return "Free sniff. Connect a wallet to ape.";
+}
+
+/**
+ * A digit typed on the keypad: no leading zeros, and nothing past the most
+ * allowed (the digit is refused, and `over` says why nothing happened).
+ */
+export function typeDigit(current: string, digit: string, max: number): { next: string; over: boolean } {
+  if (!/^\d$/.test(digit) || (current === "" && digit === "0")) return { next: current, over: false };
+  const next = current + digit;
+  return Number(next) > max ? { next: current, over: true } : { next, over: false };
+}
+
+/** The most a buy can be: the cap on a coin that growls, the server's limit, and the cash when it is read. Null when there is no sensible most to offer. */
+export function maxApe(cash: number | null, cap: number | null): number | null {
+  const limit = Math.min(cap ?? MAX_TRADE, MAX_TRADE);
+  if (cash !== null && cash >= 1) return Math.floor(Math.min(cash, limit));
+  return cap !== null && cap >= 1 ? Math.floor(limit) : null;
+}
+
+/** The line under the amount being typed. `over` when the last digit was refused. */
+export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: boolean; cap: number | null; cash: number | null; held: number | null }): string {
+  if (p.side === "sell") {
+    if (p.held === null) return "";
+    if (p.typed !== null && !p.over) return `${shareWord(shareFor(p.typed, p.held))} of your ${money(p.held)}.`.replace(/^all of/, "All of");
+    return `You hold ${money(p.held)}.`;
+  }
+  if (p.over) return p.cap !== null ? `Spot caps this one at $${p.cap}.` : `Up to $${MAX_TRADE.toLocaleString("en-US")} a trade.`;
+  if (p.cash !== null && p.typed !== null && p.typed > p.cash) return `More than your ${money(p.cash)}. Add cash first.`;
+  if (p.cap !== null) return `Spot caps this one at $${p.cap}.`;
+  if (p.cash !== null) return `${money(p.cash)} ready to ape.`;
+  return "";
+}
+
+/** What the wallet holds of a coin, over the dock. */
+export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`;
+
+/** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
+export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {
+  if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s`, enabled: false };
+  if (p.busy) return { label: "Turning…", enabled: false };
+  return { label: `Turn ${usd(p.chosen)} into cash`, enabled: p.chosen !== null };
+}
+
+/** The line at the top of Add cash: what there is now, when it is short of an ape. */
+export function cashLede(need: number | null, cash: number | null): string {
+  const base = "Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.";
+  return need !== null && cash !== null && cash < need ? `You have ${money(cash)} in USDC. ${base}` : base;
+}
+
+/** The swap that covers an ape: the smallest choice that does, or the most there is. */
+export function coverWith(choices: number[], need: number | null, cash: number | null): number | null {
+  if (!choices.length) return null;
+  if (need === null || cash === null) return choices[0]!;
+  const short = need - cash;
+  return choices.find((c) => c >= short) ?? choices[choices.length - 1]!;
+}
+
+/** Under the bag's worth: what it is made of, and what is ready to ape. */
+export function bagLine(coins: number, cashUsd: number): string {
+  const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
+  return `${held} and ${usd(cashUsd)} ready to ape`;
+}
+
+/** A bag with nothing in it to trade: under a dollar, all told. */
+export const emptyBag = (totalUsd: number): boolean => !(totalUsd >= 1);
+
+/* A coin's icon on IPFS, wherever it was linked from: ipfs://, a path
+   gateway (…/ipfs/<cid>) or a subdomain gateway (<cid>.ipfs.<host>). */
+const IPFS_SCHEME = /^ipfs:\/\/(?:ipfs\/)?([A-Za-z0-9]+)(\/[^?#]*)?/;
+const IPFS_SUBDOMAIN = /^https?:\/\/([a-z0-9]+)\.ipfs\.[^/?#]+(\/[^?#]*)?/;
+const IPFS_PATH = /^https?:\/\/[^/?#]+\/ipfs\/([A-Za-z0-9]+)(\/[^?#]*)?/;
+
+/** Gateways that answer for anyone, the one that held up best first. */
+const GATEWAYS = ["https://4everland.io", "https://gateway.pinata.cloud", "https://ipfs.io"];
+
+/**
+ * WHERE A COIN'S FACE CAN COME FROM, in the order to try. The public IPFS
+ * gateways coins are minted with (nftstorage.link, ipfs.io) turn a phone
+ * away when busy, and a blue chip then wears a letter like a fake. An IPFS
+ * address is its content's fingerprint, so any gateway that answers shows
+ * the same picture: the face is never wrong, only late. Anything else is
+ * tried as given.
+ */
+export function faceSources(uri: string | null): string[] {
+  if (!uri) return [];
+  const m = uri.match(IPFS_SCHEME) ?? uri.match(IPFS_SUBDOMAIN) ?? uri.match(IPFS_PATH);
+  if (!m) return [uri];
+  const cid = m[1]!;
+  const path = m[2] && m[2] !== "/" ? m[2] : "";
+  const via = (g: string) => `${g}/ipfs/${cid}${path}`;
+  const all = [via(GATEWAYS[0]!), /^https?:/.test(uri) ? uri : null, ...GATEWAYS.slice(1).map(via)];
+  return all.filter((u, i): u is string => u !== null && all.indexOf(u) === i);
 }

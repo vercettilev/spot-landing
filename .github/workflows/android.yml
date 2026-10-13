@@ -92,6 +92,18 @@ jobs:
           echo "$certs"
           if grep -q "CN=Android Debug" <<<"$certs"; then echo "::error::That keystore is the debug key."; exit 1; fi
           "$tools/zipalign" -c -P 16 4 "$out"
+          # Wallets (Phantom, Seed Vault) check that the app connecting as
+          # usespot.fun is signed with a key the site lists; until it does,
+          # they warn the app may be impersonating another. The statement to
+          # publish, ready to paste, in this run's summary.
+          sha="$(grep -m1 'Signer #1 certificate SHA-256 digest' <<<"$certs" | awk '{print $NF}' | tr 'a-f' 'A-F' | sed 's/../&:/g; s/:$//')"
+          {
+            echo "### public/.well-known/assetlinks.json"
+            echo "Commit this file at the repo root's public/.well-known/ so wallets verify the store build as usespot.fun:"
+            echo '```json'
+            printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"fun.usespot.app","sha256_cert_fingerprints":["%s"]}}]\n' "$sha"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         with:

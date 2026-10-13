@@ -2,9 +2,9 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Moment } from "./src/components/Moment";
+import { Moment, useMomentUp } from "./src/components/Moment";
 import { TradeWatch } from "./src/components/TradeWatch";
 import { Navigation } from "./src/navigation";
 import { StoreProvider, useStore } from "./src/store";
@@ -32,10 +32,12 @@ export default function App() {
       <StatusBar style="light" />
       <StoreProvider>
         <WhenReady>
-          <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
-            <Navigation />
-            <TradeWatch />
-          </SafeAreaView>
+          <BehindTheMoment>
+            <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
+              <Navigation />
+              <TradeWatch />
+            </SafeAreaView>
+          </BehindTheMoment>
           {/* Over the safe area too: the moment takes the whole screen, status bar and all. */}
           <Moment />
         </WhenReady>
@@ -54,6 +56,17 @@ function WhenReady({ children }: { children: ReactNode }) {
   return ready ? children : null;
 }
 
+/* While a moment is up, a screen reader hears it and its buttons, not the app beneath. */
+function BehindTheMoment({ children }: { children: ReactNode }) {
+  const up = useMomentUp();
+  return (
+    <View style={styles.fill} aria-hidden={up}>
+      {children}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   root: { flex: 1, backgroundColor: color.ink },
 });

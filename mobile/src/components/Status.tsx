@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
-import { color, font } from "../theme";
+import { color, font, leading, size, space, tracking, type } from "../theme";
 import { Breathing, Button, PuppyIcon } from "./ui";
 
-/** The puppy, a line and at most two ways on: reading a share, finding nothing, or failing to ask. */
+/** The puppy, a line and at most two ways on: finding nothing, or failing to ask. */
 export function Status({
   title,
   line,
@@ -16,11 +16,13 @@ export function Status({
   primary?: { label: string; onPress: () => void };
   secondary?: { label: string; onPress: () => void };
 }) {
-  const puppy = <PuppyIcon size={112} />;
+  const puppy = <PuppyIcon size={size.puppy} />;
   return (
     <View style={styles.wrap}>
       {busy ? <Breathing>{puppy}</Breathing> : puppy}
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        {title}
+      </Text>
       {line ? (
         <Text style={styles.line} numberOfLines={3}>
           {line}
@@ -35,8 +37,8 @@ export function Status({
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 28, paddingBottom: 40 },
-  title: { marginTop: 26, textAlign: "center", fontFamily: font.display, fontSize: 32, lineHeight: 34, letterSpacing: -0.8, color: color.white },
-  line: { marginTop: 12, textAlign: "center", fontFamily: font.body, fontSize: 16.5, lineHeight: 23, color: color.dim },
-  actions: { alignSelf: "stretch", gap: 10, marginTop: 30 },
+  wrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: space.x7, paddingBottom: space.x10 },
+  title: { marginTop: space.x6, textAlign: "center", fontFamily: font.display, fontSize: type.display, lineHeight: leading.display, letterSpacing: tracking.display, color: color.white },
+  line: { marginTop: space.x3, textAlign: "center", fontFamily: font.body, fontSize: type.body, lineHeight: leading.body, color: color.dim },
+  actions: { alignSelf: "stretch", gap: space.x2, marginTop: space.x8 },
 });

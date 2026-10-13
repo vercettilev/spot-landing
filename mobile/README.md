@@ -1,21 +1,21 @@
 # Spot for Android
 
-Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Four tabs around it: **Sniff** (paste a CA, what you sniffed lately), **Bag** (the wallet's coins and cash), **Alerts** (coins watched, what happened) and **Me** (stats, wallet, settings).
+Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Three tabs around it: **Sniff** (paste a CA, what you sniffed lately), **Bag** (the wallet's coins and cash, what your apes made, every trade) and **Me** (stats, wallet, settings).
 
 It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/order`, `/api/execute`; see `../src/engine/README.md`) at `https://www.usespot.fun`. `EXPO_PUBLIC_SPOT_API` points a build at another deployment.
 
 ## What works, and what waits
 
-- **Works:** a share or a paste finds the coin from a CA, a link, a `$cashtag`, a bare ticker (`WIF`, offered, never auto-picked) or a screenshot (read on the phone with ML Kit; the image never leaves). The sniff, "which one?", history, the watch list, the bag of any address, settings, the deposit QR, and connecting the wallet on the phone through Mobile Wallet Adapter (Seed Vault, Phantom, Solflare).
+- **Works:** a share or a paste finds the coin from a CA, a link, a `$cashtag`, a bare ticker (`WIF`, offered, never auto-picked) or a screenshot (read on the phone with ML Kit; the image never leaves). The sniff, "which one?", history, the bag of any address with what your apes made, settings, Add cash (the deposit QR, and SOL turned into USDC), and connecting the wallet on the phone through Mobile Wallet Adapter (Seed Vault, Phantom, Solflare).
 - **Waits on the server:** buying and selling. The app asks `/api/order` for a transaction, the wallet signs it, `/api/execute` lands it; both answer 403 until `SPOT_TRADING=1` is set on Vercel, and the app says "Buying opens soon". Try it with a real wallet and a few dollars before opening it to anyone.
-- **Not built yet:** the alert pings (a watcher on the server plus push notifications; the rules set in the app carry over), Spot paying the gas, and iPhone (Mobile Wallet Adapter is Android only; on iOS the app can watch an address).
+- **Not built yet:** the alert pings (a watcher on the server plus push notifications; the coins you ape are kept as the watch list for them, and the Alerts tab comes back when they are real), Spot paying the gas, and iPhone (Mobile Wallet Adapter is Android only; on iOS the app can watch an address).
 
 ## What is here
 
 ```
 App.tsx                    fonts, splash until the phone's memory is read, safe area
 src/navigation.tsx         four tabs and what opens over them; a share opens over any tab
-src/screens/               one file per screen: Sniff, Resolve, Coin, Choose, Bag, Alerts, Me, Deposit, Connect
+src/screens/               one file per screen: Sniff, Resolve, Coin, Choose, Bag, Me, and the Connect and Add cash sheets
 src/store.tsx              what the app remembers, on the phone only (settings, history, watch list, activity, wallet address)
 src/holdings.ts            the bag, cached per wallet for 30 s
 src/wallet/                Mobile Wallet Adapter (loaded on first use), base58 for addresses
@@ -48,8 +48,9 @@ The dApp Store takes a release APK signed with a key of Spot's own, used for thi
    ```
 2. In GitHub, **Settings → Secrets and variables → Actions**, add `SPOT_RELEASE_KEYSTORE` (the contents of the `.b64` file), `SPOT_RELEASE_KEYSTORE_PASSWORD`, `SPOT_RELEASE_KEY_ALIAS` (`spot`) and `SPOT_RELEASE_KEY_PASSWORD` (the same password, for a PKCS12 keystore).
 3. The next build also uploads `spot-…-dapp-store.apk`, signed with that key. That is the file for the [Publisher Portal](https://docs.solanamobile.com/dapp-publishing/setup), which also wants a publisher wallet with a little SOL, the listing (icon, banner, screenshots, description) and identity checks.
-4. Each update needs `android.versionCode` in `app.json` one higher than the last release.
-5. The listing itself (name, descriptions, links, the 512 icon and the 1080-wide screenshots) is in `store/`: paste from `store/listing.md`. The screenshots are made from the web export with example data (`npx expo export --platform web`), so they are the real screens.
+4. That build's run summary holds `public/.well-known/assetlinks.json`, ready to paste: commit it at the repo root, so the site serves it at `https://www.usespot.fun/.well-known/assetlinks.json`. Wallets check it when Spot connects (Mobile Wallet Adapter's identity verification): without it Phantom says the app's identity "could not be verified" and Seed Vault that it doesn't recognize the domain. Test builds, signed with Expo's public debug key, keep that warning on purpose: listing a key anyone has would let anyone sign as Spot.
+5. Each update needs `android.versionCode` in `app.json` one higher than the last release.
+6. The listing itself (name, descriptions, links, the 512 icon and the 1080-wide screenshots) is in `store/`: paste from `store/listing.md`. The screenshots are made from the web export with example data (`npx expo export --platform web`), so they are the real screens.
 
 ## Work on it
 

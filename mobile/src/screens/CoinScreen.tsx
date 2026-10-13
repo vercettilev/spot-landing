@@ -2,20 +2,38 @@ import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Bell, Button, CoinFace, OutIcon, Pill, Toggle, feel, tap, useToast } from "../components/ui";
+import { Button, CoinFace, Dock, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
-import { DEFAULT_AMOUNT, actionFor, amount as fmtAmount, chipsFor, clampAmount, money, pct, price, shareOf, sourceLine, usd } from "../logic";
+import {
+  DEFAULT_AMOUNT,
+  MAX_TRADE,
+  chipsFor,
+  clampAmount,
+  dockKey,
+  dockNote,
+  holding,
+  maxApe,
+  needsCash as shortOfCash,
+  padHint,
+  pct,
+  price,
+  shareFor,
+  shareOf,
+  sourceLine,
+  typeDigit,
+  usd,
+  type DockState,
+} from "../logic";
 import type { RootParams } from "../navigation";
 import { claim, hold, pendingFor, subscribe } from "../pending";
-import { books, saleGain } from "../pnl";
-import { AUTO_SELL, PINGS } from "../soon";
+import { books, saleGain, since, sinceAped } from "../pnl";
+import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
-import { color, font } from "../theme";
+import { color, font, leading, radius, size, space, tracking, type } from "../theme";
 import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
 import { short } from "../wallet/base58";
@@ -24,6 +42,12 @@ import { signTransaction, walletError } from "../wallet/mwa";
 type Props = NativeStackScreenProps<RootParams, "Coin">;
 
 const SELL_SHARES = [25, 50, 100];
+
+const SIDES = [
+  { value: "buy", label: "Buy", tint: color.green, ink: color.ink },
+  /* Ink on the red thumb: white there is 3.3:1, too faint for a 15-point label. */
+  { value: "sell", label: "Sell", tint: color.red, ink: color.ink },
+] as const;
 
 /** A quote that pays much less than the price says, waiting for a yes. */
 interface Confirm {
@@ -44,36 +68,44 @@ const units = (raw: string, decimals: number) => (/^\d+$/.test(raw) ? Number(raw
 const CONFIRM_FRESH_MS = 25_000;
 
 /**
- * A COIN, in the order a first-timer needs it: what it is, whether it is a
- * scam (the sniff report), then how much and the button. The amounts sit
- * right above the button, so a buy is two taps; the Sell side shows only
- * when the wallet holds the coin, and stays open on a coin Spot blocks
- * (Spot refuses the buy, never the way out of a bag already held).
+ * A COIN, in the order a first-timer needs it: what it is, the stamp
+ * (CLEAN, GRRR or NOPE) and the proof under it, then the dock at the
+ * bottom: how much and the key, so a buy is one tap from the share. Any
+ * amount can be typed on the keypad. When the wallet holds the coin the
+ * dock gets Buy and Sell (opened from the bag, it starts on Sell), and
+ * Sell stays open on a coin Spot blocks: Spot refuses the buy, never the
+ * way out of a bag already held.
  *
  * A trade goes through the wallet on the phone (Seed Vault, Phantom): Spot
  * asks the server for an order, the wallet asks its owner to approve it,
- * Jupiter lands it. Until the server opens trading, the button says so.
+ * Jupiter lands it. Until the server opens trading, the key says so.
  *
  * Money rules (trade.ts): one trade at a time, however fast the taps; a
  * quote far below the price stops for a yes before the wallet opens; and a
- * trade whose fate is not known locks the button, with a countdown, while
+ * trade whose fate is not known locks the key, with a countdown, while
  * pending.ts watches the wallet, so "did it go through?" can never become
  * a second buy. The user may leave: the verdict follows them.
  */
 export function CoinScreen({ navigation, route }: Props) {
   const { candidate, source, share, others } = route.params;
   const store = useStore();
-  const insets = useSafeAreaInsets();
-  const [toastNode, toast] = useToast(200 + insets.bottom);
+  const [dockHeight, setDockHeight] = useState<number>(size.key * 3);
+  const [toastNode, toast] = useToast(dockHeight + space.x2);
   const [sniff, setSniff] = useState<SniffState>({ status: "loading" });
-  const [side, setSide] = useState<"buy" | "sell">("buy");
+  const [side, setSide] = useState<"buy" | "sell">(route.params.side ?? "buy");
   const [preset, setPreset] = useState(store.settings.defaultAmount || DEFAULT_AMOUNT);
-  /* Dollars typed next to the chips, digits only. */
+  /* Dollars typed on the keypad, digits only. */
   const [custom, setCustom] = useState("");
-  const [sellPct, setSellPct] = useState(50);
+  const [sellPreset, setSellPreset] = useState(50);
+  /* Dollars of the holding typed on the keypad, sold as the share of it they are. */
+  const [sellCustom, setSellCustom] = useState("");
   const [tp, setTp] = useState(store.settings.tpDefault);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const [pad, setPad] = useState(false);
+  /* The keypad refused the last digit: more than this coin or the server allows. */
+  const [over, setOver] = useState(false);
+  const padRef = useRef<SheetHandle>(null);
   const inFlight = useRef(false);
   const run = useRef(0);
 
@@ -118,10 +150,10 @@ export function CoinScreen({ navigation, route }: Props) {
     };
   }, [sniffNow]);
 
-  /* Sold the last of it: back to buying. */
+  /* Sold the last of it: back to buying, once the bag has been read. */
   useEffect(() => {
-    if (!position && side === "sell") setSide("buy");
-  }, [position, side]);
+    if (bag.value && !position && side === "sell") setSide("buy");
+  }, [bag.value, position, side]);
 
   /* The hold on this coin and, when it comes, the verdict, from the
      watcher in pending.ts. Said here while this screen is the one showing;
@@ -151,74 +183,95 @@ export function CoinScreen({ navigation, route }: Props) {
   }, [checking]);
 
   const buying = side === "buy";
-  const blocked = done?.level === "block";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
   const chips = chipsFor(cap);
   /* A typed amount wins over the chips, within the server's $1 to $10,000 and a warned coin's cap. */
-  const typed = custom ? clampAmount(Math.min(10_000, Math.max(1, Number(custom))), cap) : null;
+  const typed = custom ? clampAmount(Math.min(MAX_TRADE, Math.max(1, Number(custom))), cap) : null;
   const amount = typed ?? preset;
   const up = (coin.change24hPct ?? 0) >= 0;
-  const watched = store.isWatched(coin.mint);
+  const sellTyped = sellCustom && position ? shareFor(Number(sellCustom), position.usd) : 0;
+  const sellPct = sellTyped > 0 ? sellTyped : sellPreset;
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
   /* Spot apes in dollars. Short of them, the one thing to do is add cash. */
   const cash = bag.value?.usdc.usd ?? null;
-  const needsCash = buying && canPickAmount && wallet?.kind === "mwa" && cash !== null && cash < amount;
   const solCovers = bag.value !== null && (bag.value.sol.usd ?? 0) - 1 >= amount;
+  const dock: DockState = {
+    side,
+    sniff: sniff.status === "done" ? sniff.sniff.level : sniff.status === "error" ? "error" : "loading",
+    amount,
+    wallet: wallet?.kind ?? "none",
+    cash,
+    solCovers,
+    restricted,
+    busy,
+    checking: checking ? { landed: checking.landed, seconds: secondsLeft(checking, now) } : null,
+    held: position?.usd ?? null,
+    sellPct,
+  };
+  const needsCash = shortOfCash(dock);
+  const action = dockKey(dock);
+  const note = dockNote(dock);
+  /* What the coins Spot bought are worth now, against what they cost. */
+  const book = owner ? books(store.trades.filter((t) => t.owner === owner)).get(coin.mint) : undefined;
+  const gained = book && position ? since(book, position) : null;
 
-  const action = checking
-    ? { label: checking.landed ? "Updating your bag…" : `Checking… ${secondsLeft(checking, now)}s`, enabled: false, tone: "wait" as const }
-    : !buying
-      ? { label: busy ? "Selling…" : `Sell ${sellPct === 100 ? "all" : `${sellPct}%`} · ~${usd(sellUsd)}`, enabled: Boolean(position) && !busy, tone: "sell" as const }
-      : restricted
-        ? { label: "Not for US users", enabled: false, tone: "stop" as const }
-        : busy
-          ? { label: "Aping…", enabled: false, tone: "wait" as const }
-          : needsCash
-            ? { label: "Add cash", enabled: true, tone: "go" as const }
-            : actionFor(sniff.status === "done" ? sniff.sniff.level : sniff.status, amount);
+  /* The keypad: dollars to ape, or dollars of the holding to sell. */
+  const padValue = buying ? custom : sellCustom;
+  const padMax = buying ? Math.min(MAX_TRADE, cap ?? MAX_TRADE) : Math.ceil(position?.usd ?? 0);
+  const padAction = dockKey({ ...dock, empty: !padValue });
+  const most = buying ? maxApe(wallet?.kind === "mwa" ? cash : null, cap) : null;
+  const hint = padHint({ side, typed: padValue ? Number(padValue) : null, over, cap, cash: wallet?.kind === "mwa" ? cash : null, held: position?.usd ?? null });
 
-  const note = checking
-    ? checking.landed
-      ? "Done. Your bag catches up in a sec."
-      : "Making sure it landed. You can leave, Spot will tell you."
-    : !buying
-      ? wallet?.kind === "mwa"
-        ? "Sells into USDC. Your wallet asks you to approve."
-        : "You're only tracking this wallet. Connect yours to sell."
-      : sniff.status === "loading"
-        ? "Checking it for scams…"
-        : blocked
-          ? "Share another post to sniff something else."
-          : restricted
-            ? "Coins like this aren't sold to people in the US."
-            : needsCash
-              ? solCovers
-                ? `Only ${money(cash)} in USDC. Turn some SOL into cash first.`
-                : `Only ${money(cash)} in USDC. Add cash, then ape.`
-              : wallet?.kind === "mwa"
-                ? "Your wallet asks you to approve every trade."
-                : wallet
-                ? "You're only tracking this wallet. Connect yours to ape."
-                : "Free sniff. Connect a wallet to ape.";
+  function openPad() {
+    setOver(false);
+    setPad(true);
+  }
+
+  function digit(d: string) {
+    const { next, over: refused } = typeDigit(padValue, d, padMax);
+    setOver(refused);
+    if (refused) {
+      feel("warning");
+      return;
+    }
+    if (buying) setCustom(next);
+    else setSellCustom(next);
+  }
+
+  function setPadValue(v: string) {
+    setOver(false);
+    if (buying) setCustom(v);
+    else setSellCustom(v);
+  }
+
+  /* Connecting or adding cash rises as a sheet over the coin, told what the
+     ape is for; everything else is the trade. */
+  function act() {
+    if (buying && !wallet && canPickAmount) {
+      navigation.navigate("Connect", { ape: amount });
+      return;
+    }
+    if (needsCash) {
+      navigation.navigate("Deposit", { need: amount });
+      return;
+    }
+    void trade();
+  }
+
+  /* The keypad's key does what the dock's does, once the sheet is down. */
+  function padGo() {
+    padRef.current?.close(() => {
+      setPad(false);
+      act();
+    });
+  }
 
   async function copyCa() {
     tap();
     await Clipboard.setStringAsync(coin.mint).catch(() => {});
     toast("CA copied.");
-  }
-
-  function toggleWatch() {
-    tap();
-    store.toggleWatch(coin);
-    toast(
-      watched
-        ? `Stopped watching $${coin.symbol}.`
-        : PINGS
-          ? `Spot will bark if $${coin.symbol} turns. It's in Alerts.`
-          : `Watching $${coin.symbol}. Barks start when alerts go live.`,
-    );
   }
 
   async function trade() {
@@ -350,31 +403,30 @@ export function CoinScreen({ navigation, route }: Props) {
   }
 
   return (
-    <View style={styles.fill}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 230 + insets.bottom }]} keyboardShouldPersistTaps="handled">
+    <View style={styles.fill} aria-hidden={!focused}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: dockHeight + space.x6 }]}
+        keyboardShouldPersistTaps="handled"
+        aria-hidden={pad}
+      >
         <View style={styles.top}>
-          <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={styles.back}>←</Text>
-          </Pressable>
+          <IconButton icon="back" label="Back" onPress={() => navigation.goBack()} style={styles.back} />
           <Text style={styles.source} numberOfLines={1}>
             {source && share ? sourceLine(source, share) : ""}
           </Text>
-          <Pressable onPress={toggleWatch} hitSlop={12} accessibilityRole="button" accessibilityLabel={watched ? "Stop watching" : "Watch this coin"}>
-            <Bell on={watched} />
-          </Pressable>
         </View>
 
         <View style={styles.coin}>
-          <CoinFace uri={coin.icon} symbol={coin.symbol} size={56} />
+          <CoinFace uri={coin.icon} symbol={coin.symbol} size={size.faceCoin} />
           <View style={styles.coinText}>
             <View style={styles.symbolRow}>
               <Text style={styles.symbol} numberOfLines={1}>
                 ${coin.symbol}
               </Text>
-              {coin.verified && <Text style={styles.verified}>✓</Text>}
+              {coin.verified && <Verified />}
             </View>
             <Text style={styles.name} numberOfLines={1}>
-              {coin.kind === "stock" ? `${coin.name} · stock coin` : coin.name}
+              {coin.kind === "stock" ? `${coin.name}, a stock coin` : coin.name}
             </Text>
           </View>
           <View style={styles.priceCol}>
@@ -386,20 +438,19 @@ export function CoinScreen({ navigation, route }: Props) {
         {coin.mcapUsd !== null && <Text style={styles.stats}>{usd(coin.mcapUsd)} market cap</Text>}
         {/* The address is the one thing a lookalike cannot copy: shown, copied in a tap, and checked on Solscan. */}
         <View style={styles.caRow}>
-          <Pressable onPress={() => void copyCa()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
+          <Pressable onPress={() => void copyCa()} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
             <Text style={styles.caLabel}>CA</Text>
             <Text style={styles.caText}>{short(coin.mint)}</Text>
             <Text style={styles.caLink}>Copy</Text>
           </Pressable>
           <Pressable
             onPress={() => void Linking.openURL(`https://solscan.io/token/${coin.mint}`).catch(() => {})}
-            hitSlop={8}
             accessibilityRole="link"
             accessibilityLabel="See it on Solscan"
             style={styles.ca}
           >
             <Text style={styles.caLink}>Solscan</Text>
-            <OutIcon />
+            <OutIcon tint={color.orange} />
           </Pressable>
         </View>
         {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
@@ -415,31 +466,11 @@ export function CoinScreen({ navigation, route }: Props) {
                 current: candidate,
               })
             }
-            hitSlop={8}
+            style={styles.notThis}
             accessibilityRole="button"
           >
-            <Text style={styles.notThis}>Not this one? See {others.length === 1 ? "the other coin" : `${others.length} others`}</Text>
+            <Text style={styles.notThisText}>Not this one? See {others.length === 1 ? "the other coin" : `${others.length} others`}</Text>
           </Pressable>
-        )}
-
-        {position && (
-          <View style={styles.side}>
-            {(["buy", "sell"] as const).map((s) => (
-              <Pressable
-                key={s}
-                onPress={() => {
-                  tap();
-                  setSide(s);
-                  setConfirm(null);
-                }}
-                style={[styles.sideItem, side === s && (s === "buy" ? styles.sideBuy : styles.sideSell)]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: side === s }}
-              >
-                <Text style={[styles.sideText, side === s && (s === "buy" ? styles.sideTextBuy : styles.sideTextSell)]}>{s === "buy" ? "Buy" : "Sell"}</Text>
-              </Pressable>
-            ))}
-          </View>
         )}
 
         <View style={styles.report}>
@@ -457,56 +488,99 @@ export function CoinScreen({ navigation, route }: Props) {
         )}
       </ScrollView>
 
-      <View style={[styles.bar, { paddingBottom: 12 + insets.bottom }]}>
-        {confirm ? (
-          <>
-            <Text style={styles.confirmLine}>{confirm.line}</Text>
-            <View style={styles.pair}>
-              <Button label="Cancel" kind="quiet" onPress={() => setConfirm(null)} style={styles.half} />
-              <Button label={confirm.label} kind="growl" onPress={() => void confirmed()} style={styles.half} />
-            </View>
-            <Text style={styles.barNote}>Your wallet still asks before anything moves.</Text>
-          </>
-        ) : (
-          <>
-            {!buying && position && (
-              <Text style={styles.held}>
-                You have {fmtAmount(position.amount)} {coin.symbol} · {usd(position.usd)}
-              </Text>
-            )}
-            {canPickAmount && !checking && (
-              <View style={styles.chips}>
-                {buying
-                  ? chips.map((c) => (
-                      <Pill
-                        key={c}
-                        label={`$${c}`}
-                        on={!custom && c === amount}
-                        onPress={() => {
-                          setCustom("");
-                          setPreset(c);
-                        }}
-                      />
-                    ))
-                  : SELL_SHARES.map((p) => <Pill key={p} label={p === 100 ? "All" : `${p}%`} on={p === sellPct} onPress={() => setSellPct(p)} />)}
-                {buying && (
-                  <TextInput
-                    value={custom}
-                    onChangeText={(t) => setCustom(t.replace(/\D/g, "").slice(0, 5))}
-                    keyboardType="number-pad"
-                    placeholder="$ more"
-                    placeholderTextColor={color.faint}
-                    style={[styles.more, custom ? styles.moreOn : null]}
-                    accessibilityLabel="Another amount, in dollars"
-                  />
-                )}
+      <Dock onHeight={setDockHeight}>
+        <View aria-hidden={pad}>
+          {confirm ? (
+            <>
+              <Text style={styles.confirmLine}>{confirm.line}</Text>
+              <View style={styles.pair}>
+                <Button label="Cancel" kind="quiet" onPress={() => setConfirm(null)} style={styles.half} />
+                <Button label={confirm.label} kind="growl" onPress={() => void confirmed()} style={styles.half} />
               </View>
-            )}
-            <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={() => void trade()} />
-            <Text style={styles.barNote}>{note}</Text>
-          </>
-        )}
-      </View>
+              <Text style={styles.note}>Your wallet still asks before anything moves.</Text>
+            </>
+          ) : (
+            <>
+              {position && (
+                <View style={styles.dockHead}>
+                  <Segmented
+                    label="Buy or sell"
+                    options={SIDES}
+                    value={side}
+                    onChange={(s) => {
+                      setSide(s);
+                      setConfirm(null);
+                    }}
+                  />
+                  <View style={styles.heldCol}>
+                    <Text style={styles.held} numberOfLines={1}>
+                      {holding(position.usd)}
+                    </Text>
+                    {gained ? (
+                      <Text style={[styles.gained, { color: gained.usd >= 0 ? color.green : color.dim }]} numberOfLines={1}>
+                        {sinceAped(gained)}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              )}
+              {canPickAmount && !checking && (
+                <View style={styles.chips}>
+                  {buying
+                    ? chips.map((c) => (
+                        <Pill
+                          key={c}
+                          label={`$${c}`}
+                          on={!custom && c === amount}
+                          onPress={() => {
+                            setCustom("");
+                            setPreset(c);
+                          }}
+                        />
+                      ))
+                    : SELL_SHARES.map((p) => (
+                        <Pill
+                          key={p}
+                          label={p === 100 ? "All" : `${p}%`}
+                          on={!sellCustom && p === sellPreset}
+                          onPress={() => {
+                            setSellCustom("");
+                            setSellPreset(p);
+                          }}
+                        />
+                      ))}
+                  {buying || (position && position.usd > 0) ? (
+                    <Pill
+                      label={padValue ? `$${padValue}` : "Other"}
+                      on={Boolean(padValue)}
+                      onPress={openPad}
+                      accessibilityLabel={padValue ? `$${padValue}, type another amount` : "Type an amount"}
+                    />
+                  ) : null}
+                </View>
+              )}
+              <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
+              <Text style={styles.note}>{note}</Text>
+            </>
+          )}
+        </View>
+      </Dock>
+
+      <Sheet ref={padRef} visible={pad} onDismiss={() => setPad(false)} title={buying ? "How much to ape?" : "How much to sell?"}>
+        <Text style={[styles.figure, !padValue && styles.figureEmpty]} numberOfLines={1} adjustsFontSizeToFit accessibilityLiveRegion="polite">
+          ${padValue || "0"}
+        </Text>
+        <Text style={[styles.padHint, over && styles.padHintOver]} accessibilityLiveRegion="polite">
+          {hint}
+        </Text>
+        <Keypad
+          onDigit={digit}
+          onDelete={() => setPadValue(padValue.slice(0, -1))}
+          onClear={() => setPadValue("")}
+          extra={most !== null ? { label: "Max", onPress: () => setPadValue(String(most)) } : null}
+        />
+        <Button label={padAction.label} kind={padAction.tone} disabled={!padAction.enabled} onPress={padGo} style={styles.padKey} />
+      </Sheet>
       {toastNode}
     </View>
   );
@@ -514,98 +588,54 @@ export function CoinScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scroll: { paddingHorizontal: 20, paddingTop: 8 },
-  top: { flexDirection: "row", alignItems: "center", gap: 14, height: 44 },
-  back: { fontFamily: font.bodyBold, fontSize: 26, color: color.white, marginTop: -3 },
-  source: { flex: 1, fontFamily: font.bodySemi, fontSize: 15, color: color.dim },
-  coin: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 14 },
+  scroll: { paddingHorizontal: space.gutter, paddingTop: space.x2 },
+  top: { flexDirection: "row", alignItems: "center", gap: space.x1, height: size.tap },
+  back: { marginLeft: -space.x3 },
+  source: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
+  coin: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x3 },
   coinText: { flex: 1, minWidth: 0 },
-  symbolRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  symbol: { flexShrink: 1, fontFamily: font.display, fontSize: 32, letterSpacing: -0.8, color: color.white },
-  verified: {
-    fontFamily: font.bodyBold,
-    fontSize: 12,
-    color: color.ink,
-    backgroundColor: color.orange,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    textAlign: "center",
-    lineHeight: 20,
-    overflow: "hidden",
-  },
-  name: { marginTop: 2, fontFamily: font.body, fontSize: 15, color: color.dim },
+  symbolRow: { flexDirection: "row", alignItems: "center", gap: space.x2 },
+  symbol: { flexShrink: 1, fontFamily: font.display, fontSize: type.display, lineHeight: leading.display, letterSpacing: tracking.display, color: color.white },
+  name: { marginTop: space.hair, fontFamily: font.body, fontSize: type.callout, color: color.dim },
   priceCol: { alignItems: "flex-end" },
-  price: { fontFamily: font.displayBold, fontSize: 18, color: color.white },
-  change: { marginTop: 2, fontFamily: font.bodyBold, fontSize: 14 },
-  stats: { marginTop: 12, fontFamily: font.bodySemi, fontSize: 14, color: color.faint },
-  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
-  ca: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
-  caLabel: { fontFamily: font.bodyBold, fontSize: 13, color: color.faint },
-  caText: { fontFamily: font.mono, fontSize: 13, color: color.dim },
-  caLink: { fontFamily: font.bodySemi, fontSize: 14, color: color.orange },
-  restricted: { marginTop: 8, fontFamily: font.bodySemi, fontSize: 14, color: "#ffb08a" },
-  notThis: { marginTop: 10, fontFamily: font.bodySemi, fontSize: 15, color: color.orange },
-  side: {
-    flexDirection: "row",
-    alignSelf: "flex-start",
-    marginTop: 20,
-    padding: 4,
-    borderRadius: 999,
-    backgroundColor: color.ink2,
-    borderWidth: 1,
-    borderColor: color.line,
-  },
-  sideItem: { paddingVertical: 7, paddingHorizontal: 18, borderRadius: 999 },
-  sideBuy: { backgroundColor: color.green },
-  sideSell: { backgroundColor: color.red },
-  sideText: { fontFamily: font.bodyBold, fontSize: 15, color: color.faint },
-  sideTextBuy: { color: color.ink },
-  sideTextSell: { color: color.white },
-  report: { marginTop: 24, marginBottom: 12 },
+  price: { fontFamily: font.displayBold, fontSize: type.lead, color: color.white },
+  change: { marginTop: space.hair, fontFamily: font.bodyBold, fontSize: type.caption },
+  stats: { marginTop: space.x3, fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
+  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  ca: { flexDirection: "row", alignItems: "center", gap: space.x2, minHeight: size.tap },
+  caLabel: { fontFamily: font.bodyBold, fontSize: type.footnote, color: color.faint },
+  caText: { fontFamily: font.mono, fontSize: type.footnote, color: color.dim },
+  caLink: { fontFamily: font.bodySemi, fontSize: type.caption, color: color.orange },
+  restricted: { fontFamily: font.bodySemi, fontSize: type.caption, color: color.caution },
+  notThis: { alignSelf: "flex-start", minHeight: size.tap, justifyContent: "center" },
+  notThisText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.orange },
+  report: { marginTop: space.x4, marginBottom: space.x3 },
   tp: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginTop: 18,
-    padding: 16,
-    borderRadius: 18,
+    gap: space.x3,
+    marginTop: space.x5,
+    padding: space.x4,
+    borderRadius: radius.card,
     backgroundColor: color.ink2,
-    borderWidth: 1,
+    borderWidth: size.hairline,
     borderColor: color.line,
   },
   tpText: { flex: 1 },
-  tpTitle: { fontFamily: font.bodyBold, fontSize: 17, color: color.white },
-  tpNote: { marginTop: 2, fontFamily: font.body, fontSize: 14, lineHeight: 19, color: color.faint },
-  bar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingTop: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "rgba(11, 11, 12, 0.97)",
-    borderTopWidth: 1,
-    borderColor: color.line,
-  },
-  held: { marginBottom: 10, textAlign: "center", fontFamily: font.bodySemi, fontSize: 14.5, color: color.dim },
-  confirmLine: { marginBottom: 12, textAlign: "center", fontFamily: font.bodyBold, fontSize: 16, lineHeight: 22, color: color.white },
-  pair: { flexDirection: "row", gap: 10 },
+  tpTitle: { fontFamily: font.bodyBold, fontSize: type.lead, color: color.white },
+  tpNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.faint },
+  dockHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.x3, marginBottom: space.x3 },
+  heldCol: { flexShrink: 1, alignItems: "flex-end" },
+  held: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.white },
+  gained: { marginTop: space.hair, fontFamily: font.bodySemi, fontSize: type.footnote },
+  confirmLine: { marginBottom: space.x3, textAlign: "center", fontFamily: font.bodyBold, fontSize: type.body, lineHeight: leading.body, color: color.white },
+  pair: { flexDirection: "row", gap: space.x2 },
   half: { flex: 1 },
-  chips: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, marginBottom: 12 },
-  more: {
-    minWidth: 92,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: color.line,
-    backgroundColor: color.ink2,
-    fontFamily: font.bodyBold,
-    fontSize: 15,
-    color: color.white,
-    textAlign: "center",
-  },
-  moreOn: { borderColor: color.orange, backgroundColor: color.orange, color: color.ink },
-  barNote: { marginTop: 8, textAlign: "center", fontFamily: font.body, fontSize: 13.5, color: color.faint },
+  chips: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.x2, marginBottom: space.x3 },
+  note: { marginTop: space.x2, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
+  figure: { fontFamily: font.display, fontSize: type.figure, lineHeight: leading.figure, letterSpacing: tracking.figure, color: color.white, textAlign: "center" },
+  figureEmpty: { color: color.faint },
+  padHint: { minHeight: leading.caption, marginTop: space.x1, marginBottom: space.x3, textAlign: "center", fontFamily: font.bodySemi, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
+  padHintOver: { color: color.caution },
+  padKey: { marginTop: space.x3 },
 });
