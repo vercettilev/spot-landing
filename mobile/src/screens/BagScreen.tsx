@@ -1,6 +1,7 @@
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useIsFocused, type CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useState } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorLine } from "../api";
 import { Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Title } from "../components/ui";
@@ -28,6 +29,8 @@ export function BagScreen({ navigation }: Props) {
   const { wallet, trades } = useStore();
   /* Under a sheet, a screen reader stays in the sheet. */
   const away = !useIsFocused();
+  /* The latest trades, the rest a tap away: a long list buries the bag above it. */
+  const [allTrades, setAllTrades] = useState(false);
   const bag = useHoldings(wallet?.address ?? null);
   const mine = trades.filter((t) => t.owner === wallet?.address);
   const ledger = books(mine);
@@ -58,12 +61,12 @@ export function BagScreen({ navigation }: Props) {
     >
       <View style={styles.head}>
         <Title>Bag</Title>
-        <Pressable onPress={() => navigation.navigate("Me")} style={styles.addrTap} accessibilityRole="button" accessibilityLabel="Your wallet">
-          <Text style={styles.addr}>
-            {wallet.kind === "watch" ? "Tracking " : ""}
-            {short(wallet.address)}
-          </Text>
-        </Pressable>
+        {/* Only a tracked wallet needs naming: your own is just your bag. */}
+        {wallet.kind === "watch" ? (
+          <Pressable onPress={() => navigation.navigate("Me")} style={styles.addrTap} accessibilityRole="button" accessibilityLabel="The wallet you're tracking">
+            <Text style={styles.addr}>Tracking {short(wallet.address)}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {bag.status === "loading" && !b ? (
@@ -95,8 +98,8 @@ export function BagScreen({ navigation }: Props) {
 
           <Section>Cash</Section>
           <Group>
-            <Row left={<Cash glyph="$" />} title="USDC" subtitle="Digital dollars" right={<Value value={usd(b.usdc.usd)} under={fmtAmount(b.usdc.amount)} />} />
-            <Row left={<Cash glyph="◎" />} title="SOL" subtitle="Solana" right={<Value value={b.sol.usd === null ? "—" : usd(b.sol.usd)} under={fmtAmount(b.sol.amount)} />} />
+            <Row left={<Cash glyph="$" />} title="USDC" subtitle="Digital dollars" right={<Value value={usd(b.usdc.usd)} />} />
+            <Row left={<Cash glyph="◎" />} title="SOL" subtitle="Pays network fees" right={<Value value={b.sol.usd === null ? "—" : usd(b.sol.usd)} under={`${fmtAmount(b.sol.amount)} SOL`} />} />
             {nothing ? null : (
               <Row left={<Cash glyph="+" tint={color.orange} />} title="Add cash" subtitle="USDC or SOL, on Solana" tint={color.orange} chevron onPress={() => navigation.navigate("Deposit")} />
             )}
@@ -133,7 +136,7 @@ export function BagScreen({ navigation }: Props) {
             <>
               <Section>Trades</Section>
               <Group>
-                {mine.slice(0, 50).map((t) => {
+                {mine.slice(0, allTrades ? 50 : RECENT_TRADES).map((t) => {
                   const what = `${t.side === "buy" ? "Aped" : "Sold"} $${t.symbol}`;
                   return (
                     <Row
@@ -147,6 +150,9 @@ export function BagScreen({ navigation }: Props) {
                     />
                   );
                 })}
+                {!allTrades && mine.length > RECENT_TRADES ? (
+                  <Row title={`Show all ${Math.min(mine.length, 50)} trades`} tint={color.orange} chevron onPress={() => setAllTrades(true)} />
+                ) : null}
               </Group>
               {onChain && <Text style={styles.hidden}>Tap a trade to see it on Solscan.</Text>}
             </>
@@ -165,17 +171,18 @@ function Cash({ glyph, tint }: { glyph: string; tint?: string }) {
   );
 }
 
-function Value({ value, under, tint }: { value: string; under: string; tint?: string }) {
+function Value({ value, under, tint }: { value: string; under?: string; tint?: string }) {
   return (
     <View style={styles.value}>
       <Text style={styles.valueTop}>{value}</Text>
-      <Text style={[styles.valueUnder, tint ? { color: tint } : null]}>{under}</Text>
+      {under ? <Text style={[styles.valueUnder, tint ? { color: tint } : null]}>{under}</Text> : null}
     </View>
   );
 }
 
-/* An empty state's line, kept to a comfortable measure. */
+/* An empty state's line, kept to a comfortable measure; and how many trades show before "Show all". */
 const MEASURE = 320;
+const RECENT_TRADES = 5;
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: space.gutter, paddingTop: space.x3, paddingBottom: space.x12 },
