@@ -16,6 +16,15 @@ export function Reveal({ className, children }: { className?: string; children: 
     const el = ref.current;
     if (!el || !("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     setState("armed");
+    /* HOW MUCH OF IT HAS TO SHOW. Half, for a block the screen holds twice
+       over; less for a tall one. A block taller than two viewports can never
+       be half visible, and a fixed 0.5 would leave the sniff report blank on
+       a phone held sideways: at 568×320 at most 49.7% of it is ever on
+       screen, so the rows stay at opacity 0. The most asked of any block is
+       40% of the viewport; the floor keeps a huge one from playing on a
+       sliver. */
+    const height = el.getBoundingClientRect().height;
+    const threshold = height > 0 ? Math.min(0.5, Math.max(0.1, (window.innerHeight * 0.4) / height)) : 0.5;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
@@ -23,7 +32,7 @@ export function Reveal({ className, children }: { className?: string; children: 
           io.disconnect();
         }
       },
-      { threshold: 0.5 },
+      { threshold },
     );
     io.observe(el);
     return () => io.disconnect();

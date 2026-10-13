@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { SpotPuppy } from "./SpotPuppy";
 import styles from "./PhoneDemo.module.css";
 
@@ -42,15 +45,39 @@ const Tabs = () => (
  * 1/270 of it), so it scales instead of reflowing. With reduced motion, or
  * before the styles run, it rests on the Ape screen. The screen is a
  * picture; the caption says the steps.
+ *
+ * The clock can be stopped. Anything that moves for more than five seconds
+ * beside other content needs a way to stop it (WCAG 2.2.2), so the caption
+ * carries a Pause button and a tap on the phone does the same. It also stops
+ * by itself when the phone scrolls out of view: twenty-seven animations ran
+ * for the whole visit, three screens below the fold, for nobody.
  */
 export function PhoneDemo() {
+  const figure = useRef<HTMLElement>(null);
+  const [held, setHeld] = useState(false); // stopped by the reader
+  const [away, setAway] = useState(false); // scrolled out of view
+
+  useEffect(() => {
+    const el = figure.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    /* 100px of margin, so the loop is already running when the phone arrives. */
+    const io = new IntersectionObserver(([e]) => setAway(!e.isIntersecting), { rootMargin: "100px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const paused = held || away;
+  const toggle = () => setHeld((v) => !v);
+
   return (
-    <figure className={styles.demo}>
+    <figure ref={figure} className={`${styles.demo}${paused ? ` ${styles.paused}` : ""}`}>
       <div className={styles.pup}>
         <SpotPuppy halo cheer label="Spot the puppy. Press to make it bark." />
       </div>
 
-      <div className={styles.device}>
+      {/* A tap on the phone pauses it, the way a tap on a video does; the
+          button in the caption says the same thing out loud. */}
+      <div className={styles.device} onClick={toggle}>
         <div className={styles.phone} aria-hidden="true">
           <div className={styles.screen}>
             <div className={`${styles.layer} ${styles.feedA}`}>
@@ -75,6 +102,9 @@ export function PhoneDemo() {
             <div className={`${styles.layer} ${styles.feedD}`}>
               <Tabs />
               <div className={`${styles.post} ${styles.postWarm}`}>
+                {/* A still from the video, so the card is not an empty room
+                    for the 2.6 seconds the feed is back. */}
+                <span className={styles.still} />
                 <b className={styles.handle}>@dan.cooks</b>
                 <span className={styles.postText}>Ten-minute ramen, part 3</span>
               </div>
@@ -184,6 +214,9 @@ export function PhoneDemo() {
           <span className={styles.say3}>Ape.</span>{" "}
           <span className={styles.say4}>Keep scrolling.</span>
         </span>
+        <button type="button" className={styles.pause} onClick={toggle}>
+          {held ? "Play" : "Pause"}
+        </button>
       </figcaption>
     </figure>
   );

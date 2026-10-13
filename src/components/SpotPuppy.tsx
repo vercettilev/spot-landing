@@ -187,10 +187,24 @@ export function SpotPuppy({
     };
   }, [cheer, angry, speak]);
 
+  /* THE SOUND IS FETCHED BEFORE IT IS NEEDED: on the first hover, focus or
+     touch rather than on the press, so the first bark is not a mouth moving
+     with the woof arriving late. Loading needs no gesture; only playing does. */
+  const warm = useCallback(() => {
+    if (audio.current) return;
+    const a = new Audio(angry ? "/grr.mp3" : "/woof.mp3");
+    a.preload = "auto";
+    a.load();
+    audio.current = a;
+  }, [angry]);
+
   return (
     <button
       type="button"
       onClick={() => speak()}
+      onPointerEnter={warm}
+      onPointerDown={warm}
+      onFocus={warm}
       aria-label={label}
       className={`${styles.puppy} ${angry ? styles.angry : ""} ${growling ? styles.growling : ""} ${className}`}
     >

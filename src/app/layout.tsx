@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Rubik, Schibsted_Grotesk } from "next/font/google";
+import { Rubik, Schibsted_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { DESCRIPTION, SITE_URL, X_HANDLE } from "@/lib/site";
 import "./globals.css";
 
 /* Rubik Black for display type: the closest free face to the wordmark's
-   weight and round corners. Schibsted Grotesk for everything that has to be
-   read, and IBM Plex Mono for what is printed: the ticket stub, the sniff
-   report, the receipt. */
-const display = Rubik({ subsets: ["latin"], weight: ["700", "800", "900"], variable: "--font-display", display: "swap" });
+   weight and round corners, in the two weights the page sets (800 for keys
+   and labels, 900 for the big lines; the 700 cut served one clock face).
+   Schibsted Grotesk for everything that has to be read. What is printed (the
+   sniff report's two labels) is set in the system's own mono, see
+   --font-mono-stack in globals.css: a third family was three requests for
+   two words. */
+const display = Rubik({ subsets: ["latin"], weight: ["800", "900"], variable: "--font-display", display: "swap" });
 const body = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-mono", display: "swap" });
 
 const TITLE = "Spot: ape from any app";
 
@@ -33,7 +35,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
         {children}
         <Analytics />

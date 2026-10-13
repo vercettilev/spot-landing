@@ -7,6 +7,13 @@
   background: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transform-origin: 50% 100%;
+  transition: transform var(--dur-fast);
+}
+
+/* Answers on the way down, before the bark: the whole dog gives a little. */
+.puppy:active {
+  transform: scale(0.97);
 }
 
 .puppy svg {
@@ -15,9 +22,10 @@
   overflow: visible;
 }
 
-/* Peeks up once when the page arrives, the logo's own move. */
+/* Peeks up once when the page arrives, the logo's own move. A hair of
+   overshoot, not a bounce: nothing threw it. */
 .puppy svg {
-  animation: peek 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) 0.15s both;
+  animation: peek 0.7s cubic-bezier(0.2, 1.15, 0.4, 1) 0.15s both;
   transform-origin: 50% 100%;
 }
 
@@ -37,7 +45,7 @@
 
 /* The angry one trembles a little all the time, and properly while it growls. */
 .angry svg {
-  animation: peek 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) 0.15s both, tremble 0.9s ease-in-out 1s infinite;
+  animation: peek 0.7s cubic-bezier(0.2, 1.15, 0.4, 1) 0.15s both, tremble 0.9s ease-in-out 1s infinite;
 }
 
 .growling svg {
@@ -88,7 +96,7 @@
   paint-order: stroke fill;
   white-space: nowrap;
   pointer-events: none;
-  animation: pop 0.75s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation: pop 0.75s var(--ease-pop) both;
 }
 
 .bubbleAngry {
@@ -111,5 +119,24 @@
   100% {
     transform: translateY(-22%) scale(1) rotate(-8deg);
     opacity: 0;
+  }
+}
+
+/* Reduce motion, keep the answer: the word still shows, it just does not fly.
+   (The global rule cuts every animation to 0.01ms; this one is more specific.) */
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    animation: hold 0.7s ease both !important;
+  }
+}
+
+@keyframes hold {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
   }
 }
