@@ -6,7 +6,7 @@ import QRCode from "react-native-qrcode-svg";
 import { USDC_MINT, executeOrder, fetchHoldings, placeOrder } from "../api";
 import { ICON_SVG } from "../art";
 import { celebrate, onCelebrate } from "../components/Moment";
-import { Button, Card, Pill, Section, Sheet, feel, useRouteSheet, useToast } from "../components/ui";
+import { Button, Card, Group, Pill, Row, Section, Sheet, feel, useRouteSheet, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import { amount as fmtAmount, cashLede, coverWith, money, turnKey, usd } from "../logic";
 import type { RootParams } from "../navigation";
@@ -82,6 +82,8 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   const bag = useHoldings(wallet?.address ?? null);
   const [pick, setPick] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  /* The address and its code, folded away while a swap can do the job. */
+  const [showAddress, setShowAddress] = useState(false);
   /* A swap that may still land locks the key, as a trade does on a coin. */
   const [pending, setPending] = useState<Pending | null>(() => (wallet ? pendingFor(wallet.address, USDC_MINT) : null));
   const [now, setNow] = useState(() => Date.now());
@@ -124,7 +126,8 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   const spare = sol?.usd !== null && sol?.usd !== undefined ? Math.floor(sol.usd - 1) : 0;
   const options = CASH_CHIPS.filter((c) => c <= spare);
   const all = spare >= 5 && !options.includes(spare) ? spare : null;
-  const choices = all === null ? options : [...options, all];
+  /* For an ape, the swaps that cover it; "All" sits apart from them, where a slip of the finger can't spend it. */
+  const choices = all === null ? options : need !== null && options.length ? options : [...options, all];
   const cashNow = bag.value?.usdc.usd ?? null;
   const chosen = pick !== null && choices.includes(pick) ? pick : coverWith(choices, need, cashNow);
   const canTurn = wallet.kind === "mwa" && spare >= 5 && chosen !== null;
@@ -183,7 +186,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
 
   return (
     <>
-      <Text style={styles.lede}>{cashLede(need, cashNow)}</Text>
+      <Text style={styles.lede}>{cashLede(cashNow, sol?.usd ?? null)}</Text>
       {wallet.kind === "watch" ? (
         <Card style={styles.watch}>
           <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
@@ -192,9 +195,9 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
 
       {canTurn && sol && (
         <Card style={styles.turn}>
-          <Text style={styles.turnTitle}>Got SOL? Turn it into cash.</Text>
+          <Text style={styles.turnTitle}>Turn SOL into cash</Text>
           <Text style={styles.turnNote}>
-            You have {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. One approval, and a little SOL stays for fees.
+            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. One approval in your wallet; about $1 of SOL stays for fees.
           </Text>
           <View style={styles.turnChips}>
             {choices.map((c) => (
@@ -205,32 +208,51 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
         </Card>
       )}
 
-      {canTurn ? <Section>Or send it to your wallet</Section> : null}
-      <View style={[styles.paper, !canTurn && styles.paperFirst]}>
-        <QRCode value={address} size={QR} color={color.ink} backgroundColor={color.white} ecl="H" logoSVG={ICON_SVG} logoSize={QR / 5} logoMargin={space.x1 + space.hair} logoBackgroundColor={color.white} />
-        {/* Two even lines: a Solana address is too wide for one, and halves
-            are easier to check against the wallet's own screen. */}
-        <Text style={styles.address} selectable>
-          {address.slice(0, Math.ceil(address.length / 2))}
-          {"\n"}
-          {address.slice(Math.ceil(address.length / 2))}
-        </Text>
-        <Text style={styles.network}>USDC or SOL, on Solana</Text>
-      </View>
-
-      <View style={styles.actions}>
-        <Button label="Copy address" onPress={() => void copy()} style={styles.action} />
-        <Button label="Share" kind="quiet" onPress={() => void Share.share({ message: address }).catch(() => {})} style={styles.share} />
-      </View>
-
-      <View style={styles.notes}>
-        {NOTES.map((n) => (
-          <View key={n} style={styles.note}>
-            <Text style={styles.dot}>•</Text>
-            <Text style={styles.noteText}>{n}</Text>
+      {canTurn ? (
+        <Group style={styles.more}>
+          <Row
+            title="Send from an exchange or another wallet"
+            subtitle={showAddress ? "Your wallet's address, below" : "Your wallet's address and its code"}
+            chevron
+            onPress={() => setShowAddress((v) => !v)}
+            label={showAddress ? "Hide your wallet's address" : "Show your wallet's address, to send from an exchange or another wallet"}
+          />
+        </Group>
+      ) : (
+        <>
+          <Section>Your wallet's address</Section>
+          <Text style={styles.addressLine}>Send USDC or SOL here, on Solana. It's your own wallet: Spot never holds it.</Text>
+        </>
+      )}
+      {!canTurn || showAddress ? (
+        <>
+          <View style={[styles.paper, canTurn && styles.paperFirst]}>
+            <QRCode value={address} size={QR} color={color.ink} backgroundColor={color.white} ecl="H" logoSVG={ICON_SVG} logoSize={QR / 5} logoMargin={space.x1 + space.hair} logoBackgroundColor={color.white} />
+            {/* Two even lines: a Solana address is too wide for one, and halves
+                are easier to check against the wallet's own screen. */}
+            <Text style={styles.address} selectable>
+              {address.slice(0, Math.ceil(address.length / 2))}
+              {"\n"}
+              {address.slice(Math.ceil(address.length / 2))}
+            </Text>
+            <Text style={styles.network}>USDC or SOL, on Solana</Text>
           </View>
-        ))}
-      </View>
+
+          <View style={styles.actions}>
+            <Button label="Copy address" onPress={() => void copy()} style={styles.action} />
+            <Button label="Share" kind="quiet" onPress={() => void Share.share({ message: address }).catch(() => {})} style={styles.share} />
+          </View>
+
+          <View style={styles.notes}>
+            {NOTES.map((n) => (
+              <View key={n} style={styles.note}>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.noteText}>{n}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
     </>
   );
 }
@@ -251,7 +273,9 @@ const styles = StyleSheet.create({
   turnChips: { flexDirection: "row", flexWrap: "wrap", gap: space.x2, marginTop: space.x4 },
   turnButton: { marginTop: space.x4 },
   paper: { alignItems: "center", paddingTop: space.x6, paddingBottom: space.x5, paddingHorizontal: space.x5, borderRadius: radius.block, backgroundColor: color.white },
-  paperFirst: { marginTop: space.x5 },
+  paperFirst: { marginTop: space.x4 },
+  more: { marginTop: space.x5 },
+  addressLine: { marginBottom: space.x4, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   address: { marginTop: space.x5, textAlign: "center", fontFamily: font.mono, fontSize: type.body, lineHeight: leading.body, color: color.paperInk },
   network: { marginTop: space.x2, fontFamily: font.bodyBold, fontSize: type.footnote, color: color.paperDim },
   actions: { flexDirection: "row", gap: space.x2, marginTop: space.x5 },

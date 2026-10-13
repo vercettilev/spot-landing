@@ -468,13 +468,25 @@ export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`
 export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {
   if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s left`, enabled: false };
   if (p.busy) return { label: "Turning…", enabled: false };
-  return { label: `Turn ${usd(p.chosen)} into cash`, enabled: p.chosen !== null };
+  return { label: `Turn ${usd(p.chosen)} of SOL into cash`, enabled: p.chosen !== null };
 }
 
-/** The line at the top of Add cash: what there is now, when it is short of an ape. */
-export function cashLede(need: number | null, cash: number | null): string {
-  const base = "Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.";
-  return need !== null && cash !== null && cash < need ? `You have ${money(cash)} in USDC. ${base}` : base;
+/**
+ * The line at the top of Add cash: what the wallet has, said as what it has
+ * ("$0.00" first read as money gone), then what cash is and where it stays.
+ */
+export function cashLede(cash: number | null, solUsd: number | null): string {
+  const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
+  const hasCash = cash !== null && cash >= 0.01;
+  const hasSol = solUsd !== null && solUsd >= 1;
+  const have = hasCash && hasSol
+    ? `You have ${money(cash)} in cash and about ${usd(solUsd)} in SOL.`
+    : hasCash
+      ? `You have ${money(cash)} in cash.`
+      : hasSol
+        ? `You have about ${usd(solUsd)} in SOL.`
+        : "";
+  return have ? `${have} ${base}` : base;
 }
 
 /** The swap that covers an ape: the smallest choice that does, or the most there is. */

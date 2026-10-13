@@ -361,13 +361,16 @@ describe("adding cash", () => {
     expect(turnKey({ pending: { landed: false, seconds: 64 }, busy: false, chosen: 25 })).toEqual({ label: "Checking… 64s left", enabled: false });
     expect(turnKey({ pending: { landed: true, seconds: 3 }, busy: false, chosen: 25 })).toEqual({ label: "Updating your bag…", enabled: false });
     expect(turnKey({ pending: null, busy: true, chosen: 25 })).toEqual({ label: "Turning…", enabled: false });
-    expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 into cash", enabled: true });
+    expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 of SOL into cash", enabled: true });
   });
 
-  it("says what there is when it is short of an ape", () => {
-    expect(cashLede(25, 3)).toBe("You have $3.00 in USDC. Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.");
-    expect(cashLede(25, 40)).toBe("Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.");
-    expect(cashLede(null, 3)).toBe("Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.");
+  it("says what the wallet has, never leading with $0.00, then what cash is", () => {
+    const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
+    expect(cashLede(0, 90)).toBe(`You have about $90 in SOL. ${base}`);
+    expect(cashLede(3, 90)).toBe(`You have $3.00 in cash and about $90 in SOL. ${base}`);
+    expect(cashLede(3, 0.3)).toBe(`You have $3.00 in cash. ${base}`);
+    expect(cashLede(0, 0)).toBe(base);
+    expect(cashLede(null, null)).toBe(base);
   });
 
   it("picks the swap that covers the ape", () => {
