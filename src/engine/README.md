@@ -100,7 +100,7 @@ Body `{ "url"?: string, "text"?: string }`, exactly as the share sheet handed th
 }
 ```
 
-Every question is asked so that "No" is the good answer, and every note says what it means for the bag in plain words.
+A blue chip (a coin in the catalog, or one Jupiter's record shows to be verified, big and old) gets no test trade: its headline reads "Blue chip. Nothing smells off.", `roundTrip` is null, and its keys are still read from the chain. Every question is asked so that "No" is the good answer, and every note says what it means for the bag in plain words.
 
 `level`: `ok` buy; `warn` GRRR, confirm twice, at most `maxBuyUsdc`; `block` Spot will not buy it; `unknown` a check that could block got no answer, so try again (never cached). `maxBuyUsdc` is `null` for no cap and `0` when the coin cannot be bought now. Errors: `400 invalid_mint | is_usdc | invalid_amount`, `404 not_found` (Jupiter has no record yet, often a coin minutes old) `| not_a_mint`, `429`, `503 lookup_failed`. Answers are shared through the CDN for 10 seconds.
 

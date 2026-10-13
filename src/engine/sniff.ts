@@ -1,3 +1,4 @@
+import { curatedByMint } from "@/core/catalog/index";
 import type { UltraSearchClient } from "@/core/resolve/ultra";
 import { USDC_MINT } from "@/core/route/jupiter";
 import { DEFAULT_THRESHOLDS, isEstablished, type OpenMintThresholds } from "@/core/safety/open-mint-gate";
@@ -20,8 +21,12 @@ import { cardOf, issuedAsset, type TokenCard } from "./token";
  * never reads as "it passed".
  *
  * spot-core's gate refused on size too and skipped the exit probe for any
- * coin that had already failed; here the probe always runs, because it is
- * the one check that asks whether the exit exists instead of inferring it.
+ * coin that had already failed; here the probe runs for every coin that
+ * could be new, because it is the one check that asks whether the exit
+ * exists instead of inferring it. A blue chip (in the catalog, or verified,
+ * big and old by Jupiter's record) skips it: nobody needs a test trade of
+ * BTC, and Jupiter's quotes are the scarce thing on the free plan. Its
+ * keys are still read from the chain.
  */
 
 export type Status = "good" | "info" | "warn" | "bad" | "unknown";
@@ -89,9 +94,12 @@ export const DEFAULT_POLICY: Policy = {
 export interface Facts {
   info: TokenInfo;
   chain: Outcome<MintFacts, MintFailure>;
-  buy: Outcome<Quote, QuoteFailure>;
-  /** Null when there was no buy quote to sell back. */
+  /** Null when no buy was quoted: a blue chip. */
+  buy: Outcome<Quote, QuoteFailure> | null;
+  /** Null when there was no buy quote to sell back, or no need to. */
   sell: Outcome<Quote, QuoteFailure> | null;
+  /** In the catalog, or verified, big and old: no test trade needed. */
+  blueChip: boolean;
   amountUsdc: number;
   now: number;
 }
@@ -137,16 +145,19 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
 
   /* ---- the way in, and the way out ---- */
   let roundTrip: Sniff["roundTrip"] = null;
-  if (!f.buy.ok && f.buy.reason === "no_route") {
+  if (f.buy && !f.buy.ok && f.buy.reason === "no_route") {
     add({ id: "route", label: "Can you buy it?", answer: "Not now", status: "bad", blocks: true, note: "There's no way to buy it with USDC right now.", observed: "no_route" });
   }
   const honeypot = (answer: string, status: Status, blocks: boolean, note: string | null, observed: Check["observed"]) =>
     add({ id: "honeypot", label: "Honeypot?", answer, status, blocks, note, observed, threshold: policy.honeypotLoss });
   if (chain?.nonTransferable) {
     honeypot("Yes", "bad", true, "This coin can't be sent, so it can't be sold.", "non_transferable");
-  } else if (!f.buy.ok) {
-    const noWayIn = f.buy.reason === "no_route";
-    honeypot("?", "unknown", !noWayIn, noWayIn ? "Can't buy it, so selling couldn't be tested." : "Couldn't test selling it. Try again.", f.buy.reason);
+  } else if (f.blueChip) {
+    honeypot("No", "good", false, "Blue chip: it trades everywhere.", "blue_chip");
+  } else if (!f.buy || !f.buy.ok) {
+    const reason = f.buy ? f.buy.reason : "not_asked";
+    const noWayIn = reason === "no_route";
+    honeypot("?", "unknown", !noWayIn, noWayIn ? "Can't buy it, so selling couldn't be tested." : "Couldn't test selling it. Try again.", reason);
   } else if (!f.sell?.ok) {
     const reason = f.sell?.reason ?? "not_asked";
     if (reason === "no_route") honeypot("Yes", "bad", true, "There's no way to sell it.", "no_route");
@@ -299,7 +310,9 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
         ? "Couldn't finish the sniff. Try again."
         : level === "warn"
           ? `GRRR. Risky. Ape $${maxBuyUsdc} max.`
-          : "Nothing smells off.";
+          : f.blueChip
+            ? "Blue chip. Nothing smells off."
+            : "Nothing smells off.";
 
   return {
     mint: info.id,
@@ -327,20 +340,24 @@ export type SniffError = "not_found" | "not_a_mint" | "lookup_failed";
  * Four questions, three of them at once: the token's record, its mint
  * account, and a buy quote; then the sell of exactly what that buy would
  * get back. Two to four seconds at worst, each upstream on its own clock.
+ * A coin in the catalog is not quoted at all, and one Jupiter's record
+ * shows to be established is not sold back: both are blue chips.
  */
 export async function sniff(mint: string, amountUsdc: number, deps: SniffDeps): Promise<Outcome<Sniff, SniffError>> {
   const amount = String(Math.round(amountUsdc * 1e6));
+  const curated = curatedByMint(mint) !== undefined;
   const [found, chain, buy] = await Promise.all([
     deps.search.search(mint, { timeoutMs: 2_500 }),
     deps.readMint(mint),
-    deps.quote({ inputMint: USDC_MINT, outputMint: mint, amount }),
+    curated ? Promise.resolve(null) : deps.quote({ inputMint: USDC_MINT, outputMint: mint, amount }),
   ]);
   if (!chain.ok && chain.reason === "not_a_mint") return { ok: false, reason: "not_a_mint" };
   if (!found.ok) return { ok: false, reason: "lookup_failed" };
   const info = found.value.find((x) => x.id === mint);
   if (!info) return { ok: false, reason: "not_found" };
 
-  const sell = buy.ok ? await deps.quote({ inputMint: mint, outputMint: USDC_MINT, amount: buy.value.outAmount }) : null;
+  const blueChip = curated || isEstablished(info);
+  const sell = buy?.ok && !blueChip ? await deps.quote({ inputMint: mint, outputMint: USDC_MINT, amount: buy.value.outAmount }) : null;
   const now = (deps.now ?? Date.now)();
-  return { ok: true, value: judge({ info, chain, buy, sell, amountUsdc, now }, deps.policy) };
+  return { ok: true, value: judge({ info, chain, buy, sell, blueChip, amountUsdc, now }, deps.policy) };
 }

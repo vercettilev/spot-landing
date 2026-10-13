@@ -71,12 +71,14 @@ const STUCK: Partial<Record<CheckId, string>> = {
  * The line under the verdict on the receipt: what it means for the bag, in
  * one sentence, so the questions below are proof rather than homework.
  */
-export function verdictLine(sniff: Pick<Sniff, "level" | "checks" | "token">): string {
+export function verdictLine(sniff: Pick<Sniff, "level" | "checks" | "token"> & { roundTrip?: Sniff["roundTrip"] }): string {
   switch (sniff.level) {
     case "ok":
       return sniff.token.kind === "stock"
         ? "A stock coin: the issuer holds the keys, as it should. You can sell it back anytime."
-        : "No rug tricks found. You can sell it back anytime.";
+        : sniff.roundTrip === null
+          ? "Big, old and verified. You can sell it back anytime."
+          : "No rug tricks found. You can sell it back anytime.";
     case "warn": {
       const why = ordered(sniff.checks)
         .filter((c) => c.status === "warn")

@@ -30,6 +30,7 @@ function facts(info: TokenInfo, over: Partial<Facts> & { back?: number; mint?: P
     chain: { ok: true, value: classicMint(mint) },
     buy: quote("25000000", "6250000000"),
     sell: quote("6250000000", String(Math.round(back * 1e6))),
+    blueChip: false,
     amountUsdc: 25,
     now: NOW,
     ...rest,
@@ -238,6 +239,24 @@ describe("an issued asset", () => {
   });
 });
 
+describe("a blue chip", () => {
+  it("needs no test trade: verified, big and old is answer enough", () => {
+    const s = judge(facts(token(COIN_A), { blueChip: true, buy: null, sell: null }));
+    expect(s.level).toBe("ok");
+    expect(s.headline).toBe("Blue chip. Nothing smells off.");
+    expect(check(s, "honeypot")).toMatchObject({ answer: "No", status: "good", note: "Blue chip: it trades everywhere." });
+    expect(check(s, "route")).toBeUndefined();
+    expect(s.roundTrip).toBeNull();
+    expect(s.maxBuyUsdc).toBeNull();
+  });
+
+  it("still has its keys read from the chain", () => {
+    const s = judge(facts(token(COIN_A), { blueChip: true, buy: null, sell: null, mint: { freezeAuthority: "dev" } }));
+    expect(s.level).toBe("block");
+    expect(s.headline).toBe("Dev can freeze it. Spot won't buy it.");
+  });
+});
+
 describe("ages", () => {
   it("read the way people say them", () => {
     expect(age(12 * 60_000)).toBe("12 min");
@@ -258,6 +277,20 @@ describe("sniffing", () => {
       { inputMint: COIN_A, outputMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", amount: "6250000000" },
     ]);
     expect(res.ok && res.value.roundTrip).toEqual({ inUsdc: 25, outUsdc: 24.25, lossPct: 3 });
+  });
+
+  it("asks Jupiter for no quote on a catalog coin, and for no sell on one its record shows is established", async () => {
+    const quoter = fakeQuoter();
+    const stock = await sniff(NVDAX, 25, fakeDeps({ search: fakeSearch([token(NVDAX)]), quote: quoter }));
+    expect(quoter.calls).toEqual([]);
+    expect(stock.ok && stock.value.headline).toBe("Blue chip. Nothing smells off.");
+
+    const again = fakeQuoter();
+    const big = token(COIN_A, { isVerified: true, liquidity: 2_000_000, holderCount: 100_000, organicScoreLabel: "high" });
+    const res = await sniff(COIN_A, 25, fakeDeps({ search: fakeSearch([big]), quote: again }));
+    expect(again.calls).toHaveLength(1);
+    expect(res.ok && res.value.headline).toBe("Blue chip. Nothing smells off.");
+    expect(res.ok && res.value.roundTrip).toBeNull();
   });
 
   it("does not sell what it could not buy", async () => {

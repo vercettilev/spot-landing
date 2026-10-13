@@ -117,11 +117,13 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
               </Animated.View>
             );
           })}
-          {done.roundTrip && (
+          {done.roundTrip ? (
             <Text style={styles.trip}>
               Test trade: ${money(done.roundTrip.inUsdc)} in, ${money(done.roundTrip.outUsdc)} back
             </Text>
-          )}
+          ) : done.level === "ok" ? (
+            <Text style={styles.trip}>Blue chip. No test trade needed.</Text>
+          ) : null}
           {done.level !== "unknown" && (
             <Animated.Text
               style={[
