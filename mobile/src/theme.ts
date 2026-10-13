@@ -215,8 +215,11 @@ export const motion = {
   stagger: 70,
   toastIn: 180,
   toastOut: 220,
-  /** How long a toast stays up. */
+  /** How long a toast stays up: at least this, longer for longer words (a reading pace), never past the max. */
   toastHold: 3200,
+  toastHoldMax: 7000,
+  toastHoldBase: 2000,
+  toastPerChar: 45,
 } as const;
 
 /* What sits over what. */

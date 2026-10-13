@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DarkTheme, NavigationContainer, createNavigationContainerRef, type Theme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useRef } from "react";
+import { PixelRatio } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { BagScreen } from "./screens/BagScreen";
@@ -64,17 +65,25 @@ function TabIcon({ name, tint }: { name: keyof TabParams; tint: string }) {
   );
 }
 
+/* React Navigation's tab item pads 5 above and below and boxes its icon in 28. */
+const TAB_ITEM_PAD = 5;
+const TAB_ICON_BOX = 28;
+
 function Tabs() {
   /* Taller than the stock 49: the labels are set in the landing's grotesk,
-     which needs more room under the icon than the system font (theme.ts). */
+     which needs more room under the icon than the system font (theme.ts).
+     And it grows with the phone's text size, or the largest settings cut
+     the labels in half. */
   const insets = useSafeAreaInsets();
+  const labelLine = Math.ceil(leading.micro * PixelRatio.getFontScale());
+  const bar = Math.max(size.tabBar, 2 * TAB_ITEM_PAD + TAB_ICON_BOX + labelLine + 2 * space.x1 + space.hair);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: color.orange,
         tabBarInactiveTintColor: color.faint,
-        tabBarStyle: { backgroundColor: color.ink, borderTopColor: color.line, height: size.tabBar + insets.bottom, paddingTop: space.x1, paddingBottom: space.x1 + insets.bottom },
+        tabBarStyle: { backgroundColor: color.ink, borderTopColor: color.line, height: bar + insets.bottom, paddingTop: space.x1, paddingBottom: space.x1 + insets.bottom },
         tabBarLabelStyle: { fontFamily: font.bodyBold, fontSize: type.micro, lineHeight: leading.micro },
         tabBarIcon: ({ color: tint }) => <TabIcon name={route.name} tint={tint} />,
       })}

@@ -5,7 +5,7 @@ import { captureRef } from "react-native-view-shot";
 import { momentLines, shareText, type MomentData } from "../logic";
 import { color, font, layer, leading, motion, radius, size, space, tracking, type } from "../theme";
 import { ShareCard } from "./ShareCard";
-import { PuppyMark, feel, tap, thud, useReducedMotion } from "./ui";
+import { PuppyMark, feel, tap, thud, useReducedMotion, useScreenReader } from "./ui";
 
 /**
  * THE MOMENT. A trade landed, and the phone says so with its whole screen:
@@ -61,6 +61,10 @@ const cardOnScreen = () => Boolean((globalThis as { __SPOT_QA_CARD?: boolean }).
 export function Moment() {
   const [m, setM] = useState<MomentData | null>(null);
   const reduced = useReducedMotion();
+  /* With a screen reader on, the moment waits for Done: a timer would take it away mid-sentence. */
+  const reader = useScreenReader();
+  const readerRef = useRef(reader);
+  readerRef.current = reader;
   const burst = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
   const pup = useRef(new Animated.Value(0)).current;
@@ -113,7 +117,7 @@ export function Moment() {
           ]),
         ]);
     show.start();
-    timer.current = setTimeout(dismiss, SHOW_MS[m.kind]);
+    if (!readerRef.current) timer.current = setTimeout(dismiss, SHOW_MS[m.kind]);
     return () => {
       beats.forEach(clearTimeout);
       if (timer.current) clearTimeout(timer.current);
@@ -144,7 +148,7 @@ export function Moment() {
     } finally {
       setSharing(false);
       /* Back from the share sheet: a moment more, then it goes. */
-      timer.current = setTimeout(dismiss, 3_000);
+      if (!readerRef.current) timer.current = setTimeout(dismiss, 3_000);
     }
   }
 

@@ -69,6 +69,27 @@ export const feel = (kind: "success" | "warning" | "error") => {
 
 const native = Platform.OS !== "web";
 
+/** Whether a screen reader is on, kept current: nothing then leaves on a timer the reader can't keep up with. */
+export function useScreenReader(): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    /* react-native-web answers true whatever the browser does; the web build is for looking at screens. */
+    if (Platform.OS === "web") return;
+    let alive = true;
+    AccessibilityInfo.isScreenReaderEnabled()
+      .then((v) => {
+        if (alive) setOn(Boolean(v));
+      })
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener("screenReaderChanged", (v) => setOn(Boolean(v)));
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
+  return on;
+}
+
 /** The phone's "reduce motion" setting, kept current: motion becomes a fade. */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -267,9 +288,11 @@ export function useToast(bottom = 120): [ReactNode, (message: string) => void] {
     setMessage(m);
     if (timer.current) clearTimeout(timer.current);
     Animated.timing(v, { toValue: 1, duration: motion.toastIn, useNativeDriver: native }).start();
+    /* Long enough to read at an unhurried pace: a short "CA copied." goes soon, a sentence stays. */
+    const hold = Math.min(motion.toastHoldMax, Math.max(motion.toastHold, motion.toastHoldBase + m.length * motion.toastPerChar));
     timer.current = setTimeout(() => {
       Animated.timing(v, { toValue: 0, duration: motion.toastOut, useNativeDriver: native }).start(() => setMessage(null));
-    }, motion.toastHold);
+    }, hold);
   };
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
