@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionFor, ago, amount, chipsFor, clampAmount, count, fromPaste, fromShare, momentLines, money, ordered, pct, price, readablePath, shareOf, sourceLine, usd, verdictLine, verdictWord } from "./logic";
+import { actionFor, ago, amount, cardLines, chipsFor, clampAmount, count, fitFigure, fromPaste, fromShare, momentLines, money, ordered, pct, price, readablePath, shareOf, shareText, sourceLine, usd, verdictLine, verdictWord } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -168,9 +168,9 @@ describe("the line under the verdict", () => {
 
 describe("the moment after a trade", () => {
   it("says what happened in three lines, loudest where the money is", () => {
-    expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Spot keeps an eye on it.", tone: "ink" });
-    expect(momentLines({ kind: "cash", symbol: "USDC", usdc: 50, amount: 50 })).toEqual({ head: "Cash in.", big: "$50.00 ready to ape", small: "From SOL, in one tap.", tone: "ink" });
-    expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Cash is back in your bag.", tone: "ink" });
+    expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Spot keeps an eye on it.", backdrop: "orange" });
+    expect(momentLines({ kind: "cash", symbol: "USDC", usdc: 50, amount: 50 })).toEqual({ head: "Cash in.", big: "$50.00 ready to ape", small: "From SOL, in one tap.", backdrop: "orange" });
+    expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Cash is back in your bag.", backdrop: "orange" });
   });
 
   it("leads a sell with what it made, and takes a loss on the chin", () => {
@@ -178,14 +178,40 @@ describe("the moment after a trade", () => {
       head: "Sold.",
       big: "+$12.40 (+49.6%)",
       small: "since you aped · 100 WIF → $37.40",
-      tone: "white",
+      backdrop: "green",
     });
     expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31, gain: { usd: -0.07, pct: -0.7 } })).toEqual({
       head: "Sold.",
       big: "−$0.07 (−0.7%)",
       small: "It happens. 75.31 ANSEM → $9.93",
-      tone: "ink",
+      backdrop: "orange",
     });
     expect(momentLines({ kind: "sell", symbol: "X", usdc: 5, amount: 1, gain: { usd: 2, pct: null } }).big).toBe("+$2.00");
+  });
+});
+
+describe("the card people post", () => {
+  it("leads with the percentage, says the dollars and the coin, and credits the sniff", () => {
+    expect(cardLines({ kind: "sell", symbol: "WIF", usdc: 37.4, amount: 100, gain: { usd: 12.4, pct: 49.6 } })).toEqual({
+      figure: "+49.6%",
+      line: "+$12.40 on $WIF\nsince I aped",
+      foot: "Sniffed for rugs first.",
+      tint: "green",
+    });
+    expect(cardLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31, gain: { usd: -0.07, pct: -0.7 } })).toMatchObject({ figure: "−0.7%", foot: "It happens.", tint: "orange" });
+    expect(cardLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ figure: "Aped.", line: "$25.00 of $WIF", foot: "Sniffed for rugs first.", tint: "orange" });
+  });
+
+  it("reads as one line when there is no picture to share", () => {
+    expect(shareText({ kind: "sell", symbol: "WIF", usdc: 37.4, amount: 100, gain: { usd: 12.4, pct: 49.6 } })).toBe("+49.6%: +$12.40 on $WIF since I aped. Sniffed for rugs first. usespot.fun");
+    expect(shareText({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toBe("Aped. $25.00 of $WIF. Sniffed for rugs first. usespot.fun");
+    expect(shareText({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toBe("Sold. 75.31 ANSEM → $9.93. usespot.fun");
+  });
+
+  it("sets its figure as big as the card allows: a word at full size, a wide percentage smaller", () => {
+    expect(fitFigure("Aped.", 436)).toBe(132);
+    expect(fitFigure("+49.6%", 436)).toBe(119);
+    expect(fitFigure("+1,234.5%", 436)).toBe(85);
+    expect(fitFigure("", 436)).toBe(132);
   });
 });
