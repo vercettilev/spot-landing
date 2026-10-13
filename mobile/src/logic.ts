@@ -327,6 +327,12 @@ export function readablePath(uri: string, os: string): string {
   return os === "android" && uri.startsWith("file://") ? uri.slice("file://".length) : uri;
 }
 
+/** What tells same-named coins apart, under each in "which one?": its name, its size, its holders. */
+export function candidateLine(t: { name: string; mcapUsd: number | null; holders: number | null }): string {
+  const parts = [t.mcapUsd !== null ? `${usd(t.mcapUsd)} market cap` : null, t.holders !== null ? `${count(t.holders)} holders` : null].filter(Boolean);
+  return parts.length ? `${t.name}. ${parts.join(", ")}` : t.name;
+}
+
 /** The receipt's line under the stamp: the stamp already says GRRR, so the line doesn't say it twice. */
 export function verdictHead(level: Level, headline: string): string {
   if (level !== "warn") return headline;

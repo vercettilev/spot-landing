@@ -6,7 +6,11 @@ import { color, font, leading, motion, radius, shadow, size, space, stamp, track
 import type { Sniff } from "../types";
 import { Answer, Breathing, feel, useReducedMotion } from "./ui";
 
-export type SniffState = { status: "loading" } | { status: "done"; sniff: Sniff } | { status: "error"; error: ApiError };
+export type SniffState =
+  | { status: "reading"; title: string; line: string | null }
+  | { status: "loading" }
+  | { status: "done"; sniff: Sniff }
+  | { status: "error"; error: ApiError };
 
 const WAITING = ["Honeypot?", "Dev can freeze it?", "Dev can print more?", "Enough holders?"];
 const MAX_ROWS = 12;
@@ -19,7 +23,9 @@ const native = Platform.OS !== "web";
  * The stamp comes first, where the eye lands: CLEAN, GRRR or NOPE, then one
  * line on what it means for the bag, and the questions under it are the
  * proof. While the sniff runs, the stamp's place waits empty, so nothing
- * jumps when the answer lands. This is the app's one orchestrated moment:
+ * jumps when the answer lands; before there is even a coin, it shows what
+ * is being read (a post, a screenshot) the same way. This is the app's one
+ * orchestrated moment:
  * the checks tick in one after another, the stamp comes down and the phone
  * feels which one it was. Reduced motion skips straight to the result.
  */
@@ -67,6 +73,22 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
           {time ? `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}` : "live"}
         </Text>
       </View>
+
+      {state.status === "reading" && (
+        <View accessible accessibilityLabel={state.title}>
+          <Breathing style={styles.slot}>
+            <View style={styles.slotEmpty} />
+          </Breathing>
+          <Breathing style={styles.reading}>
+            <Text style={styles.headline}>{state.title}</Text>
+          </Breathing>
+          {state.line ? (
+            <Text style={styles.readingLine} numberOfLines={2}>
+              {state.line}
+            </Text>
+          ) : null}
+        </View>
+      )}
 
       {state.status === "loading" && (
         <>
@@ -189,6 +211,8 @@ const styles = StyleSheet.create({
   },
   verdict: { marginTop: space.x3, paddingBottom: space.x4, borderBottomWidth: 1.5, borderStyle: "dashed", borderColor: color.paperRule },
   verdictBare: { marginTop: space.x3 },
+  reading: { marginTop: space.x3 },
+  readingLine: { marginTop: space.x2, marginBottom: space.x1, fontFamily: font.mono, fontSize: type.footnote, lineHeight: leading.footnote, color: color.paperDim },
   headline: { fontFamily: font.display, fontSize: type.headline, lineHeight: leading.headline, letterSpacing: tracking.headline, color: color.ink },
   line: { marginTop: space.x2, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.paperDim },
   row: {

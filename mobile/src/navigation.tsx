@@ -27,9 +27,9 @@ import type { Candidate, Share, Source } from "./types";
 export type RootParams = {
   Tabs: undefined;
   Resolve: { share: Share };
-  /** `side: "sell"` opens on the Sell side, as from the bag. */
-  Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[]; side?: "buy" | "sell" };
-  Choose: { title: string; line: string; candidates: Candidate[]; source: Source | null; share: Share | null; current?: Candidate };
+  /** `side: "sell"` opens on the Sell side, as from the bag; `continues` fades it in over the reading screen it replaces. */
+  Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[]; side?: "buy" | "sell"; continues?: boolean };
+  Choose: { title: string; line: string; candidates: Candidate[]; source: Source | null; share: Share | null; current?: Candidate; continues?: boolean };
   Deposit: undefined;
   Connect: undefined;
 };
@@ -106,9 +106,9 @@ export function Navigation() {
     <NavigationContainer ref={navRef} theme={THEME} onReady={flush}>
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.ink }, animation: "slide_from_right" }}>
         <Stack.Screen name="Tabs" component={Tabs} />
-        <Stack.Screen name="Resolve" component={ResolveScreen} options={{ animation: "fade_from_bottom" }} />
-        <Stack.Screen name="Coin" component={CoinScreen} />
-        <Stack.Screen name="Choose" component={ChooseScreen} />
+        <Stack.Screen name="Resolve" component={ResolveScreen} options={{ animation: "fade" }} />
+        <Stack.Screen name="Coin" component={CoinScreen} options={({ route }) => ({ animation: route.params.continues ? "fade" : "slide_from_right" })} />
+        <Stack.Screen name="Choose" component={ChooseScreen} options={({ route }) => ({ animation: route.params.continues ? "fade" : "slide_from_right" })} />
         <Stack.Screen name="Deposit" component={DepositScreen} options={{ presentation: "modal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="Connect" component={ConnectScreen} options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       </Stack.Navigator>

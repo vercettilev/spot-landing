@@ -156,8 +156,12 @@ export const size = {
   tabBar: 62,
   icon: 24,
   glyph: 20,
+  /** A mark after a title in a list (verified). */
+  badge: 16,
   /** The puppy beside a line of words (a toast, a hint). */
   mark: 28,
+  /** The puppy over a status screen's words. */
+  puppy: 112,
   /** A keypad key's height. */
   padKey: 56,
   /** One side of a two-way switch (Buy, Sell). */

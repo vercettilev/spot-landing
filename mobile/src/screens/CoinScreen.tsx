@@ -199,7 +199,7 @@ export function CoinScreen({ navigation, route }: Props) {
   const solCovers = bag.value !== null && (bag.value.sol.usd ?? 0) - 1 >= amount;
   const dock: DockState = {
     side,
-    sniff: sniff.status === "done" ? sniff.sniff.level : sniff.status,
+    sniff: sniff.status === "done" ? sniff.sniff.level : sniff.status === "error" ? "error" : "loading",
     amount,
     wallet: wallet?.kind ?? "none",
     cash,

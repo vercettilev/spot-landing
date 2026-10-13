@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, actionFor, ago, amount, approx, cardLines, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, actionFor, ago, amount, approx, candidateLine, cardLines, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -341,5 +341,13 @@ describe("the keypad", () => {
     expect(holding(31.2)).toBe("You hold $31.20");
     expect(approx(15.4)).toBe("~$15");
     expect(approx(0.42)).toBe("~$0.42");
+  });
+});
+
+describe("which one?", () => {
+  it("tells same-named coins apart by size and holders", () => {
+    expect(candidateLine({ name: "Pepe", mcapUsd: 1_179_967, holders: 22_958 })).toBe("Pepe. $1.2M market cap, 23k holders");
+    expect(candidateLine({ name: "pesos", mcapUsd: 9_096, holders: 2 })).toBe("pesos. $9.1k market cap, 2 holders");
+    expect(candidateLine({ name: "New", mcapUsd: null, holders: null })).toBe("New");
   });
 });
