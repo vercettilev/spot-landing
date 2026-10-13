@@ -162,6 +162,8 @@ export const size = {
   badge: 16,
   /** The puppy beside a line of words (a toast, a hint). */
   mark: 28,
+  /** The puppy across from the wordmark. */
+  markHeader: 40,
   /** The puppy over a status screen's words. */
   puppy: 112,
   /** A keypad key's height. */

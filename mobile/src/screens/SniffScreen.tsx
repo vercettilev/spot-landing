@@ -3,13 +3,14 @@ import type { CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { Answer, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
-import { ago, fromPaste, verdictWord } from "../logic";
+import { Answer, Button, Chevron, CoinFace, Field, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
+import { useHoldings } from "../holdings";
+import { ago, fromPaste, money, verdictHead, verdictWord } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
 import { useStore } from "../store";
-import { color, font, space, type } from "../theme";
+import { color, font, leading, radius, size, space, tracking, type } from "../theme";
 
 type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Sniff">, NativeStackScreenProps<RootParams>>;
 
@@ -17,11 +18,12 @@ type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Sniff">, Nati
 const TRIES = ["$WIF", "$POPCAT", "$JUP"];
 
 /**
- * THE FRONT DOOR. What you get, in the landing's words: ape anything you
- * see, and nothing that can't be sold. Then how, shown rather than listed:
- * a phone's share menu with Spot in it. One field and one button for posts
- * without a Share button, and the coins sniffed lately, one tap from their
- * sniff again.
+ * THE FRONT DOOR. The first time: what you get, in the landing's words
+ * (ape anything you see, and nothing that can't be sold), then how, shown
+ * rather than listed: a phone's share menu with Spot in it, and a coin to
+ * try. After that the promise has been kept, so the screen gets out of the
+ * way: the cash ready to ape, one field and one key for posts without a
+ * Share button, and the coins sniffed lately, one tap from their sniff.
  */
 export function SniffScreen({ navigation }: Props) {
   const store = useStore();
@@ -29,6 +31,9 @@ export function SniffScreen({ navigation }: Props) {
   const [input, setInput] = useState("");
   const share = fromPaste(input);
   const recent = store.history.slice(0, 8);
+  const first = recent.length === 0;
+  const trading = store.wallet?.kind === "mwa" ? store.wallet.address : null;
+  const bag = useHoldings(trading);
 
   async function go() {
     if (share) {
@@ -45,60 +50,54 @@ export function SniffScreen({ navigation }: Props) {
     navigation.navigate("Resolve", { share: pasted });
   }
 
+  const paste = (
+    <>
+      <Field
+        value={input}
+        onChangeText={setInput}
+        placeholder={first ? "Or paste a CA, $ticker or link" : "Paste a CA, $ticker or link"}
+        returnKeyType="go"
+        onSubmitEditing={() => void go()}
+        style={first ? styles.inputFirst : styles.input}
+        accessibilityLabel="CA, ticker or link"
+      />
+      <Button label={share ? "Sniff it" : "Paste & sniff"} kind="go" onPress={() => void go()} style={styles.go} />
+    </>
+  );
+
   return (
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Wordmark width={84} />
-          <PuppyIcon size={40} />
+          {trading ? (
+            <Pressable
+              onPress={() => {
+                tap();
+                navigation.navigate("Bag");
+              }}
+              style={({ pressed }) => [styles.cash, pressed && styles.cashPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={bag.value ? `${money(bag.value.usdc.usd)} ready to ape. Open your bag.` : "Open your bag"}
+            >
+              <Text style={styles.cashText}>{bag.value ? money(bag.value.usdc.usd) : "$…"}</Text>
+              <Text style={styles.cashLabel}>to ape</Text>
+              <Chevron tint={color.faint} />
+            </Pressable>
+          ) : (
+            <PuppyIcon size={size.markHeader} />
+          )}
         </View>
 
-        <Text style={styles.hero}>Ape from{"\n"}any app.</Text>
-        <Text style={styles.lede}>Spot sniffs every coin before you buy. Honeypots never make it into your bag.</Text>
-
-        <ShareSheet />
-
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Or paste a CA, $ticker or link"
-          placeholderTextColor={color.placeholder}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="go"
-          onSubmitEditing={() => void go()}
-          style={styles.input}
-          accessibilityLabel="CA, ticker or link"
-        />
-        <Button label={share ? "Sniff it" : "Paste & sniff"} kind="go" onPress={() => void go()} style={styles.go} />
-        <Text style={styles.foot}>Free. No wallet needed.</Text>
-
-        {recent.length > 0 ? (
+        {first ? (
           <>
-            <Section>Sniffed lately</Section>
-            <Group>
-              {recent.map((h) => {
-                const v = verdictWord(h.level);
-                return (
-                  <Row
-                    key={h.mint}
-                    left={<CoinFace uri={h.token.icon} symbol={h.token.symbol} size={40} />}
-                    title={`$${h.token.symbol}`}
-                    subtitle={h.headline}
-                    right={
-                      <View style={styles.recentRight}>
-                        <Text style={styles.ago}>{ago(h.at)}</Text>
-                        <Answer status={v.status}>{v.word}</Answer>
-                      </View>
-                    }
-                    onPress={() => navigation.navigate("Coin", { candidate: { token: h.token, via: "link" }, source: null, share: null, others: [] })}
-                  />
-                );
-              })}
-            </Group>
-          </>
-        ) : (
-          <>
+            <Text style={styles.hero} accessibilityRole="header">
+              Ape from{"\n"}any app.
+            </Text>
+            <Text style={styles.lede}>Spot sniffs every coin before you buy. Honeypots never make it into your bag.</Text>
+            <ShareSheet />
+            {paste}
+            <Text style={styles.foot}>Free. No wallet needed.</Text>
             <Section>Try one</Section>
             <View style={styles.tries}>
               {TRIES.map((t) => (
@@ -110,11 +109,42 @@ export function SniffScreen({ navigation }: Props) {
                   }}
                   style={({ pressed }) => [styles.try, pressed && styles.tryPressed]}
                   accessibilityRole="button"
+                  accessibilityLabel={`Try ${t}`}
                 >
                   <Text style={styles.tryText}>{t}</Text>
                 </Pressable>
               ))}
             </View>
+          </>
+        ) : (
+          <>
+            {paste}
+            <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot">
+              <PuppyIcon size={size.mark} />
+              <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
+            </View>
+            <Section>Sniffed lately</Section>
+            <Group>
+              {recent.map((h) => {
+                const v = verdictWord(h.level);
+                return (
+                  <Row
+                    key={h.mint}
+                    left={<CoinFace uri={h.token.icon} symbol={h.token.symbol} size={size.faceRow} />}
+                    title={`$${h.token.symbol}`}
+                    subtitle={verdictHead(h.level, h.headline)}
+                    right={
+                      <View style={styles.recentRight}>
+                        <Text style={styles.ago}>{ago(h.at)}</Text>
+                        <Answer status={v.status}>{v.word}</Answer>
+                      </View>
+                    }
+                    onPress={() => navigation.navigate("Coin", { candidate: { token: h.token, via: "link" }, source: null, share: null, others: [] })}
+                    label={`$${h.token.symbol}, ${v.word}, ${ago(h.at)}`}
+                  />
+                );
+              })}
+            </Group>
           </>
         )}
       </ScrollView>
@@ -132,6 +162,10 @@ const TILES = [
   { label: "More", d: "M6 12h.01M12 12h.01M18 12h.01" },
 ];
 
+/* The drawing's own geometry: a share menu's tiles, and the lede's measure. */
+const TILE = 56;
+const MEASURE = 340;
+
 function ShareSheet() {
   return (
     <View style={sheet.wrap}>
@@ -143,13 +177,13 @@ function ShareSheet() {
             <View key={t.label} style={sheet.tile}>
               {t.d ? (
                 <View style={sheet.icon}>
-                  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={color.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Svg width={size.icon} height={size.icon} viewBox="0 0 24 24" fill="none" stroke={color.faint} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                     <Path d={t.d} />
                   </Svg>
                 </View>
               ) : (
                 <View style={sheet.spot}>
-                  <PuppyIcon size={52} />
+                  <PuppyIcon size={TILE - space.x1} />
                 </View>
               )}
               <Text style={[sheet.label, !t.d && sheet.labelOn]}>{t.label}</Text>
@@ -163,41 +197,49 @@ function ShareSheet() {
 }
 
 const sheet = StyleSheet.create({
-  wrap: { marginTop: 28 },
-  panel: { paddingTop: 10, paddingBottom: 18, paddingHorizontal: 12, borderRadius: 24, backgroundColor: color.ink2 },
-  handle: { alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: color.ink3 },
-  title: { marginTop: 12, marginLeft: 8, fontFamily: font.bodyBold, fontSize: type.body, color: color.dim },
-  tiles: { flexDirection: "row", justifyContent: "space-around", marginTop: 14 },
-  tile: { alignItems: "center", width: 74 },
-  icon: { width: 56, height: 56, borderRadius: 16, backgroundColor: color.ink3, alignItems: "center", justifyContent: "center" },
-  spot: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", boxShadow: `0px 0px 0px 3px ${color.ink2}, 0px 0px 0px 5px ${color.orange}` },
-  label: { marginTop: 8, fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
+  wrap: { marginTop: space.x7 },
+  panel: { paddingTop: space.x3, paddingBottom: space.x5, paddingHorizontal: space.x3, borderRadius: radius.block, backgroundColor: color.ink2 },
+  handle: { alignSelf: "center", width: size.grabber, height: space.x1, borderRadius: radius.pill, backgroundColor: color.ink3 },
+  title: { marginTop: space.x3, marginLeft: space.x2, fontFamily: font.bodyBold, fontSize: type.body, color: color.dim },
+  tiles: { flexDirection: "row", justifyContent: "space-around", marginTop: space.x4 },
+  tile: { alignItems: "center", width: TILE + space.x5 },
+  icon: { width: TILE, height: TILE, borderRadius: radius.key, backgroundColor: color.ink3, alignItems: "center", justifyContent: "center" },
+  spot: { width: TILE, height: TILE, borderRadius: radius.key, alignItems: "center", justifyContent: "center", boxShadow: `0px 0px 0px 3px ${color.ink2}, 0px 0px 0px 5px ${color.orange}` },
+  label: { marginTop: space.x2, fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
   labelOn: { fontFamily: font.bodyBold, color: color.white },
-  caption: { marginTop: 12, marginLeft: 4, fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
+  caption: { marginTop: space.x3, marginLeft: space.x1, fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
 });
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scroll: { paddingHorizontal: space.gutter, paddingBottom: 40 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 64 },
-  hero: { marginTop: 16, fontFamily: font.display, fontSize: type.hero, lineHeight: 52, letterSpacing: -1.8, color: color.white },
-  lede: { marginTop: 14, maxWidth: 340, fontFamily: font.body, fontSize: type.lead, lineHeight: 25, color: color.dim },
-  input: {
-    marginTop: 28,
-    height: 58,
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    backgroundColor: color.white,
-    fontFamily: font.bodySemi,
-    fontSize: 17,
-    color: color.ink,
+  scroll: { paddingHorizontal: space.gutter, paddingBottom: space.x10 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: size.row },
+  cash: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.x1,
+    minHeight: size.tap,
+    paddingLeft: space.x4,
+    paddingRight: space.x2,
+    borderRadius: radius.pill,
+    backgroundColor: color.ink2,
+    marginRight: -space.x1,
   },
-  go: { marginTop: 12 },
-  foot: { marginTop: 12, textAlign: "center", fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
-  recentRight: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cashPressed: { backgroundColor: color.ink3 },
+  cashText: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
+  cashLabel: { fontFamily: font.bodySemi, fontSize: type.footnote, color: color.faint },
+  hero: { marginTop: space.x4, fontFamily: font.display, fontSize: type.hero, lineHeight: leading.hero, letterSpacing: tracking.hero, color: color.white },
+  lede: { marginTop: space.x3, maxWidth: MEASURE, fontFamily: font.body, fontSize: type.lead, lineHeight: leading.lead, color: color.dim },
+  inputFirst: { marginTop: space.x7 },
+  input: { marginTop: space.x2 },
+  go: { marginTop: space.x3 },
+  foot: { marginTop: space.x3, textAlign: "center", fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
+  hint: { flexDirection: "row", alignItems: "center", gap: space.x3, marginTop: space.x4, paddingHorizontal: space.x1 },
+  hintText: { flex: 1, fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
+  recentRight: { flexDirection: "row", alignItems: "center", gap: space.x2 },
   ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
-  tries: { flexDirection: "row", gap: 10 },
-  try: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, backgroundColor: color.ink2 },
+  tries: { flexDirection: "row", gap: space.x2 },
+  try: { minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink2 },
   tryPressed: { backgroundColor: color.ink3 },
-  tryText: { fontFamily: font.displayBold, fontSize: 16, color: color.white },
+  tryText: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
 });
