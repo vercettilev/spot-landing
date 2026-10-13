@@ -1,5 +1,5 @@
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import type { CompositeScreenProps } from "@react-navigation/native";
+import { useIsFocused, type CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
@@ -34,6 +34,7 @@ export function SniffScreen({ navigation }: Props) {
   const first = recent.length === 0;
   const trading = store.wallet?.kind === "mwa" ? store.wallet.address : null;
   const bag = useHoldings(trading);
+  const focused = useIsFocused();
 
   async function go() {
     if (share) {
@@ -66,7 +67,7 @@ export function SniffScreen({ navigation }: Props) {
   );
 
   return (
-    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined} aria-hidden={!focused}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Wordmark width={size.wordmark} />
@@ -107,6 +108,7 @@ export function SniffScreen({ navigation }: Props) {
                     tap();
                     navigation.navigate("Resolve", { share: { text: t, from: "paste" } });
                   }}
+                  hitSlop={{ top: space.hair, bottom: space.hair }}
                   style={({ pressed }) => [styles.try, pressed && styles.tryPressed]}
                   accessibilityRole="button"
                   accessibilityLabel={`Try ${t}`}

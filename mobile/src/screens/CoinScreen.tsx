@@ -45,7 +45,8 @@ const SELL_SHARES = [25, 50, 100];
 
 const SIDES = [
   { value: "buy", label: "Buy", tint: color.green, ink: color.ink },
-  { value: "sell", label: "Sell", tint: color.red, ink: color.white },
+  /* Ink on the red thumb: white there is 3.3:1, too faint for a 15-point label. */
+  { value: "sell", label: "Sell", tint: color.red, ink: color.ink },
 ] as const;
 
 /** A quote that pays much less than the price says, waiting for a yes. */
@@ -402,11 +403,11 @@ export function CoinScreen({ navigation, route }: Props) {
   }
 
   return (
-    <View style={styles.fill}>
+    <View style={styles.fill} aria-hidden={!focused}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: dockHeight + space.x6 }]}
         keyboardShouldPersistTaps="handled"
-        importantForAccessibility={pad ? "no-hide-descendants" : "auto"}
+        aria-hidden={pad}
       >
         <View style={styles.top}>
           <IconButton icon="back" label="Back" onPress={() => navigation.goBack()} style={styles.back} />
@@ -488,7 +489,7 @@ export function CoinScreen({ navigation, route }: Props) {
       </ScrollView>
 
       <Dock onHeight={setDockHeight}>
-        <View importantForAccessibility={pad ? "no-hide-descendants" : "auto"}>
+        <View aria-hidden={pad}>
           {confirm ? (
             <>
               <Text style={styles.confirmLine}>{confirm.line}</Text>

@@ -776,6 +776,7 @@ export const Sheet = forwardRef<
           accessibilityRole="button"
           accessibilityLabel="Close"
           importantForAccessibility="no"
+          aria-hidden
         />
       </Animated.View>
       <Animated.View

@@ -1,5 +1,5 @@
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import type { CompositeScreenProps } from "@react-navigation/native";
+import { useIsFocused, type CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorLine } from "../api";
@@ -26,13 +26,15 @@ type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Bag">, Native
  */
 export function BagScreen({ navigation }: Props) {
   const { wallet, trades } = useStore();
+  /* Under a sheet, a screen reader stays in the sheet. */
+  const away = !useIsFocused();
   const bag = useHoldings(wallet?.address ?? null);
   const mine = trades.filter((t) => t.owner === wallet?.address);
   const ledger = books(mine);
 
   if (!wallet) {
     return (
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} aria-hidden={away}>
         <Title>Bag</Title>
         <View style={styles.empty}>
           <PuppyIcon size={size.markEmpty} />
@@ -51,6 +53,7 @@ export function BagScreen({ navigation }: Props) {
   return (
     <ScrollView
       contentContainerStyle={styles.scroll}
+      aria-hidden={away}
       refreshControl={<RefreshControl refreshing={bag.status === "loading"} onRefresh={() => void bag.refresh()} tintColor={color.orange} />}
     >
       <View style={styles.head}>

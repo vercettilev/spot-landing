@@ -112,7 +112,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry: ()
         <>
           <Text style={[styles.headline, styles.errorHead]}>Couldn't sniff it.</Text>
           <Text style={styles.errorText}>{errorLine(state.error)}</Text>
-          <Pressable onPress={onRetry} style={styles.retry} accessibilityRole="button">
+          <Pressable onPress={onRetry} style={styles.retry} hitSlop={{ top: space.hair, bottom: space.hair }} accessibilityRole="button">
             <Text style={styles.retryText}>Sniff again</Text>
           </Pressable>
         </>

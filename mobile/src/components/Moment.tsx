@@ -34,6 +34,24 @@ export function onCelebrate(fn: (m: MomentData) => void): () => void {
   return () => void listeners.delete(fn);
 }
 
+/* Whether a moment is up, for the app under it to step out of a screen reader's way. */
+let up = false;
+const upListeners = new Set<(on: boolean) => void>();
+const setUp = (on: boolean) => {
+  up = on;
+  for (const fn of upListeners) fn(on);
+};
+
+export function useMomentUp(): boolean {
+  const [on, setOn] = useState(up);
+  useEffect(() => {
+    upListeners.add(setOn);
+    setOn(up);
+    return () => void upListeners.delete(setOn);
+  }, []);
+  return on;
+}
+
 const native = Platform.OS !== "web";
 const SHOW_MS = { ape: 6_000, sell: 6_000, cash: 2_600 } as const;
 
@@ -51,6 +69,8 @@ export function Moment() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const card = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
+
+  useEffect(() => setUp(m !== null), [m]);
 
   useEffect(() => {
     listeners.add(setM);
@@ -135,53 +155,62 @@ export function Moment() {
   const l = momentLines(m);
   const ground = l.backdrop === "green" ? color.green : color.orange;
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, { opacity: fade }]} accessible accessibilityRole="alert" accessibilityLabel={`${l.head} ${l.big}. ${l.small.replace("\n", ". ")}`}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityLabel="Close">
+    <Animated.View style={[StyleSheet.absoluteFill, styles.wrap, { opacity: fade }]} accessibilityViewIsModal>
+      {/* Behind everything: a tap anywhere puts the moment away. A screen reader gets Done instead. */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} aria-hidden>
         <Animated.View
           style={[styles.burst, { backgroundColor: ground, width: d, height: d, borderRadius: d / 2, left: width / 2 - d / 2, top: height - FROM_BOTTOM - d / 2, transform: [{ scale: burst }] }]}
         />
-        <View style={styles.center}>
-          <View style={styles.stage}>
-            {rings.map((r, i) => (
-              <Animated.View
-                key={i}
-                style={[
-                  styles.ring,
-                  {
-                    opacity: r.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 0.6, 0] }),
-                    transform: [{ scale: r.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.7] }) }],
-                  },
-                ]}
-              />
-            ))}
+      </Pressable>
+      <View style={[styles.center, { pointerEvents: "box-none" }]}>
+        <View style={[styles.stage, { pointerEvents: "none" }]} aria-hidden>
+          {rings.map((r, i) => (
             <Animated.View
-              style={{
-                transform: [
-                  { scale: pup.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) },
-                  { rotate: pup.interpolate({ inputRange: [0, 1], outputRange: ["-16deg", "0deg"] }) },
-                ],
-              }}
-            >
-              <PuppyMark width={MARK} />
-            </Animated.View>
-          </View>
-          <Animated.View style={[styles.words, { opacity: words, transform: [{ translateY: words.interpolate({ inputRange: [0, 1], outputRange: [space.x7, 0] }) }] }]}>
+              key={i}
+              style={[
+                styles.ring,
+                {
+                  opacity: r.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 0.6, 0] }),
+                  transform: [{ scale: r.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.7] }) }],
+                },
+              ]}
+            />
+          ))}
+          <Animated.View
+            style={{
+              transform: [
+                { scale: pup.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }) },
+                { rotate: pup.interpolate({ inputRange: [0, 1], outputRange: ["-16deg", "0deg"] }) },
+              ],
+            }}
+          >
+            <PuppyMark width={MARK} />
+          </Animated.View>
+        </View>
+        <Animated.View style={[styles.words, { pointerEvents: "box-none", opacity: words, transform: [{ translateY: words.interpolate({ inputRange: [0, 1], outputRange: [space.x7, 0] }) }] }]}>
+          <View
+            style={{ pointerEvents: "none" }}
+            accessible
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            accessibilityLabel={`${l.head} ${l.big}. ${l.small.replace("\n", ". ")}`}
+          >
             <Text style={styles.head}>{l.head}</Text>
             <Text style={[styles.big, l.backdrop === "green" && styles.bigLoud]}>{l.big}</Text>
             <Text style={styles.small}>{l.small}</Text>
-            <View style={styles.actions}>
-              {m.kind !== "cash" && (
-                <Pressable onPress={() => void share()} disabled={sharing} style={({ pressed }) => [styles.share, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Share">
-                  <Text style={styles.shareText}>{sharing ? "Sharing…" : "Share"}</Text>
-                </Pressable>
-              )}
-              <Pressable onPress={dismiss} style={({ pressed }) => [styles.done, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Done">
-                <Text style={styles.doneText}>Done</Text>
+          </View>
+          <View style={[styles.actions, { pointerEvents: "box-none" }]}>
+            {m.kind !== "cash" && (
+              <Pressable onPress={() => void share()} disabled={sharing} style={({ pressed }) => [styles.share, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Share">
+                <Text style={styles.shareText}>{sharing ? "Sharing…" : "Share"}</Text>
               </Pressable>
-            </View>
-          </Animated.View>
-        </View>
-      </Pressable>
+            )}
+            <Pressable onPress={dismiss} style={({ pressed }) => [styles.done, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Done">
+              <Text style={styles.doneText}>Done</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </View>
       {m.kind !== "cash" && <ShareCard ref={card} data={m} onScreen={cardOnScreen()} />}
     </Animated.View>
   );
@@ -199,7 +228,7 @@ const MEASURE = 320;
 const styles = StyleSheet.create({
   wrap: { zIndex: layer.moment, elevation: layer.moment },
   burst: { position: "absolute" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: space.x7, paddingBottom: space.x10 },
+  center: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: space.x7, paddingBottom: space.x10 },
   stage: { width: STAGE.width, height: STAGE.height, alignItems: "center", justifyContent: "center" },
   ring: { position: "absolute", width: RING, height: RING, borderRadius: RING / 2, borderWidth: space.x1, borderColor: color.white },
   words: { alignItems: "center" },

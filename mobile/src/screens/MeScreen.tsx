@@ -1,5 +1,5 @@
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import type { CompositeScreenProps } from "@react-navigation/native";
+import { useIsFocused, type CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
@@ -39,6 +39,8 @@ function month(iso: string): string {
 export function MeScreen({ navigation }: Props) {
   const store = useStore();
   const { wallet, settings, stats } = store;
+  /* Under a sheet, a screen reader stays in the sheet. */
+  const focused = useIsFocused();
   const bag = useHoldings(wallet?.address ?? null);
   const [toastNode, toast] = useToast();
   const version = Constants.expoConfig?.version ?? "0.1.0";
@@ -73,7 +75,7 @@ export function MeScreen({ navigation }: Props) {
       : `Out of ${stats.sniffed} coin${stats.sniffed === 1 ? "" : "s"} sniffed. ${stats.apes === 0 ? "None aped yet." : `${stats.apes} aped.`}`;
 
   return (
-    <View style={styles.fill}>
+    <View style={styles.fill} aria-hidden={!focused}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Title>Me</Title>
 
