@@ -976,11 +976,11 @@ function Glyph({ d, size: s = size.glyph, tint = color.faint, fill = "none" }: {
   );
 }
 
-export const Chevron = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.chevron} size={18} tint={tint} />;
+export const Chevron = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.chevron} size={size.glyphRow} tint={tint} />;
 
-export const OutIcon = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.out} size={18} tint={tint} />;
+export const OutIcon = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.out} size={size.glyphRow} tint={tint} />;
 
-export const CopyIcon = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.copy} size={16} tint={tint} />;
+export const CopyIcon = ({ tint }: { tint?: string }) => <Glyph d={GLYPHS.copy} size={size.badge} tint={tint} />;
 
 /** The orange check after a verified coin's symbol. */
 export function Verified({ size: s = size.glyph }: { size?: number }) {

@@ -69,7 +69,7 @@ export const type = {
   pad: 28,
   /** The receipt's verdict, an empty state's title, a sheet's title. */
   headline: 25,
-  /** The key's label. */
+  /** The key's label, and a card's title set in the key's face. */
   key: 19,
   lead: 18,
   body: 16,
@@ -158,14 +158,20 @@ export const size = {
   tabBar: 64,
   icon: 24,
   glyph: 20,
-  /** A mark after a title in a list (verified). */
+  /** A mark after a title in a list (verified), a glyph inside a link (copy). */
   badge: 16,
+  /** A glyph at the end of a row (chevron, out). */
+  glyphRow: 18,
   /** The puppy beside a line of words (a toast, a hint). */
   mark: 28,
   /** The puppy across from the wordmark. */
   markHeader: 40,
   /** The puppy over an empty tab's words. */
   markEmpty: 72,
+  /** The puppy as you, in Me. */
+  avatar: 56,
+  /** The wordmark across the top of Sniff. */
+  wordmark: 84,
   /** The puppy over a status screen's words. */
   puppy: 112,
   /** A keypad key's height. */

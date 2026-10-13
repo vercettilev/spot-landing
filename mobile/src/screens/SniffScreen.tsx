@@ -69,7 +69,7 @@ export function SniffScreen({ navigation }: Props) {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Wordmark width={84} />
+          <Wordmark width={size.wordmark} />
           {trading ? (
             <Pressable
               onPress={() => {

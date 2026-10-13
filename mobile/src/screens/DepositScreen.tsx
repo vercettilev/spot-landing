@@ -235,7 +235,9 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   );
 }
 
+/* The code's size, and the Share key beside Copy address. */
 const QR = 216;
+const SHARE = 112;
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
   network: { marginTop: space.x2, fontFamily: font.bodyBold, fontSize: type.footnote, color: color.paperDim },
   actions: { flexDirection: "row", gap: space.x2, marginTop: space.x5 },
   action: { flex: 1 },
-  share: { width: 112 },
+  share: { width: SHARE },
   notes: { marginTop: space.x5, gap: space.x3 },
   note: { flexDirection: "row", gap: space.x3 },
   dot: { fontFamily: font.bodyBold, fontSize: type.callout, lineHeight: leading.callout, color: color.orange },
