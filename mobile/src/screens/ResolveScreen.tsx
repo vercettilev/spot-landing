@@ -1,11 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Clipboard from "expo-clipboard";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorLine, resolveShare, type ApiError } from "../api";
 import { Status } from "../components/Status";
 import { SniffReport } from "../components/SniffReport";
 import { Breathing, Button, Dock, IconButton } from "../components/ui";
-import { sourceLine } from "../logic";
+import { fromPaste, sourceLine } from "../logic";
 import type { RootParams } from "../navigation";
 import { color, font, leading, radius, size, space, type } from "../theme";
 import type { ResolveResult, Share } from "../types";
@@ -34,6 +35,18 @@ export function ResolveScreen({ navigation, route }: Props) {
   const { share } = route.params;
   const [state, setState] = useState<{ kind: "reading" } | { kind: "none"; unread: boolean } | { kind: "failed"; error: ApiError }>({ kind: "reading" });
   const run = useRef(0);
+  const [note, setNote] = useState<string | null>(null);
+
+  /* "Paste one" pastes: what is copied is read right here, as Sniff's key does. */
+  async function pasteInstead() {
+    const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
+    const next = fromPaste(text);
+    if (!next) {
+      setNote("Nothing to paste. Copy a CA, $ticker or link first, then tap Paste one.");
+      return;
+    }
+    navigation.replace("Resolve", { share: next });
+  }
 
   const read = useCallback(async () => {
     const id = ++run.current;
@@ -82,6 +95,7 @@ export function ResolveScreen({ navigation, route }: Props) {
         line={errorLine(state.error)}
         primary={{ label: "Try again", onPress: () => void read() }}
         secondary={{ label: "Back", onPress: () => navigation.goBack() }}
+        onBack={() => navigation.goBack()}
       />
     );
   }
@@ -96,7 +110,10 @@ export function ResolveScreen({ navigation, route }: Props) {
             : "It may be private or deleted. Paste the CA or $ticker instead."
           : "Spot looks for a CA, a $ticker or a coin link. Paste one instead?"
       }
-      primary={{ label: "Paste one", onPress: () => navigation.goBack() }}
+      primary={{ label: "Paste one", onPress: () => void pasteInstead() }}
+      secondary={{ label: "Back", onPress: () => navigation.goBack() }}
+      onBack={() => navigation.goBack()}
+      note={note}
     />
   );
 }
