@@ -63,6 +63,8 @@ export const type = {
   title: 40,
   /** A coin's symbol, a status screen's title. */
   display: 32,
+  /** The keypad's digits. */
+  pad: 28,
   /** The receipt's verdict, an empty state's title, a sheet's title. */
   headline: 25,
   /** The key's label. */
@@ -83,6 +85,7 @@ export const leading = {
   hero: 52,
   title: 44,
   display: 36,
+  pad: 34,
   headline: 29,
   key: 24,
   lead: 25,
@@ -150,6 +153,14 @@ export const size = {
   tabBar: 62,
   icon: 24,
   glyph: 20,
+  /** The puppy beside a line of words (a toast, a hint). */
+  mark: 28,
+  /** A keypad key's height. */
+  padKey: 56,
+  /** One side of a two-way switch (Buy, Sell). */
+  segment: 76,
+  /** The handle at a sheet's top. */
+  grabber: 36,
   /** A coin's face: in a list, on its page, in the moment. */
   faceRow: 40,
   faceCoin: 56,
