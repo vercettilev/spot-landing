@@ -64,7 +64,7 @@ const signed = (n: number) => `${n < 0 ? "−" : "+"}${money(Math.abs(n))}`;
 
 export function momentLines(m: MomentData): MomentLines {
   const coins = `${amount(m.amount)} ${m.symbol}`;
-  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Spot keeps an eye on it.", backdrop: "orange" };
+  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Sniffed for rugs first.", backdrop: "orange" };
   if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", backdrop: "orange" };
   const trade = `${coins} → ${money(m.usdc)}`;
   if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", backdrop: "orange" };

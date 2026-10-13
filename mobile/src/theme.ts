@@ -153,7 +153,9 @@ export const size = {
   /** A chip: 44 tall, with 2 more above and below it to touch. */
   chip: 44,
   row: 64,
-  tabBar: 62,
+  /* The tab bar: each item pads 5 and boxes its icon in 28, and the
+     grotesk's label needs its 16, so the bar inside its own padding is 56. */
+  tabBar: 64,
   icon: 24,
   glyph: 20,
   /** A mark after a title in a list (verified). */

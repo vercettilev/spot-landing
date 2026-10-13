@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
-import { AlertsScreen } from "./screens/AlertsScreen";
 import { BagScreen } from "./screens/BagScreen";
 import { ChooseScreen } from "./screens/ChooseScreen";
 import { CoinScreen } from "./screens/CoinScreen";
@@ -14,14 +13,15 @@ import { MeScreen } from "./screens/MeScreen";
 import { ResolveScreen } from "./screens/ResolveScreen";
 import { SniffScreen } from "./screens/SniffScreen";
 import { useIncomingShare } from "./share";
-import { color, font } from "./theme";
+import { color, font, leading, size, space, type } from "./theme";
 import type { Candidate, Share, Source } from "./types";
 
 /**
- * FOUR TABS AND WHAT OPENS OVER THEM. Sniff (paste, try, recent), Bag (the
- * wallet), Alerts (what Spot watches, what happened), Me (profile and
- * settings). A share, from any app at any moment, opens over whichever tab
- * is showing and goes back to it.
+ * THREE TABS AND WHAT OPENS OVER THEM. Sniff (paste, try, recent), Bag
+ * (the wallet, what it made, every trade), Me (profile and settings). A
+ * share, from any app at any moment, opens over whichever tab is showing
+ * and goes back to it. Alerts comes back as a tab when pings are real
+ * (soon.ts); until then there is nothing to show there.
  */
 
 export type RootParams = {
@@ -36,7 +36,7 @@ export type RootParams = {
   Connect: { ape?: number; track?: boolean } | undefined;
 };
 
-export type TabParams = { Sniff: undefined; Bag: undefined; Alerts: undefined; Me: undefined };
+export type TabParams = { Sniff: undefined; Bag: undefined; Me: undefined };
 
 export const navRef = createNavigationContainerRef<RootParams>();
 
@@ -53,13 +53,12 @@ const THEME: Theme = {
 const ICONS: Record<keyof TabParams, string> = {
   Sniff: "M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM20 20l-4.6-4.6",
   Bag: "M5.5 8h13l-1 12h-11l-1-12zM9 8V7a3 3 0 0 1 6 0v1",
-  Alerts: "M18 16.5V11a6 6 0 0 0-12 0v5.5L4.5 18h15L18 16.5zM10 20.5a2 2 0 0 0 4 0",
   Me: "M12 12.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 21a7.5 7.5 0 0 1 15 0",
 };
 
 function TabIcon({ name, tint }: { name: keyof TabParams; tint: string }) {
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={tint} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={size.icon} height={size.icon} viewBox="0 0 24 24" fill="none" stroke={tint} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
       <Path d={ICONS[name]} />
     </Svg>
   );
@@ -67,7 +66,7 @@ function TabIcon({ name, tint }: { name: keyof TabParams; tint: string }) {
 
 function Tabs() {
   /* Taller than the stock 49: the labels are set in the landing's grotesk,
-     which needs more room under the icon than the system font. */
+     which needs more room under the icon than the system font (theme.ts). */
   const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
@@ -75,14 +74,13 @@ function Tabs() {
         headerShown: false,
         tabBarActiveTintColor: color.orange,
         tabBarInactiveTintColor: color.faint,
-        tabBarStyle: { backgroundColor: color.ink, borderTopColor: color.line, height: 62 + insets.bottom, paddingTop: 6, paddingBottom: 6 + insets.bottom },
-        tabBarLabelStyle: { fontFamily: font.bodyBold, fontSize: 12, lineHeight: 16 },
+        tabBarStyle: { backgroundColor: color.ink, borderTopColor: color.line, height: size.tabBar + insets.bottom, paddingTop: space.x1, paddingBottom: space.x1 + insets.bottom },
+        tabBarLabelStyle: { fontFamily: font.bodyBold, fontSize: type.micro, lineHeight: leading.micro },
         tabBarIcon: ({ color: tint }) => <TabIcon name={route.name} tint={tint} />,
       })}
     >
       <Tab.Screen name="Sniff" component={SniffScreen} />
       <Tab.Screen name="Bag" component={BagScreen} />
-      <Tab.Screen name="Alerts" component={AlertsScreen} />
       <Tab.Screen name="Me" component={MeScreen} />
     </Tab.Navigator>
   );

@@ -6,7 +6,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Bell, Button, CoinFace, Dock, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
+import { Button, CoinFace, Dock, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import {
   DEFAULT_AMOUNT,
@@ -31,7 +31,7 @@ import {
 import type { RootParams } from "../navigation";
 import { claim, hold, pendingFor, subscribe } from "../pending";
 import { books, saleGain, since, sinceAped } from "../pnl";
-import { AUTO_SELL, PINGS } from "../soon";
+import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font, leading, radius, size, space, tracking, type } from "../theme";
 import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
@@ -189,7 +189,6 @@ export function CoinScreen({ navigation, route }: Props) {
   const typed = custom ? clampAmount(Math.min(MAX_TRADE, Math.max(1, Number(custom))), cap) : null;
   const amount = typed ?? preset;
   const up = (coin.change24hPct ?? 0) >= 0;
-  const watched = store.isWatched(coin.mint);
   const sellTyped = sellCustom && position ? shareFor(Number(sellCustom), position.usd) : 0;
   const sellPct = sellTyped > 0 ? sellTyped : sellPreset;
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
@@ -272,18 +271,6 @@ export function CoinScreen({ navigation, route }: Props) {
     tap();
     await Clipboard.setStringAsync(coin.mint).catch(() => {});
     toast("CA copied.");
-  }
-
-  function toggleWatch() {
-    tap();
-    store.toggleWatch(coin);
-    toast(
-      watched
-        ? `Stopped watching $${coin.symbol}.`
-        : PINGS
-          ? `Spot will bark if $${coin.symbol} turns. It's in Alerts.`
-          : `Watching $${coin.symbol}. Barks start when alerts go live.`,
-    );
   }
 
   async function trade() {
@@ -426,14 +413,6 @@ export function CoinScreen({ navigation, route }: Props) {
           <Text style={styles.source} numberOfLines={1}>
             {source && share ? sourceLine(source, share) : ""}
           </Text>
-          <Pressable
-            onPress={toggleWatch}
-            style={({ pressed }) => [styles.bell, pressed && styles.bellPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={watched ? "Stop watching" : "Watch this coin"}
-          >
-            <Bell on={watched} />
-          </Pressable>
         </View>
 
         <View style={styles.coin}>
@@ -612,8 +591,6 @@ const styles = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", gap: space.x1, height: size.tap },
   back: { marginLeft: -space.x3 },
   source: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
-  bell: { width: size.tap, height: size.tap, borderRadius: size.tap / 2, alignItems: "center", justifyContent: "center", marginRight: -space.x3 },
-  bellPressed: { backgroundColor: color.ink3 },
   coin: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x3 },
   coinText: { flex: 1, minWidth: 0 },
   symbolRow: { flexDirection: "row", alignItems: "center", gap: space.x2 },

@@ -977,15 +977,3 @@ export function Verified({ size: s = size.glyph }: { size?: number }) {
 const verified = StyleSheet.create({
   disc: { backgroundColor: color.orange, alignItems: "center", justifyContent: "center" },
 });
-
-/** The bell on a coin: outlined when Spot isn't watching it, filled orange when it is. */
-export function Bell({ on }: { on: boolean }) {
-  return (
-    <Glyph
-      d="M18 16.5V11a6 6 0 0 0-12 0v5.5L4.5 18h15L18 16.5zM10 20.5a2 2 0 0 0 4 0"
-      size={26}
-      tint={on ? color.orange : color.dim}
-      fill={on ? color.orange : "none"}
-    />
-  );
-}
