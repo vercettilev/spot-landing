@@ -56,22 +56,63 @@ export interface MomentLines {
   head: string;
   big: string;
   small: string;
-  /** How loud the big line is: white for a gain, ink for the rest. */
-  tone: "ink" | "white";
+  /** The colour says the outcome: green for a sell that made money, orange for Spot's own moment. Never red. */
+  backdrop: "orange" | "green";
 }
 
 const signed = (n: number) => `${n < 0 ? "−" : "+"}${money(Math.abs(n))}`;
 
 export function momentLines(m: MomentData): MomentLines {
   const coins = `${amount(m.amount)} ${m.symbol}`;
-  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Spot keeps an eye on it.", tone: "ink" };
-  if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", tone: "ink" };
+  if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Spot keeps an eye on it.", backdrop: "orange" };
+  if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", backdrop: "orange" };
   const trade = `${coins} → ${money(m.usdc)}`;
-  if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", tone: "ink" };
+  if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", backdrop: "orange" };
   const figure = m.gain.pct === null ? signed(m.gain.usd) : `${signed(m.gain.usd)} (${pct(m.gain.pct)})`;
   return m.gain.usd >= 0
-    ? { head: "Sold.", big: figure, small: `since you aped · ${trade}`, tone: "white" }
-    : { head: "Sold.", big: figure, small: `It happens. ${trade}`, tone: "ink" };
+    ? { head: "Sold.", big: figure, small: `since you aped · ${trade}`, backdrop: "green" }
+    : { head: "Sold.", big: figure, small: `It happens. ${trade}`, backdrop: "orange" };
+}
+
+/** The card people post: one figure, one line under it, and where it came from. */
+export interface CardLines {
+  figure: string;
+  line: string;
+  foot: string;
+  tint: "orange" | "green";
+}
+
+export function cardLines(m: MomentData): CardLines {
+  if (m.kind === "ape") return { figure: "Aped.", line: `${money(m.usdc)} of $${m.symbol}`, foot: "Sniffed for rugs first.", tint: "orange" };
+  if (m.kind === "cash") return { figure: "Cash in.", line: `${money(m.usdc)} ready to ape`, foot: "", tint: "orange" };
+  if (!m.gain) return { figure: "Sold.", line: `${amount(m.amount)} ${m.symbol} → ${money(m.usdc)}`, foot: "", tint: "orange" };
+  const won = m.gain.usd >= 0;
+  return {
+    figure: m.gain.pct === null ? signed(m.gain.usd) : pct(m.gain.pct),
+    line: `${signed(m.gain.usd)} on $${m.symbol}\nsince I aped`,
+    foot: won ? "Sniffed for rugs first." : "It happens.",
+    tint: won ? "green" : "orange",
+  };
+}
+
+/** The same, as words, for a share sheet with no picture. */
+export function shareText(m: MomentData): string {
+  const c = cardLines(m);
+  const line = c.line.replace("\n", " ");
+  const word = /\.$/.test(c.figure);
+  return [word ? `${c.figure} ${line}.` : `${c.figure}: ${line}.`, c.foot, "usespot.fun"].filter(Boolean).join(" ");
+}
+
+/* How wide Rubik Black sets each kind of character, in ems: digits are
+   wide in it, so "+49.6%" does not fit where "Aped." does. */
+const EM: Record<string, number> = { "+": 0.6, "−": 0.64, ".": 0.31, ",": 0.3, "%": 0.85, $: 0.71, " ": 0.19 };
+const emOf = (ch: string) => EM[ch] ?? (/[0-9]/.test(ch) ? 0.7 : /[A-Z]/.test(ch) ? 0.75 : 0.64);
+
+/** The biggest size, up to `max`, at which the card's figure fits in `width` pixels, with the card's tight letter spacing. */
+export function fitFigure(figure: string, width: number, max = 132, letterSpacing = -5): number {
+  const ems = [...figure].reduce((sum, ch) => sum + emOf(ch), 0);
+  if (!(ems > 0)) return max;
+  return Math.max(40, Math.min(max, Math.floor((width - letterSpacing * (figure.length - 1)) / ems)));
 }
 
 /** The landing's four questions first, in its order, then what else the sniff found. */
