@@ -1,12 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
-import { Share, StyleSheet, Text, View } from "react-native";
+import { AppState, Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { USDC_MINT, executeOrder, fetchHoldings, placeOrder } from "../api";
 import { ICON_SVG } from "../art";
 import { celebrate, onCelebrate } from "../components/Moment";
-import { Button, Card, Group, Pill, Row, Section, Sheet, feel, useRouteSheet, useToast } from "../components/ui";
+import { Button, Card, Group, Pill, Row, Section, Sheet, Steps, feel, useRouteSheet, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import { amount as fmtAmount, cashLede, coverWith, money, turnKey, usd } from "../logic";
 import type { RootParams } from "../navigation";
@@ -18,6 +18,12 @@ import type { TokenCard } from "../types";
 import { signTransaction, walletError } from "../wallet/mwa";
 
 type Props = NativeStackScreenProps<RootParams, "Deposit">;
+
+/* A card buy happens in the wallet app: Seed Vault, Phantom, Solflare and
+   Backpack each sell USDC through a card partner of their own. Spot has
+   none yet, so it says the way that works. */
+const BUY_STEPS = ["Open your wallet app and tap Buy.", "Pick USDC on Solana and pay with your card.", "Come back to Spot. Your cash shows up here once it lands."];
+const BUY_NOTE = "Your wallet app's card partner may ask for ID, and takes a fee.";
 
 const NOTES = [
   "Only send on Solana. USDC or SOL sent on another network (Ethereum, Base, Tron) can be lost.",
@@ -82,7 +88,8 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   const bag = useHoldings(wallet?.address ?? null);
   const [pick, setPick] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  /* The address and its code, folded away while a swap can do the job. */
+  /* The two ways in from outside, each folded to one line until asked for. */
+  const [showBuy, setShowBuy] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
   /* A swap that may still land locks the key, as a trade does on a coin. */
   const [pending, setPending] = useState<Pending | null>(() => (wallet ? pendingFor(wallet.address, USDC_MINT) : null));
@@ -90,6 +97,16 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   const owner = wallet?.address ?? null;
 
   useEffect(() => onBusy?.(busy), [busy, onBusy]);
+
+  /* Back from buying in the wallet app, or from an exchange: the bag is read
+     again, here and on every screen showing it. Not mid-swap, which reads its own. */
+  useEffect(() => {
+    if (!owner || busy) return;
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") forgetHoldings(owner);
+    });
+    return () => sub.remove();
+  }, [owner, busy]);
 
   useEffect(() => {
     if (!owner) return;
@@ -131,6 +148,8 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   const cashNow = bag.value?.usdc.usd ?? null;
   const chosen = pick !== null && choices.includes(pick) ? pick : coverWith(choices, need, cashNow);
   const canTurn = wallet.kind === "mwa" && spare >= 5 && chosen !== null;
+  /* The wallet on this phone, which can buy and sign; a tracked one can only receive. */
+  const mwa = wallet.kind === "mwa";
   const key = turnKey({ pending: pending ? { landed: pending.landed, seconds: secondsLeft(pending, now) } : null, busy, chosen });
 
 
@@ -209,22 +228,35 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
         </Card>
       )}
 
-      {canTurn ? (
-        <Group style={styles.more}>
-          <Row
-            title="Send from an exchange or wallet"
-            subtitle={showAddress ? "Your wallet's address, below" : "Your wallet's address and its code"}
-            chevron
-            onPress={() => setShowAddress((v) => !v)}
-            label={showAddress ? "Hide your wallet's address" : "Show your wallet's address, to send from an exchange or another wallet"}
-          />
-        </Group>
+      {/* Your own wallet: a card, through its app's Buy, or the address. A tracked one only has the address. */}
+      {mwa ? (
+        <>
+          <Group style={styles.more}>
+            <Row
+              title="Buy with a card"
+              subtitle={showBuy ? "Three steps, below" : "In your wallet app"}
+              chevron
+              onPress={() => setShowBuy((v) => !v)}
+              label={showBuy ? "Hide how to buy with a card" : "Show how to buy with a card in your wallet app"}
+            />
+          </Group>
+          {showBuy ? <Steps steps={BUY_STEPS} note={BUY_NOTE} style={styles.steps} /> : null}
+          <Group style={styles.more}>
+            <Row
+              title="Send from an exchange or wallet"
+              subtitle={showAddress ? "Your wallet's address, below" : "Your wallet's address and its code"}
+              chevron
+              onPress={() => setShowAddress((v) => !v)}
+              label={showAddress ? "Hide your wallet's address" : "Show your wallet's address, to send from an exchange or another wallet"}
+            />
+          </Group>
+        </>
       ) : (
         <Section>Your wallet's address</Section>
       )}
-      {!canTurn || showAddress ? (
+      {!mwa || showAddress ? (
         <>
-          <View style={[styles.paper, canTurn && styles.paperFirst]}>
+          <View style={[styles.paper, mwa && styles.paperFirst]}>
             <QRCode value={address} size={QR} color={color.ink} backgroundColor={color.white} ecl="H" logoSVG={ICON_SVG} logoSize={QR / 5} logoMargin={space.x1 + space.hair} logoBackgroundColor={color.white} />
             {/* Two even lines: a Solana address is too wide for one, and halves
                 are easier to check against the wallet's own screen. */}
@@ -273,6 +305,7 @@ const styles = StyleSheet.create({
   paper: { alignItems: "center", paddingTop: space.x6, paddingBottom: space.x5, paddingHorizontal: space.x5, borderRadius: radius.block, backgroundColor: color.white },
   paperFirst: { marginTop: space.x4 },
   more: { marginTop: space.x5 },
+  steps: { marginTop: space.x4, marginHorizontal: space.x1 },
   address: { marginTop: space.x5, textAlign: "center", fontFamily: font.mono, fontSize: type.body, lineHeight: leading.body, color: color.paperInk },
   network: { marginTop: space.x2, fontFamily: font.bodyBold, fontSize: type.footnote, color: color.paperDim },
   actions: { flexDirection: "row", gap: space.x2, marginTop: space.x5 },

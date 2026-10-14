@@ -6,6 +6,7 @@ import { PixelRatio } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { BagScreen } from "./screens/BagScreen";
+import { CashOutScreen } from "./screens/CashOutScreen";
 import { ChooseScreen } from "./screens/ChooseScreen";
 import { CoinScreen } from "./screens/CoinScreen";
 import { ConnectScreen } from "./screens/ConnectScreen";
@@ -35,6 +36,8 @@ export type RootParams = {
   Deposit: { need?: number } | undefined;
   /** `ape`: connecting to ape this much, so a short wallet goes straight on to Add cash; `track`: offer to track an address too. */
   Connect: { ape?: number; track?: boolean } | undefined;
+  /** How cash reaches a bank: through an exchange, from the wallet app. */
+  CashOut: undefined;
 };
 
 export type TabParams = { Sniff: undefined; Bag: undefined; Me: undefined };
@@ -123,6 +126,7 @@ export function Navigation() {
         {/* Sheets: the screen they belong to stays in view behind them, and they bring their own motion. */}
         <Stack.Screen name="Deposit" component={DepositScreen} options={SHEET} />
         <Stack.Screen name="Connect" component={ConnectScreen} options={SHEET} />
+        <Stack.Screen name="CashOut" component={CashOutScreen} options={SHEET} />
       </Stack.Navigator>
     </NavigationContainer>
   );

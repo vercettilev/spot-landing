@@ -1,10 +1,10 @@
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useIsFocused, type CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorLine } from "../api";
-import { Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Title } from "../components/ui";
+import { Breathing, Button, CoinFace, Group, OutIcon, PuppyIcon, Row, Section, Title } from "../components/ui";
 import { useHoldings } from "../holdings";
 import { ago, amount as fmtAmount, bagLine, emptyBag, money, pct, usd } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
@@ -23,7 +23,7 @@ type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Bag">, Native
  * and SOL) and the coins sit below as quiet lists, each coin one tap from
  * its page opened on Sell, with its own gain since you aped; then every
  * trade, each a tap from Solscan. An empty wallet gets one thing to do:
- * Add cash.
+ * Add cash; cash in it gets the way to a bank.
  */
 export function BagScreen({ navigation }: Props) {
   const { wallet, trades } = useStore();
@@ -103,6 +103,9 @@ export function BagScreen({ navigation }: Props) {
             {nothing ? null : (
               <Row left={<Cash glyph="+" tint={color.orange} />} title="Add cash" subtitle="USDC or SOL, on Solana" tint={color.orange} chevron onPress={() => navigation.navigate("Deposit")} />
             )}
+            {wallet.kind === "mwa" && b.usdc.usd >= 1 ? (
+              <Row left={<Cash glyph={<OutIcon tint={color.white} />} />} title="Cash out to your bank" subtitle="Through an exchange you use" chevron onPress={() => navigation.navigate("CashOut")} />
+            ) : null}
           </Group>
 
           <Section>Coins</Section>
@@ -163,12 +166,8 @@ export function BagScreen({ navigation }: Props) {
   );
 }
 
-function Cash({ glyph, tint }: { glyph: string; tint?: string }) {
-  return (
-    <View style={styles.cash}>
-      <Text style={[styles.cashGlyph, tint ? { color: tint } : null]}>{glyph}</Text>
-    </View>
-  );
+function Cash({ glyph, tint }: { glyph: ReactNode; tint?: string }) {
+  return <View style={styles.cash}>{typeof glyph === "string" ? <Text style={[styles.cashGlyph, tint ? { color: tint } : null]}>{glyph}</Text> : glyph}</View>;
 }
 
 function Value({ value, under, tint }: { value: string; under?: string; tint?: string }) {
