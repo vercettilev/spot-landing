@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "fun.usespot.app",
+      "sha256_cert_fingerprints": ["4D:26:5D:B5:1D:A1:2F:41:9E:A2:63:A4:E6:C8:CE:9C:FF:AC:93:59:C0:C1:F0:9E:B5:8E:D8:93:3E:65:66:0A"]
+    }
+  }
+]
