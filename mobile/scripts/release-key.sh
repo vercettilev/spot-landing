@@ -53,10 +53,16 @@ if [ -e "$keystore" ]; then
 else
   say "Making Spot's dApp Store key at $keystore."
   say "Pick a long password (12 characters or more) and keep it in your password manager."
-  read -r -s -p "Password: " pass; say ""
-  [ "${#pass}" -ge 12 ] || fail "That password is shorter than 12 characters."
-  read -r -s -p "Again: " again; say ""
-  [ "$pass" = "$again" ] || fail "The two passwords don't match."
+  # Asked again until it is long enough and the same twice, rather than
+  # stopping: a password typed after the script stopped would land in the
+  # shell, and on Enter in its history. Ctrl-C leaves.
+  while :; do
+    read -r -s -p "Password: " pass; say ""
+    if [ "${#pass}" -lt 12 ]; then say "That one is shorter than 12 characters. Try a longer one."; continue; fi
+    read -r -s -p "Again: " again; say ""
+    [ "$pass" = "$again" ] && break
+    say "The two didn't match. Once more, from the start."
+  done
   unset again
   # PKCS12 takes one password for the store and the key; the workflow passes it as both.
   SPOT_PASS="$pass" "$keytool" -genkeypair -keystore "$keystore" -storetype PKCS12 -alias "$alias" \
