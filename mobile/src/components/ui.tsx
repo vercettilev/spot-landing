@@ -69,6 +69,27 @@ export const feel = (kind: "success" | "warning" | "error") => {
 
 const native = Platform.OS !== "web";
 
+/** Whether a screen reader is on, kept current: nothing then leaves on a timer the reader can't keep up with. */
+export function useScreenReader(): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    /* react-native-web answers true whatever the browser does; the web build is for looking at screens. */
+    if (Platform.OS === "web") return;
+    let alive = true;
+    AccessibilityInfo.isScreenReaderEnabled()
+      .then((v) => {
+        if (alive) setOn(Boolean(v));
+      })
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener("screenReaderChanged", (v) => setOn(Boolean(v)));
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
+  return on;
+}
+
 /** The phone's "reduce motion" setting, kept current: motion becomes a fade. */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -267,9 +288,11 @@ export function useToast(bottom = 120): [ReactNode, (message: string) => void] {
     setMessage(m);
     if (timer.current) clearTimeout(timer.current);
     Animated.timing(v, { toValue: 1, duration: motion.toastIn, useNativeDriver: native }).start();
+    /* Long enough to read at an unhurried pace: a short "CA copied." goes soon, a sentence stays. */
+    const hold = Math.min(motion.toastHoldMax, Math.max(motion.toastHold, motion.toastHoldBase + m.length * motion.toastPerChar));
     timer.current = setTimeout(() => {
       Animated.timing(v, { toValue: 0, duration: motion.toastOut, useNativeDriver: native }).start(() => setMessage(null));
-    }, motion.toastHold);
+    }, hold);
   };
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
@@ -596,13 +619,15 @@ const pad = StyleSheet.create({
 /* ---- the bar a trade sits in ---- */
 
 /** Content scrolls under a soft edge into the bar instead of meeting a hard line. */
-export function EdgeFade({ height = space.x6, style }: { height?: number; style?: StyleProp<ViewStyle> }) {
+export function EdgeFade({ height = space.x6, style, from = "bottom" }: { height?: number; style?: StyleProp<ViewStyle>; from?: "top" | "bottom" }) {
   const id = `fade${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  /* `from`: the edge the black comes from, the bar's side. */
+  const [y1, y2] = from === "bottom" ? ["0", "1"] : ["1", "0"];
   return (
     <View style={[{ height, pointerEvents: "none" }, style]}>
       <Svg width="100%" height={height}>
         <Defs>
-          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <LinearGradient id={id} x1="0" y1={y1} x2="0" y2={y2}>
             <Stop offset="0" stopColor={color.ink} stopOpacity={0} />
             <Stop offset="1" stopColor={color.ink} stopOpacity={1} />
           </LinearGradient>

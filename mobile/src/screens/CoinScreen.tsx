@@ -6,13 +6,15 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Button, CoinFace, Dock, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
+import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import {
   DEFAULT_AMOUNT,
   MAX_TRADE,
+  SNIFF_AGAIN,
   chipsFor,
   clampAmount,
+  coinLine,
   dockKey,
   dockNote,
   holding,
@@ -20,6 +22,7 @@ import {
   needsCash as shortOfCash,
   padHint,
   pct,
+  plainShortFill,
   price,
   shareFor,
   shareOf,
@@ -33,7 +36,7 @@ import { claim, hold, pendingFor, subscribe } from "../pending";
 import { books, saleGain, since, sinceAped } from "../pnl";
 import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
-import { color, font, leading, radius, size, space, tracking, type } from "../theme";
+import { color, font, layer, leading, radius, size, space, tracking, type } from "../theme";
 import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
 import { short } from "../wallet/base58";
@@ -184,6 +187,8 @@ export function CoinScreen({ navigation, route }: Props) {
 
   const buying = side === "buy";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
+  /* The first coin the issuer won't sell in the US asks, once, instead of trusting a switch in Me nobody has seen. */
+  const askUs = buying && coin.restrictions.includes("us-persons") && !store.settings.usAsked && !store.settings.usPerson && !checking;
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
   const chips = chipsFor(cap);
   /* A typed amount wins over the chips, within the server's $1 to $10,000 and a warned coin's cap. */
@@ -404,18 +409,21 @@ export function CoinScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.fill} aria-hidden={!focused}>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: dockHeight + space.x6 }]}
-        keyboardShouldPersistTaps="handled"
-        aria-hidden={pad}
-      >
+      {/* The way back stays at the top however far the receipt is scrolled. */}
+      <View style={styles.header} aria-hidden={pad}>
         <View style={styles.top}>
           <IconButton icon="back" label="Back" onPress={() => navigation.goBack()} style={styles.back} />
           <Text style={styles.source} numberOfLines={1}>
             {source && share ? sourceLine(source, share) : ""}
           </Text>
         </View>
-
+        <EdgeFade from="top" height={space.x4} style={styles.headerFade} />
+      </View>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: dockHeight + space.x6 }]}
+        keyboardShouldPersistTaps="handled"
+        aria-hidden={pad}
+      >
         <View style={styles.coin}>
           <CoinFace uri={coin.icon} symbol={coin.symbol} size={size.faceCoin} />
           <View style={styles.coinText}>
@@ -423,10 +431,11 @@ export function CoinScreen({ navigation, route }: Props) {
               <Text style={styles.symbol} numberOfLines={1}>
                 ${coin.symbol}
               </Text>
-              {coin.verified && <Verified />}
+              {/* A verified listing says the coin is the real one, not that it is safe: over GRRR or NOPE the tick read as a seal. */}
+              {coin.verified && done?.level !== "warn" && done?.level !== "block" && <Verified />}
             </View>
             <Text style={styles.name} numberOfLines={1}>
-              {coin.kind === "stock" ? `${coin.name}, a stock coin` : coin.name}
+              {coinLine(coin)}
             </Text>
           </View>
           <View style={styles.priceCol}>
@@ -435,7 +444,6 @@ export function CoinScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {coin.mcapUsd !== null && <Text style={styles.stats}>{usd(coin.mcapUsd)} market cap</Text>}
         {/* The address is the one thing a lookalike cannot copy: shown, copied in a tap, and checked on Solscan. */}
         <View style={styles.caRow}>
           <Pressable onPress={() => void copyCa()} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
@@ -453,7 +461,8 @@ export function CoinScreen({ navigation, route }: Props) {
             <OutIcon tint={color.orange} />
           </Pressable>
         </View>
-        {coin.restrictions.includes("us-persons") && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
+        {/* Said once: while the dock asks, or turns a US buyer away, it says it there. */}
+        {coin.restrictions.includes("us-persons") && !askUs && !restricted && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
         {others.length > 0 && (
           <Pressable
             onPress={() =>
@@ -474,7 +483,8 @@ export function CoinScreen({ navigation, route }: Props) {
         )}
 
         <View style={styles.report}>
-          <SniffReport state={sniff} onRetry={() => void sniffNow()} />
+          {/* One Sniff again on the screen: the key's when it says so, otherwise the receipt's own. */}
+          <SniffReport state={sniff} onRetry={action.label === SNIFF_AGAIN ? undefined : () => void sniffNow()} />
         </View>
 
         {AUTO_SELL && buying && canPickAmount && (
@@ -492,10 +502,11 @@ export function CoinScreen({ navigation, route }: Props) {
         <View aria-hidden={pad}>
           {confirm ? (
             <>
-              <Text style={styles.confirmLine}>{confirm.line}</Text>
+              <Text style={styles.confirmLine}>{plainShortFill(confirm.line)}</Text>
+              {/* The safe answer is the one that stands out; going ahead anyway is there, quieter. */}
               <View style={styles.pair}>
-                <Button label="Cancel" kind="quiet" onPress={() => setConfirm(null)} style={styles.half} />
-                <Button label={confirm.label} kind="growl" onPress={() => void confirmed()} style={styles.half} />
+                <Button label="Cancel" kind="wait" onPress={() => setConfirm(null)} style={styles.half} />
+                <Button label={confirm.label} kind="quiet" onPress={() => void confirmed()} style={styles.half} />
               </View>
               <Text style={styles.note}>Your wallet still asks before anything moves.</Text>
             </>
@@ -524,7 +535,19 @@ export function CoinScreen({ navigation, route }: Props) {
                   </View>
                 </View>
               )}
-              {canPickAmount && !checking && (
+              {askUs ? (
+                <View accessibilityRole="none">
+                  <Text style={styles.askTitle} accessibilityRole="header">
+                    Are you in the US?
+                  </Text>
+                  <Text style={styles.askLine}>Coins like this aren't sold to people in the US, so Spot asks once. You can change it in Me.</Text>
+                  <View style={styles.pair}>
+                    <Button label="No" kind="quiet" onPress={() => store.setSettings({ usPerson: false, usAsked: true })} style={styles.half} />
+                    <Button label="Yes, I am" kind="quiet" onPress={() => store.setSettings({ usPerson: true, usAsked: true })} style={styles.half} />
+                  </View>
+                </View>
+              ) : null}
+              {!askUs && canPickAmount && !checking && (
                 <View style={styles.chips}>
                   {buying
                     ? chips.map((c) => (
@@ -559,8 +582,12 @@ export function CoinScreen({ navigation, route }: Props) {
                   ) : null}
                 </View>
               )}
-              <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
-              <Text style={styles.note}>{note}</Text>
+              {askUs ? null : (
+                <>
+                  <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
+                  <Text style={styles.note}>{note}</Text>
+                </>
+              )}
             </>
           )}
         </View>
@@ -588,7 +615,9 @@ export function CoinScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scroll: { paddingHorizontal: space.gutter, paddingTop: space.x2 },
+  header: { zIndex: layer.dock, paddingHorizontal: space.gutter, paddingTop: space.x2, backgroundColor: color.ink },
+  headerFade: { position: "absolute", left: 0, right: 0, bottom: -space.x4 },
+  scroll: { paddingHorizontal: space.gutter },
   top: { flexDirection: "row", alignItems: "center", gap: space.x1, height: size.tap },
   back: { marginLeft: -space.x3 },
   source: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
@@ -600,8 +629,7 @@ const styles = StyleSheet.create({
   priceCol: { alignItems: "flex-end" },
   price: { fontFamily: font.displayBold, fontSize: type.lead, color: color.white },
   change: { marginTop: space.hair, fontFamily: font.bodyBold, fontSize: type.caption },
-  stats: { marginTop: space.x3, fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
-  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space.x2 },
   ca: { flexDirection: "row", alignItems: "center", gap: space.x2, minHeight: size.tap },
   caLabel: { fontFamily: font.bodyBold, fontSize: type.footnote, color: color.faint },
   caText: { fontFamily: font.mono, fontSize: type.footnote, color: color.dim },
@@ -628,6 +656,8 @@ const styles = StyleSheet.create({
   heldCol: { flexShrink: 1, alignItems: "flex-end" },
   held: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.white },
   gained: { marginTop: space.hair, fontFamily: font.bodySemi, fontSize: type.footnote },
+  askTitle: { textAlign: "center", fontFamily: font.bodyBold, fontSize: type.lead, color: color.white },
+  askLine: { marginTop: space.x1, marginBottom: space.x3, textAlign: "center", fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   confirmLine: { marginBottom: space.x3, textAlign: "center", fontFamily: font.bodyBold, fontSize: type.body, lineHeight: leading.body, color: color.white },
   pair: { flexDirection: "row", gap: space.x2 },
   half: { flex: 1 },

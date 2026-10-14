@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button, Group, OutIcon, Pill, PuppyIcon, Row, Section, SettingRow, Title, Toggle, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { CHIPS, money } from "../logic";
+import { CHIPS, money, proofOf } from "../logic";
 import type { RootParams, TabParams } from "../navigation";
 import { AUTO_SELL } from "../soon";
 import { useStore } from "../store";
@@ -69,10 +69,7 @@ export function MeScreen({ navigation }: Props) {
   }
 
   const total = bag.value ? money(bag.value.totalUsd) : "…";
-  const proof =
-    stats.sniffed === 0
-      ? "Sniff your first coin and Spot starts counting."
-      : `Out of ${stats.sniffed} coin${stats.sniffed === 1 ? "" : "s"} sniffed. ${stats.apes === 0 ? "None aped yet." : `${stats.apes} aped.`}`;
+  const proof = proofOf(stats);
 
   return (
     <View style={styles.fill} aria-hidden={!focused}>
@@ -81,19 +78,17 @@ export function MeScreen({ navigation }: Props) {
 
         <View style={styles.profile}>
           <PuppyIcon size={size.avatar} />
+          {/* Which wallet is the first row under Wallet, so it isn't said up here too. */}
           <View style={styles.profileText}>
             <Text style={styles.since}>Degen since {month(settings.since)}</Text>
-            <Text style={styles.who} numberOfLines={1}>
-              {wallet ? `${wallet.kind === "watch" ? "Tracking" : (wallet.label ?? "Wallet")} ${short(wallet.address)}` : "No wallet yet"}
-            </Text>
           </View>
         </View>
 
-        <View style={styles.score} accessible accessibilityLabel={`${stats.dodged} scams dodged. ${proof}`}>
-          <Text style={[styles.scoreN, stats.dodged > 0 && styles.scoreHot]}>{stats.dodged}</Text>
+        <View style={styles.score} accessible accessibilityLabel={`${proof.n === null ? "" : `${proof.n} `}${proof.label}. ${proof.line}`}>
+          {proof.n !== null ? <Text style={[styles.scoreN, proof.hot && styles.scoreHot]}>{proof.n}</Text> : null}
           <View style={styles.scoreText}>
-            <Text style={styles.scoreLabel}>{stats.dodged === 1 ? "scam dodged" : "scams dodged"}</Text>
-            <Text style={styles.scoreProof}>{proof}</Text>
+            <Text style={styles.scoreLabel}>{proof.label}</Text>
+            <Text style={styles.scoreProof}>{proof.line}</Text>
           </View>
         </View>
 
@@ -109,26 +104,21 @@ export function MeScreen({ navigation }: Props) {
               label="Open your bag"
             />
             <Row title="Copy address" onPress={() => void copy(wallet.address)} />
-            <View style={styles.walletActions}>
-              {wallet.kind === "watch" ? (
-                <>
-                  <Text style={styles.walletNote}>You can see this bag but not trade from it.</Text>
-                  <Button label="Connect your wallet" onPress={() => navigation.navigate("Connect")} />
-                  <Button label="Stop tracking" kind="quiet" onPress={disconnect} />
-                </>
-              ) : (
-                <View style={styles.pair}>
-                  <Button label="Add cash" onPress={() => navigation.navigate("Deposit")} style={styles.half} />
-                  <Button label="Disconnect" kind="quiet" onPress={disconnect} style={styles.half} />
-                </View>
-              )}
-            </View>
+            {/* Settings, not a second Bag: adding cash lives in the bag; leaving is a quiet row that says what it keeps. */}
+            {wallet.kind === "watch" ? (
+              <Row title="Connect your wallet" subtitle="You can see this bag but not trade from it." tint={color.orange} chevron onPress={() => navigation.navigate("Connect")} />
+            ) : null}
+            <Row
+              title={wallet.kind === "watch" ? "Stop tracking" : "Disconnect"}
+              subtitle={wallet.kind === "watch" ? null : "Your coins stay in your wallet."}
+              onPress={disconnect}
+            />
           </Group>
         ) : (
           <Group>
             <View style={styles.connect}>
               <Text style={styles.connectTitle}>Ape in two taps from any post</Text>
-              <Text style={styles.walletNote}>Connect the wallet on this phone. It approves every trade, and Spot never sees your keys.</Text>
+              <Text style={styles.walletNote}>Your wallet app keeps your money and approves every trade. Spot never holds it.</Text>
               <Button label="Connect wallet" onPress={() => navigation.navigate("Connect", { track: true })} style={styles.connectButton} />
             </View>
           </Group>
@@ -151,7 +141,7 @@ export function MeScreen({ navigation }: Props) {
             </SettingRow>
           )}
           <SettingRow title="I'm in the US" note="Hides the buy on stock coins that can't be sold in the US.">
-            <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson })} />
+            <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson, usAsked: true })} />
           </SettingRow>
         </Group>
 
@@ -189,7 +179,6 @@ const styles = StyleSheet.create({
   profile: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x4 },
   profileText: { flex: 1, minWidth: 0 },
   since: { fontFamily: font.displayBold, fontSize: type.key, lineHeight: leading.key, color: color.white },
-  who: { marginTop: space.hair, fontFamily: font.mono, fontSize: type.footnote, color: color.faint },
   score: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x7 },
   scoreN: { fontFamily: font.display, fontSize: type.moment, lineHeight: leading.moment, letterSpacing: tracking.figure, color: color.white },
   scoreHot: { color: color.orange },
@@ -197,10 +186,7 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: font.display, fontSize: type.headline, lineHeight: leading.headline, color: color.white },
   scoreProof: { marginTop: space.x1, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
   total: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
-  walletActions: { gap: space.x3, padding: space.x4 },
   walletNote: { fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
-  pair: { flexDirection: "row", gap: space.x2 },
-  half: { flex: 1 },
   connect: { padding: space.x4 },
   connectTitle: { marginBottom: space.x2, fontFamily: font.displayBold, fontSize: type.key, color: color.white },
   connectButton: { marginTop: space.x4 },

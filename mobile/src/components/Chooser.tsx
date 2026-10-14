@@ -47,7 +47,7 @@ export function Chooser({
           />
         ))}
       </Group>
-      <Text style={styles.foot}>Same name, different coins. If the post shows a CA, that one is the real one.</Text>
+      <Text style={styles.foot}>Same name, different coins. If the post shows the coin's address (CA), pick the one that matches it.</Text>
     </ScrollView>
   );
 }

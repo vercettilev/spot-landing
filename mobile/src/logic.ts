@@ -67,11 +67,13 @@ export function momentLines(m: MomentData): MomentLines {
   if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Sniffed for rugs first.", backdrop: "orange" };
   if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", backdrop: "orange" };
   const trade = `${coins} → ${money(m.usdc)}`;
-  if (!m.gain) return { head: "Sold.", big: trade, small: "Cash is back in your bag.", backdrop: "orange" };
+  /* Where the money went, in so many words: a sell's dollars stay in the wallet, as cash, not in a bank. */
+  const back = `${money(m.usdc)} is back in your wallet as cash.`;
+  if (!m.gain) return { head: "Sold.", big: trade, small: "Back in your wallet as cash.", backdrop: "orange" };
   const figure = m.gain.pct === null ? signed(m.gain.usd) : `${signed(m.gain.usd)} (${pct(m.gain.pct)})`;
   return m.gain.usd >= 0
-    ? { head: "Sold.", big: figure, small: `since you aped\n${trade}`, backdrop: "green" }
-    : { head: "Sold.", big: figure, small: `It happens.\n${trade}`, backdrop: "orange" };
+    ? { head: "Sold.", big: figure, small: `since you aped\n${back}`, backdrop: "green" }
+    : { head: "Sold.", big: figure, small: `It happens.\n${back}`, backdrop: "orange" };
 }
 
 /** The card people post: one figure, one line under it, and where it came from. */
@@ -113,6 +115,30 @@ export function fitFigure(figure: string, width: number, max = 132, letterSpacin
   const ems = [...figure].reduce((sum, ch) => sum + emOf(ch), 0);
   if (!(ems > 0)) return max;
   return Math.max(40, Math.min(max, Math.floor((width - letterSpacing * (figure.length - 1)) / ems)));
+}
+
+/** The questions every receipt shows: the landing's four. */
+const CORE: CheckId[] = ["honeypot", "freeze", "mint", "holders"];
+
+/**
+ * THE RECEIPT, SHORTENED: the landing's four questions and anything that
+ * isn't a clean "No" are always shown; the rest of what passed folds under
+ * one line, there to open. A clean coin reads in four ticks; a risky one
+ * shows its reasons, never hides them.
+ */
+export function foldChecks(checks: Check[]): { shown: Check[]; folded: Check[] } {
+  const all = ordered(checks);
+  const keep = (c: Check) => CORE.includes(c.id) || c.status !== "good";
+  return { shown: all.filter(keep), folded: all.filter((c) => !keep(c)) };
+}
+
+/** The line a receipt's folded checks sit under. */
+export const moreChecks = (n: number): string => `${n} more check${n === 1 ? "" : "s"}, all clear`;
+
+/** Under a coin's symbol: its name, and its size when it has one (a stock coin says it is one instead). */
+export function coinLine(t: { name: string; kind: string; mcapUsd: number | null }): string {
+  if (t.kind === "stock") return `${t.name}, a stock coin`;
+  return t.mcapUsd !== null ? `${t.name}, ${usd(t.mcapUsd)} cap` : t.name;
 }
 
 /** The landing's four questions first, in its order, then what else the sniff found. */
@@ -258,13 +284,16 @@ export function sourceLine(source: Source, share: Share): string {
 export interface Action {
   label: string;
   enabled: boolean;
-  tone: "go" | "buy" | "sell" | "growl" | "stop" | "wait";
+  tone: "go" | "buy" | "sell" | "growl" | "stop" | "wait" | "quiet";
 }
 
 /**
  * The one button, in dollars (USDC is a dollar): "Ape $25". A blocked coin
  * never gets a button that looks pressable.
  */
+/** The key when the sniff failed: it sniffs again. */
+export const SNIFF_AGAIN = "Sniff again";
+
 export function actionFor(state: "loading" | "error" | Level, amount: number): Action {
   switch (state) {
     case "loading":
@@ -276,7 +305,7 @@ export function actionFor(state: "loading" | "error" | Level, amount: number): A
     case "block":
       return { label: "Spot won't buy this", enabled: false, tone: "stop" };
     default:
-      return { label: "Sniff again", enabled: true, tone: "wait" };
+      return { label: SNIFF_AGAIN, enabled: true, tone: "wait" };
   }
 }
 
@@ -336,16 +365,20 @@ export function candidateLine(t: { name: string; mcapUsd: number | null; holders
 /** The receipt's line under the stamp: the stamp already says GRRR, so the line doesn't say it twice. */
 export function verdictHead(level: Level, headline: string): string {
   if (level !== "warn") return headline;
-  return headline.replace(/^GRRR\.\s*/, "") || headline;
+  /* "Ape $50 max." read as a suggestion to spend $50; it is a cap. */
+  return headline.replace(/^GRRR\.\s*/, "").replace(/\bApe \$(\d[\d,]*) max\./, "Spot caps buys at $$$1.") || headline;
 }
+
+/** The question a bad quote asks, in plain words: no "thin pool" over a receipt that may say the pool is big. */
+export const plainShortFill = (line: string): string => line.replace(/^Thin pool\.\s*/, "Bad price right now. ");
 
 /* ---- the dock: the key, the line under it, and the amount being typed ---- */
 
 /** The most one trade can be, on the server ($1 to $10,000). */
 export const MAX_TRADE = 10_000;
 
-/** Dollars the way a button says them: cents under $10 ($0.42), round past that ($15, $1.2k). */
-export const approx = (n: number): string => `~${n < 10 ? money(n) : usd(n)}`;
+/** Dollars the way a button says them: cents under $10 ($0.42), round past that ($15, $1.2k), and "about" rather than "~", which the key's heavy face draws as a minus. */
+export const approx = (n: number): string => `about ${n < 10 ? money(n) : usd(n)}`;
 
 /** A share of a holding in words: "all", "50%", "48.4%". */
 export function shareWord(pctOf100: number): string {
@@ -395,7 +428,7 @@ export const needsCash = (s: DockState): boolean =>
  * short, and otherwise says what the sniff allows.
  */
 export function dockKey(s: DockState): Action {
-  if (s.checking) return { label: s.checking.landed ? "Updating your bag…" : `Checking… ${s.checking.seconds}s`, enabled: false, tone: "wait" };
+  if (s.checking) return { label: s.checking.landed ? "Updating your bag…" : `Checking… ${s.checking.seconds}s left`, enabled: false, tone: "wait" };
   if (s.empty) return { label: "Type an amount", enabled: false, tone: "stop" };
   if (s.side === "sell") {
     if (s.busy) return { label: "Selling…", enabled: false, tone: "wait" };
@@ -404,17 +437,21 @@ export function dockKey(s: DockState): Action {
   }
   if (s.restricted) return { label: "Not for US users", enabled: false, tone: "stop" };
   if (s.busy) return { label: "Aping…", enabled: false, tone: "wait" };
-  if (needsCash(s)) return { label: "Add cash", enabled: true, tone: "go" };
+  /* Short of cash with the coin already in the bag (as right after an ape): the next thing is not
+     to pay again, so the way to add cash is there but quiet. */
+  if (needsCash(s)) return s.held !== null ? { label: "Add cash to ape more", enabled: true, tone: "quiet" } : { label: "Add cash", enabled: true, tone: "go" };
   return actionFor(s.sniff, s.amount);
 }
 
 /** The line under the key: what happens next, or what to do instead. */
 export function dockNote(s: DockState): string {
-  if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it landed. You can leave, Spot will tell you.";
-  if (s.side === "sell") return s.wallet === "mwa" ? "Sells into USDC. Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
-  if (s.sniff === "loading") return "Checking it for scams…";
+  if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it went through. You can leave, Spot will tell you.";
+  if (s.side === "sell") return s.wallet === "mwa" ? "Sells for cash (USDC). Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
   if (s.sniff === "block") return "Share another post to sniff something else.";
-  if (s.restricted) return "Coins like this aren't sold to people in the US.";
+  /* The key already says who it isn't for; the line says why this user, and where to change it. */
+  if (s.restricted) return "You said you're in the US. Change that in Me.";
+  /* What is held is over the key already; the line says the way out. */
+  if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell above.";
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
   if (s.wallet === "mwa") return s.cash === null ? "Your wallet approves every trade." : `${money(s.cash)} ready to ape. Your wallet approves every trade.`;
   if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";
@@ -457,15 +494,27 @@ export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`
 
 /** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
 export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {
-  if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s`, enabled: false };
+  if (p.pending) return { label: p.pending.landed ? "Updating your bag…" : `Checking… ${p.pending.seconds}s left`, enabled: false };
   if (p.busy) return { label: "Turning…", enabled: false };
-  return { label: `Turn ${usd(p.chosen)} into cash`, enabled: p.chosen !== null };
+  return { label: `Turn ${usd(p.chosen)} of SOL into cash`, enabled: p.chosen !== null };
 }
 
-/** The line at the top of Add cash: what there is now, when it is short of an ape. */
-export function cashLede(need: number | null, cash: number | null): string {
-  const base = "Spot apes in dollars: USDC on Solana. It goes to your own wallet, not to Spot.";
-  return need !== null && cash !== null && cash < need ? `You have ${money(cash)} in USDC. ${base}` : base;
+/**
+ * The line at the top of Add cash: what the wallet has, said as what it has
+ * ("$0.00" first read as money gone), then what cash is and where it stays.
+ */
+export function cashLede(cash: number | null, solUsd: number | null): string {
+  const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
+  const hasCash = cash !== null && cash >= 0.01;
+  const hasSol = solUsd !== null && solUsd >= 1;
+  const have = hasCash && hasSol
+    ? `You have ${money(cash)} in cash and about ${usd(solUsd)} in SOL.`
+    : hasCash
+      ? `You have ${money(cash)} in cash.`
+      : hasSol
+        ? `You have about ${usd(solUsd)} in SOL.`
+        : "";
+  return have ? `${have} ${base}` : base;
 }
 
 /** The swap that covers an ape: the smallest choice that does, or the most there is. */
@@ -476,10 +525,21 @@ export function coverWith(choices: number[], need: number | null, cash: number |
   return choices.find((c) => c >= short) ?? choices[choices.length - 1]!;
 }
 
-/** Under the bag's worth: what it is made of, and what is ready to ape. */
+/**
+ * ME'S PROOF, the number first: the scams kept out once there are any, else
+ * the coins sniffed, so the screen never opens on a 0 that reads as failing.
+ */
+export function proofOf(s: { sniffed: number; dodged: number; apes: number }): { n: number | null; label: string; line: string; hot: boolean } {
+  const aped = s.apes === 0 ? "None aped yet." : `${s.apes} aped.`;
+  if (s.sniffed === 0) return { n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false };
+  if (s.dodged === 0) return { n: s.sniffed, label: s.sniffed === 1 ? "coin sniffed" : "coins sniffed", line: `No scams among them so far. ${aped}`, hot: false };
+  return { n: s.dodged, label: s.dodged === 1 ? "scam dodged" : "scams dodged", line: `Out of ${s.sniffed} coin${s.sniffed === 1 ? "" : "s"} sniffed. ${aped}`, hot: true };
+}
+
+/** Under the bag's worth: what it is made of, and what is ready to ape, when that comes to a dollar. */
 export function bagLine(coins: number, cashUsd: number): string {
   const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
-  return `${held} and ${usd(cashUsd)} ready to ape`;
+  return Math.round(cashUsd) >= 1 ? `${held} and ${usd(cashUsd)} ready to ape` : held;
 }
 
 /** A bag with nothing in it to trade: under a dollar, all told. */
