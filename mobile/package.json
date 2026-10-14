@@ -1,6 +1,6 @@
 {
   "name": "spot-mobile",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
