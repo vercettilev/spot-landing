@@ -97,9 +97,12 @@ jobs:
           # they warn the app may be impersonating another. The statement to
           # publish, ready to paste, in this run's summary.
           sha="$(grep -m1 'Signer #1 certificate SHA-256 digest' <<<"$certs" | awk '{print $NF}' | tr 'a-f' 'A-F' | sed 's/../&:/g; s/:$//')"
+          if ! grep -qF "$sha" ../public/.well-known/assetlinks.json 2>/dev/null; then
+            echo "::warning::The site's public/.well-known/assetlinks.json doesn't list this key yet, so wallets warn that the store build may not be Spot."
+          fi
           {
             echo "### public/.well-known/assetlinks.json"
-            echo "Commit this file at the repo root's public/.well-known/ so wallets verify the store build as usespot.fun:"
+            echo "Commit this file at the repo root's public/.well-known/ (mobile/scripts/release-key.sh writes it) so wallets verify the store build as usespot.fun:"
             echo '```json'
             printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"fun.usespot.app","sha256_cert_fingerprints":["%s"]}}]\n' "$sha"
             echo '```'

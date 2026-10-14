@@ -41,14 +41,15 @@ Every push to `main` also publishes the debug-key build as the `test` release: t
 
 The dApp Store takes a release APK signed with a key of Spot's own, used for this store only and for every update after the first. Lose the key and the listing can never be updated, so keep the file and its password in a password manager.
 
-1. Make the key, once, on your own computer (Java's `keytool`):
+1. Make the key and give it to GitHub, once, on your own computer:
    ```
-   keytool -genkeypair -v -keystore spot-dapp-store.jks -alias spot -keyalg RSA -keysize 2048 -validity 10000
-   base64 -w0 spot-dapp-store.jks > spot-dapp-store.b64     # macOS: base64 -i spot-dapp-store.jks -o spot-dapp-store.b64
+   brew install openjdk@17          # Java's keytool, if it isn't there yet
+   mobile/scripts/release-key.sh
    ```
-2. In GitHub, **Settings → Secrets and variables → Actions**, add `SPOT_RELEASE_KEYSTORE` (the contents of the `.b64` file), `SPOT_RELEASE_KEYSTORE_PASSWORD`, `SPOT_RELEASE_KEY_ALIAS` (`spot`) and `SPOT_RELEASE_KEY_PASSWORD` (the same password, for a PKCS12 keystore).
+   The script makes the key in `~/.spot-release`, outside the repo (or uses the one already there), asks for its password without showing it, adds the four secrets the workflow signs with to GitHub and writes `public/.well-known/assetlinks.json`. Then put the key file and its password in your password manager.
+2. The same by hand: `keytool -genkeypair -v -keystore spot-dapp-store.jks -storetype PKCS12 -alias spot -keyalg RSA -keysize 2048 -validity 10000`, somewhere outside the repo; then in GitHub, **Settings → Secrets and variables → Actions**, add `SPOT_RELEASE_KEYSTORE` (the file in base64, on one line: `base64 -i spot-dapp-store.jks | tr -d '\n'`), `SPOT_RELEASE_KEYSTORE_PASSWORD`, `SPOT_RELEASE_KEY_ALIAS` (`spot`) and `SPOT_RELEASE_KEY_PASSWORD` (the same password, for a PKCS12 keystore).
 3. The next build also uploads `spot-…-dapp-store.apk`, signed with that key. That is the file for the [Publisher Portal](https://docs.solanamobile.com/dapp-publishing/setup), which also wants a publisher wallet with a little SOL, the listing (icon, banner, screenshots, description) and identity checks.
-4. That build's run summary holds `public/.well-known/assetlinks.json`, ready to paste: commit it at the repo root, so the site serves it at `https://www.usespot.fun/.well-known/assetlinks.json`. Wallets check it when Spot connects (Mobile Wallet Adapter's identity verification): without it Phantom says the app's identity "could not be verified" and Seed Vault that it doesn't recognize the domain. Test builds, signed with Expo's public debug key, keep that warning on purpose: listing a key anyone has would let anyone sign as Spot.
+4. Commit `public/.well-known/assetlinks.json` (the script wrote it; every store build's run summary holds it too, and warns while the committed one doesn't list the build's key), so the site serves it at `https://www.usespot.fun/.well-known/assetlinks.json`. Wallets check it when Spot connects (Mobile Wallet Adapter's identity verification): without it Phantom says the app's identity "could not be verified" and Seed Vault that it doesn't recognize the domain. Test builds, signed with Expo's public debug key, keep that warning on purpose: listing a key anyone has would let anyone sign as Spot.
 5. Each update needs `android.versionCode` in `app.json` one higher than the last release.
 6. The listing itself (name, descriptions, links, the 512 icon and the 1080-wide screenshots) is in `store/`: paste from `store/listing.md`. The screenshots are made from the web export with example data (`npx expo export --platform web`), so they are the real screens.
 
