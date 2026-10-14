@@ -96,7 +96,9 @@ jobs:
           # usespot.fun is signed with a key the site lists; until it does,
           # they warn the app may be impersonating another. The statement to
           # publish, ready to paste, in this run's summary.
-          sha="$(grep -m1 'Signer #1 certificate SHA-256 digest' <<<"$certs" | awk '{print $NF}' | tr 'a-f' 'A-F' | sed 's/../&:/g; s/:$//')"
+          # apksigner says "Signer #1 certificate SHA-256 digest" or, newer, "V3.0 Signer: certificate SHA-256 digest".
+          sha="$(grep -m1 'certificate SHA-256 digest' <<<"$certs" | awk '{print $NF}' | tr 'a-f' 'A-F' | sed 's/../&:/g; s/:$//')" || true
+          if [ -z "$sha" ]; then echo "::error::apksigner didn't print the signing certificate's SHA-256."; exit 1; fi
           if ! grep -qF "$sha" ../public/.well-known/assetlinks.json 2>/dev/null; then
             echo "::warning::The site's public/.well-known/assetlinks.json doesn't list this key yet, so wallets warn that the store build may not be Spot."
           fi
