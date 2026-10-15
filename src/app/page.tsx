@@ -103,7 +103,11 @@ export default async function Home() {
       <main>
         <section className={`${styles.wrap} ${styles.hero}`}>
           <div>
-            <h1 className={styles.h1}>Ape from any&nbsp;app.</h1>
+            {/* The line on the X header and the link card: each sentence keeps its line, the second in orange. */}
+            <h1 className={styles.h1}>
+              <span className={styles.line}>Spot it.</span>{" "}
+              <span className={`${styles.line} ${styles.accent}`}>Buy&nbsp;it.</span>
+            </h1>
             <p className={styles.lede}>
               <span className={styles.line}>From your feed to your bag in three&nbsp;taps.</span>{" "}
               <span className={styles.line}>Spot sniffs out the rugs on the&nbsp;way.</span>
