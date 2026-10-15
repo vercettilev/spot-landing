@@ -1,11 +1,12 @@
-/* THE CLOCK. Every moving part runs for --t on the same loop, from the feed:
-   0–21% see it (the post, its Share lit and pressed), 21–43% share (the
-   sheet comes up, Spot lit and pressed), 43–82% ape (Spot opens, sniffs,
-   stamps CLEAN, Ape $25 lit and pressed, the orange moment), 82–100% keep
-   scrolling (Spot goes, the feed scrolls on to where it began, so the loop
-   has no seam). Without motion everything rests on Spot's screen with the
-   Ape key (the base styles). Inside the phone, sizes are iOS points (--u,
-   see Iphone.module.css). */
+/* THE CLOCK. Every moving part runs for --t on the same loop, from the feed,
+   in four steps: 0–20% see it (the post, its Share lit and pressed), 20–40%
+   share (the sheet comes up, Spot lit and pressed), 40–81.33% ape (Spot
+   opens, sniffs, stamps CLEAN, Ape $25 lit and pressed, the orange moment),
+   81.33–100% keep scrolling (Spot goes, the feed scrolls on to where it
+   began, so the loop has no seam). The caption's arrows jump to those same
+   marks (STEPS in DemoLoop.tsx). Without motion everything rests on Spot's
+   screen with the Ape key (the base styles). Inside the phone, sizes are iOS
+   points (--u, see Iphone.module.css). */
 .demo {
   --t: 15s;
   --d: 0s;
@@ -54,13 +55,17 @@
 
 /* ---------- the pause ---------- */
 /* Stopped by the reader, or scrolled away: every clock in the phone and in
-   the caption holds its frame. The puppy is left out, so a press still barks. */
+   the caption holds its frame. The puppy is left out, so a press still barks.
+   Important, because each animation is set with the shorthand, which says
+   "running" too, and some of those rules (.says > .say1, .done .check) are
+   as specific as this one and come later: without it the words and the
+   receipt's rows went on while the phone stood still. */
 .paused .stage *,
 .paused .stage *::before,
 .paused .stage *::after,
 .paused .caption *,
 .paused .caption *::after {
-  animation-play-state: paused;
+  animation-play-state: paused !important;
 }
 
 /* ---------- X, light ---------- */
@@ -1162,42 +1167,74 @@
   top: calc(770 * var(--u));
 }
 
-/* ---------- the caption: four bars and the step in words ---------- */
+/* ---------- the caption: the step in words, between its arrows ---------- */
 .caption {
   display: grid;
   justify-items: center;
-  gap: 12px;
-  margin-top: 26px;
+  gap: 14px;
+  margin-top: 24px;
 }
 
-.bars {
+.steps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  width: 64%;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  width: 100%;
 }
 
-.bars i {
+/* Back and on, in the Pause button's hairline. The one on carries the step's
+   clock as an orange ring that fills until the loop moves on by itself. */
+.arrow {
   position: relative;
-  height: 3px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.2);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: none;
+  color: var(--dim);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, transform 0.08s;
 }
 
-.bars i::after {
-  content: "";
+.arrow:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--white);
+}
+
+.arrow:active {
+  transform: scale(0.94);
+}
+
+.arrow > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.arrow .progress {
   position: absolute;
-  inset: 0;
-  background: var(--orange);
-  transform-origin: left;
+  inset: -1.5px;
+  width: 44px;
+  height: 44px;
+  transform: rotate(-90deg);
+  pointer-events: none;
 }
 
-.bar4::after {
-  transform: scaleX(0);
+.progress circle {
+  fill: none;
+  stroke: var(--orange);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
 }
 
+/* The middle column whatever happens to the arrows (gone without motion). */
 .says {
+  grid-column: 2;
   display: grid;
   font-family: var(--font-display-stack);
   font-weight: 800;
@@ -1241,9 +1278,10 @@
   transform: translateY(1px);
 }
 
-/* No loop under reduced motion, so nothing to pause. */
+/* No loop under reduced motion, so nothing to pause or step through. */
 @media (prefers-reduced-motion: reduce) {
-  .pause {
+  .pause,
+  .arrow {
     display: none;
   }
 }
@@ -1289,10 +1327,7 @@
   .says > .say2 { animation: say2 var(--t) var(--d) infinite ease; }
   .says > .say3 { animation: say3 var(--t) var(--d) infinite ease; }
   .says > .say4 { animation: say4 var(--t) var(--d) infinite ease; }
-  .bar1::after { animation: bar1 var(--t) var(--d) infinite linear; }
-  .bar2::after { animation: bar2 var(--t) var(--d) infinite linear; }
-  .bar3::after { animation: bar3 var(--t) var(--d) infinite linear; }
-  .bar4::after { animation: bar4 var(--t) var(--d) infinite linear; }
+  .progress circle { animation: progress var(--t) var(--d) infinite linear; }
 }
 
 /* The feed: a short scroll to Ana's post, and after the buy one long one,
@@ -1376,11 +1411,19 @@
   73.33% { opacity: 0.9; }
   79.33%, 100% { opacity: 0; transform: scale(1.7); }
 }
-@keyframes say1 { 0% { opacity: 0; } 2%, 20.33% { opacity: 1; } 22.33%, 100% { opacity: 0; } }
-@keyframes say2 { 0%, 20.33% { opacity: 0; } 22.33%, 42.33% { opacity: 1; } 44.33%, 100% { opacity: 0; } }
-@keyframes say3 { 0%, 42.33% { opacity: 0; } 44.33%, 81% { opacity: 1; } 83%, 100% { opacity: 0; } }
-@keyframes say4 { 0% { opacity: 1; } 2%, 81% { opacity: 0; } 83%, 100% { opacity: 1; } }
-@keyframes bar1 { 0% { transform: scaleX(0); } 21.33%, 100% { transform: scaleX(1); } }
-@keyframes bar2 { 0%, 21.33% { transform: scaleX(0); } 43.33%, 100% { transform: scaleX(1); } }
-@keyframes bar3 { 0%, 43.33% { transform: scaleX(0); } 82%, 100% { transform: scaleX(1); } }
-@keyframes bar4 { 0%, 82% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+/* The words change on the step's mark, so an arrow lands on the new word. */
+@keyframes say1 { 0% { opacity: 0; } 2%, 20% { opacity: 1; } 22%, 100% { opacity: 0; } }
+@keyframes say2 { 0%, 20% { opacity: 0; } 22%, 40% { opacity: 1; } 42%, 100% { opacity: 0; } }
+@keyframes say3 { 0%, 40% { opacity: 0; } 42%, 81.33% { opacity: 1; } 83.33%, 100% { opacity: 0; } }
+@keyframes say4 { 0% { opacity: 1; } 2%, 81.33% { opacity: 0; } 83.33%, 100% { opacity: 1; } }
+/* The ring fills once a step, empty again on each mark. */
+@keyframes progress {
+  0% { stroke-dashoffset: 1; }
+  20% { stroke-dashoffset: 0; }
+  20.01% { stroke-dashoffset: 1; }
+  40% { stroke-dashoffset: 0; }
+  40.01% { stroke-dashoffset: 1; }
+  81.33% { stroke-dashoffset: 0; }
+  81.34% { stroke-dashoffset: 1; }
+  100% { stroke-dashoffset: 0; }
+}
