@@ -55,6 +55,11 @@
   display: block;
 }
 
+/* The second half of the headline, in the brand's orange (6:1 on the black). */
+.accent {
+  color: var(--orange);
+}
+
 @media (min-width: 960px) {
   .h1 {
     font-size: clamp(80px, 7.6vw, 118px);
