@@ -4,18 +4,31 @@
 # the repo in ~/.spot-release; puts the four SPOT_RELEASE_* secrets the
 # Android workflow signs with into GitHub; and writes the site's
 # public/.well-known/assetlinks.json, which lets wallets verify the store
-# build as usespot.fun. The password is typed here and never shown, logged
-# or written down by the script; the only thing it prints is the
-# certificate's fingerprint, which is public.
+# build as usespot.fun. The password is typed here, or with --generate made
+# by the script and kept in this Mac's Keychain; either way it is never
+# shown or logged. The only thing the script prints is the certificate's
+# fingerprint, which is public.
 #
 #   mobile/scripts/release-key.sh             make or reuse the key, upload it, write assetlinks.json
-#   mobile/scripts/release-key.sh --dry-run   the same, but upload nothing and only print assetlinks.json
+#   mobile/scripts/release-key.sh --generate  the same with nothing to type: the script makes the
+#                                             password and keeps it in your Keychain ("Spot dApp Store key")
+#   mobile/scripts/release-key.sh --dry-run   upload nothing and only print assetlinks.json
 #   SPOT_KEY_DIR=~/somewhere mobile/scripts/release-key.sh
 #                                             use a key made earlier by hand (spot-dapp-store.jks in that folder)
 set -euo pipefail
 
+say() { printf '%s\n' "$*"; }
+fail() { printf 'release-key: %s\n' "$*" >&2; exit 1; }
+
 dry=false
-[ "${1:-}" = "--dry-run" ] && dry=true
+generate=false
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) dry=true ;;
+    --generate) generate=true ;;
+    *) fail "Unknown option: $arg" ;;
+  esac
+done
 
 repo="${SPOT_REPO:-vercettilev/spot-landing}"
 dir="${SPOT_KEY_DIR:-$HOME/.spot-release}"
@@ -23,9 +36,11 @@ keystore="$dir/spot-dapp-store.jks"
 alias="spot"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 links="$root/public/.well-known/assetlinks.json"
+item="${SPOT_KEYCHAIN_ITEM:-Spot dApp Store key}"
+kept=false
 
-say() { printf '%s\n' "$*"; }
-fail() { printf 'release-key: %s\n' "$*" >&2; exit 1; }
+# The password --generate made, from this Mac's Keychain; nothing when there is none.
+from_keychain() { command -v security >/dev/null && security find-generic-password -a "$alias" -s "$item" -w 2>/dev/null; }
 
 # Java's keytool, wherever it is. macOS has a keytool that only asks for
 # Java to be installed, so each one is asked to start a JVM first.
@@ -49,14 +64,38 @@ mkdir -p "$dir"
 
 if [ -e "$keystore" ]; then
   say "Using the key already at $keystore."
-  read -r -s -p "Its password: " pass; say ""
+  if pass="$(from_keychain)" && [ -n "$pass" ]; then
+    kept=true
+    say "Its password comes from your Keychain (\"$item\")."
+  else
+    read -r -s -p "Its password: " pass; say ""
+  fi
+elif $generate; then
+  say "Making Spot's dApp Store key at $keystore."
+  command -v security >/dev/null || fail "--generate keeps the password in macOS's Keychain, and there's no Keychain here."
+  pass="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | cut -c1-32)"
+  [ "${#pass}" -eq 32 ] || fail "Couldn't make a password."
+  # Kept before the key is made, so the key never outlives its password.
+  security add-generic-password -U -a "$alias" -s "$item" -l "$item" -j "Spot's dApp Store signing key: $keystore, alias $alias" -w "$pass" \
+    || fail "Couldn't save the password in your Keychain."
+  kept=true
+  say "Made a 32-character password and saved it in your Keychain as \"$item\". It isn't shown anywhere."
+  SPOT_PASS="$pass" "$keytool" -genkeypair -keystore "$keystore" -storetype PKCS12 -alias "$alias" \
+    -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Spot, O=Spot" \
+    -storepass:env SPOT_PASS -keypass:env SPOT_PASS >/dev/null
 else
   say "Making Spot's dApp Store key at $keystore."
   say "Pick a long password (12 characters or more) and keep it in your password manager."
-  read -r -s -p "Password: " pass; say ""
-  [ "${#pass}" -ge 12 ] || fail "That password is shorter than 12 characters."
-  read -r -s -p "Again: " again; say ""
-  [ "$pass" = "$again" ] || fail "The two passwords don't match."
+  # Asked again until it is long enough and the same twice, rather than
+  # stopping: a password typed after the script stopped would land in the
+  # shell, and on Enter in its history. Ctrl-C leaves.
+  while :; do
+    read -r -s -p "Password: " pass; say ""
+    if [ "${#pass}" -lt 12 ]; then say "That one is shorter than 12 characters. Try a longer one."; continue; fi
+    read -r -s -p "Again: " again; say ""
+    [ "$pass" = "$again" ] && break
+    say "The two didn't match. Once more, from the start."
+  done
   unset again
   # PKCS12 takes one password for the store and the key; the workflow passes it as both.
   SPOT_PASS="$pass" "$keytool" -genkeypair -keystore "$keystore" -storetype PKCS12 -alias "$alias" \
@@ -106,4 +145,5 @@ say "GitHub now holds the four SPOT_RELEASE_* secrets for $repo."
 say "Wrote $links. Commit it; once the site serves it, wallets stop warning about the store build."
 say ""
 say "Back up $keystore and its password now, both in your password manager."
+if $kept; then say "The password is in your Keychain: open Keychain Access, search \"$item\" and tick Show password to copy it."; fi
 say "Lose either and Spot's dApp Store listing can never be updated."

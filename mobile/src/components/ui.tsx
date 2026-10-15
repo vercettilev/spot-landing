@@ -349,6 +349,12 @@ const styles = StyleSheet.create({
   topTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
   title: { marginTop: space.x2, fontFamily: font.display, fontSize: type.title, lineHeight: leading.title, letterSpacing: tracking.title, color: color.white },
   section: { marginTop: space.section, marginBottom: space.x3, marginLeft: space.x1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.faint },
+  steps: { gap: space.x3 },
+  step: { flexDirection: "row", gap: space.x3 },
+  stepN: { minWidth: space.x4, fontFamily: font.displayBold, fontSize: type.callout, lineHeight: leading.callout, color: color.orange },
+  stepText: { flex: 1, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.white },
+  stepsNote: { marginTop: space.x1, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
+  stepsCaution: { fontFamily: font.bodySemi, color: color.caution },
   card: { padding: space.x4, borderRadius: radius.card, backgroundColor: color.ink2, borderWidth: size.hairline, borderColor: color.line },
   settingRow: { flexDirection: "row", alignItems: "center", gap: space.x3, minHeight: size.row, paddingVertical: space.x4, paddingHorizontal: space.x4 },
   settingText: { flex: 1 },
@@ -429,6 +435,21 @@ export function Section({ children }: { children: ReactNode }) {
     <Text style={styles.section} accessibilityRole="header">
       {children}
     </Text>
+  );
+}
+
+/** Numbered steps, for what is done outside Spot (a card buy in the wallet app, a cash-out through an exchange). `caution` inks the note as a risk. */
+export function Steps({ steps, note, caution, style }: { steps: string[]; note?: string; caution?: boolean; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.steps, style]}>
+      {steps.map((s, i) => (
+        <View key={s} style={styles.step} accessible accessibilityLabel={`${i + 1}. ${s}`}>
+          <Text style={styles.stepN}>{i + 1}</Text>
+          <Text style={styles.stepText}>{s}</Text>
+        </View>
+      ))}
+      {note ? <Text style={[styles.stepsNote, caution && styles.stepsCaution]}>{note}</Text> : null}
+    </View>
   );
 }
 
