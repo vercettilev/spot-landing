@@ -1,35 +1,42 @@
-/* THE CLOCK. Every moving part runs for --t on the same loop, started --d in
-   so the first frame is the feed rather than the end of the last loop.
-   Phases: 0–22% see it, 22–48% share, 48–78% confirm, 78–100% done.
-   Without motion everything rests on the confirm screen (the base styles). */
+/* THE CLOCK. Every moving part runs for --t on the same loop, from the feed:
+   0–21% see it (the post, its Share lit and pressed), 21–43% share (the
+   sheet comes up, Spot lit and pressed), 43–82% ape (Spot opens, sniffs,
+   stamps CLEAN, Ape $25 lit and pressed, the orange moment), 82–100% keep
+   scrolling (Spot goes, the feed scrolls on to where it began, so the loop
+   has no seam). Without motion everything rests on Spot's screen with the
+   Ape key (the base styles). Inside the phone, sizes are iOS points (--u,
+   see Iphone.module.css). */
 .demo {
-  --t: 12s;
-  --d: -0.45s;
-  /* The phone's own palette: a feed's blacks and a sheet's greys, named once. */
-  --mock-body: #232327;
-  --mock-screen: #141416;
-  --mock-post: #26262b;
-  --mock-post-warm: #2b2a26;
-  --mock-text: #e6e3dd;
-  --mock-muted: #8e8b85;
-  --mock-muted-light: #8a8780;
-  --mock-key: #dedcd7;
-  --mock-line: #e2dfd9;
-  --mock-grab: #c9c6c0;
-  --mock-off: #d6d3cd;
-  --phone-w: min(268px, 70vw);
-  --pup-w: calc(var(--phone-w) * 0.72);
+  --t: 15s;
+  --d: 0s;
+  --phone-w: min(300px, 78vw);
+  --pup-w: calc(var(--phone-w) * 0.46);
+  --pup-room: calc(var(--pup-w) / 1.5149 * 0.877);
   position: relative;
+  isolation: isolate;
   width: var(--phone-w);
   margin: 0 auto;
-  padding-top: calc(var(--pup-w) / 1.5149 * 0.877);
+  padding-top: var(--pup-room);
 }
 
 @media (min-width: 960px) {
   .demo {
-    --phone-w: 300px;
-    margin: 0;
+    --phone-w: 330px;
   }
+}
+
+/* The light the phone sits in: the orange of the X header, behind it. */
+.glow {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--pup-room) + var(--phone-w) * 1.05);
+  width: calc(var(--phone-w) * 3.4);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(252, 78, 2, 0.5) 0%, rgba(252, 78, 2, 0.2) 30%, rgba(252, 78, 2, 0.06) 50%, rgba(252, 78, 2, 0) 68%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .pup {
@@ -41,434 +48,1118 @@
   z-index: 3;
 }
 
-.device {
-  container-type: inline-size;
+.stage {
   cursor: pointer;
 }
 
 /* ---------- the pause ---------- */
 /* Stopped by the reader, or scrolled away: every clock in the phone and in
    the caption holds its frame. The puppy is left out, so a press still barks. */
-.paused .device *,
-.paused .device *::before,
-.paused .device *::after,
+.paused .stage *,
+.paused .stage *::before,
+.paused .stage *::after,
 .paused .caption *,
 .paused .caption *::after {
   animation-play-state: paused;
 }
 
-.phone {
-  --u: calc(100cqw / 270);
-  display: flex;
-  aspect-ratio: 9 / 18.5;
-  padding: calc(9 * var(--u));
-  border-radius: calc(40 * var(--u));
-  background: var(--mock-body);
-  box-shadow: inset 0 0 0 calc(1.5 * var(--u)) rgba(255, 255, 255, 0.14);
-  font-size: calc(12 * var(--u));
-  line-height: 1.35;
-}
-
-.screen {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  border-radius: calc(31 * var(--u));
+/* ---------- X, light ---------- */
+/* The marks the feed repeats, drawn once (see Sprite). */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
   overflow: hidden;
-  isolation: isolate;
-  background: var(--mock-screen);
-  color: var(--white);
 }
 
-.layer {
+.xApp {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  color: #0f1419;
 }
 
-/* ---------- the feeds ---------- */
-.tabs {
-  display: flex;
-  justify-content: center;
-  gap: calc(16 * var(--u));
-  padding-top: calc(26 * var(--u));
-  font-weight: 600;
+.xList {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(147 * var(--u));
 }
 
-.dim {
-  color: var(--mock-muted);
-}
-
+/* Every post has a set height, so the feed's loop is exact on any font. */
 .post {
-  position: relative;
-  flex: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: calc(8 * var(--u));
-  margin: calc(14 * var(--u)) calc(12 * var(--u)) calc(64 * var(--u));
-  padding: calc(14 * var(--u)) calc(48 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u));
-  border-radius: calc(16 * var(--u));
-  background: var(--mock-post);
+  gap: calc(12 * var(--u));
+  height: calc(99 * var(--u));
+  padding: calc(12 * var(--u)) calc(16 * var(--u));
+  border-bottom: calc(1 * var(--u)) solid #eff3f4;
+  overflow: hidden;
+  background: #fff;
 }
 
-.postWarm {
-  background: var(--mock-post-warm);
+.postTall {
+  height: calc(292 * var(--u));
 }
 
-/* The ramen video's still: a warm frame where the chart sits on the other post. */
-.still {
-  position: absolute;
-  left: calc(14 * var(--u));
-  top: calc(16 * var(--u));
-  right: calc(14 * var(--u));
-  height: calc(118 * var(--u));
-  border-radius: calc(10 * var(--u));
-  background:
-    radial-gradient(60% 50% at 30% 40%, rgba(252, 78, 2, 0.22), transparent 70%),
-    linear-gradient(160deg, #3d372d, var(--mock-post-warm));
-}
-
-.chart {
-  position: absolute;
-  left: calc(14 * var(--u));
-  top: calc(34 * var(--u));
-  width: calc(100% - 28 * var(--u));
-  height: calc(90 * var(--u));
-  overflow: visible;
-}
-
-.chart polyline {
-  fill: none;
-  stroke: var(--orange);
-  stroke-width: 4;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-}
-
-.handle {
-  font-weight: 700;
-}
-
-.postText {
-  color: var(--mock-text);
-}
-
-.rail {
-  position: absolute;
-  right: calc(20 * var(--u));
-  bottom: calc(110 * var(--u));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(18 * var(--u));
-}
-
-.shareRing {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(38 * var(--u));
-  height: calc(38 * var(--u));
-  border: calc(2.5 * var(--u)) solid var(--orange);
+.av {
+  flex: none;
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
   border-radius: 50%;
 }
 
-.feedD {
-  opacity: 0;
+.avTheo {
+  background: linear-gradient(135deg, #30cfd0, #330867);
 }
 
-.banner {
-  position: absolute;
-  left: calc(10 * var(--u));
-  right: calc(10 * var(--u));
-  top: calc(44 * var(--u));
+.avAna {
+  background: radial-gradient(circle at 34% 30%, #ffe0b0 0 16%, #ff9d5c 40%, #e2552f 100%);
+}
+
+.avDan {
+  background: linear-gradient(135deg, #43e97b, #38f9d7);
+}
+
+.avMika {
+  background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+}
+
+.avLeo {
+  background: linear-gradient(135deg, #f6d365, #fda085);
+}
+
+.postBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.postHead {
   display: flex;
   align-items: center;
-  gap: calc(10 * var(--u));
-  padding: calc(10 * var(--u)) calc(12 * var(--u));
-  border-radius: calc(14 * var(--u));
-  background: var(--white);
-  color: var(--ink);
-  font-size: calc(11 * var(--u));
-  box-shadow: 0 calc(10 * var(--u)) calc(24 * var(--u)) rgba(0, 0, 0, 0.4);
-  transform: translateY(-180%);
+  gap: calc(3 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  white-space: nowrap;
 }
 
-.banner img {
+.postHead b {
+  font-weight: 700;
+}
+
+.badge {
   flex: none;
-  width: calc(28 * var(--u));
-  height: auto;
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  margin-right: calc(1 * var(--u));
+  color: #1d9bf0;
 }
 
-/* ---------- the sheets ---------- */
-.shade {
+.handle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #536471;
+}
+
+.more {
+  flex: none;
+  width: calc(17 * var(--u));
+  height: calc(17 * var(--u));
+  margin-left: auto;
+  color: #536471;
+}
+
+.postText {
+  margin-top: calc(2 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cash {
+  color: #1d9bf0;
+}
+
+.media {
+  height: calc(181 * var(--u));
+  margin-top: calc(12 * var(--u));
+  border: calc(1 * var(--u)) solid #cfd9de;
+  border-radius: calc(16 * var(--u));
+  overflow: hidden;
+}
+
+.tv {
+  width: 100%;
+  height: 100%;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.acts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(20 * var(--u));
+  margin-top: calc(12 * var(--u));
+  color: #536471;
+}
+
+.act {
+  display: flex;
+  align-items: center;
+  gap: calc(4 * var(--u));
+  font-size: calc(13 * var(--u));
+}
+
+.xi {
+  width: calc(18.75 * var(--u));
+  height: calc(18.75 * var(--u));
+}
+
+.actsEnd {
+  display: flex;
+  align-items: center;
+  gap: calc(16 * var(--u));
+}
+
+.share {
+  display: flex;
+}
+
+.xTop {
   position: absolute;
-  inset: 0;
-  background: #000;
-  opacity: 0.55;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(98 * var(--u));
+  background: #fff;
 }
 
-.sheet {
+.me {
+  position: absolute;
+  left: calc(16 * var(--u));
+  top: calc(60 * var(--u));
+  width: calc(32 * var(--u));
+  height: calc(32 * var(--u));
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7f7fd5, #86a8e7 50%, #91eae4);
+}
+
+.xLogo {
+  position: absolute;
+  left: calc(189 * var(--u));
+  top: calc(64 * var(--u));
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+.xTabs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(98 * var(--u));
+  height: calc(49 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(26 * var(--u));
+  padding-left: calc(16 * var(--u));
+  border-bottom: calc(1 * var(--u)) solid #eff3f4;
+  background: #fff;
+}
+
+.xTab {
+  position: relative;
+  height: calc(49 * var(--u));
+  display: flex;
+  align-items: center;
+  font-size: calc(15 * var(--u));
+  font-weight: 500;
+  color: #536471;
+}
+
+.xTabOn {
+  font-weight: 700;
+  color: #0f1419;
+}
+
+.xTabOn i {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: calc(22 * var(--u)) calc(22 * var(--u)) 0 0;
-  color: var(--ink);
-}
-
-.grab {
-  width: calc(36 * var(--u));
   height: calc(4 * var(--u));
-  margin: 0 auto;
   border-radius: calc(2 * var(--u));
-  background: var(--mock-grab);
+  background: #1d9bf0;
 }
 
-.shareSheet {
-  padding: calc(12 * var(--u)) calc(14 * var(--u)) calc(24 * var(--u));
-  background: var(--paper);
-  transform: translateY(105%);
+.xTabPlus {
+  width: calc(18.75 * var(--u));
+  height: calc(18.75 * var(--u));
+  margin: 0 calc(16 * var(--u)) 0 auto;
 }
 
-.shareSheet .grab {
-  margin-bottom: calc(14 * var(--u));
+.fab {
+  position: absolute;
+  right: calc(16 * var(--u));
+  bottom: calc(99 * var(--u));
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #1d9bf0;
+  box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(0, 0, 0, 0.22);
+}
+
+.fabIcon {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+  color: #fff;
+}
+
+.xBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(83 * var(--u));
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: calc(12 * var(--u));
+  border-top: calc(1 * var(--u)) solid #eff3f4;
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.xb {
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+}
+
+.xbGrok {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+/* ---------- the share sheet (iOS 26) ---------- */
+/* What the sheet comes up over goes a little darker. */
+.veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  opacity: 0;
+}
+
+.sheet {
+  position: absolute;
+  left: calc(8 * var(--u));
+  right: calc(8 * var(--u));
+  bottom: calc(10 * var(--u));
+  z-index: 3;
+  border-radius: calc(40 * var(--u));
+  overflow: hidden;
+  color: #000;
+  background: #f2f2f6;
+  box-shadow:
+    0 calc(24 * var(--u)) calc(60 * var(--u)) rgba(0, 0, 0, 0.22),
+    inset 0 0 0 calc(1 * var(--u)) rgba(255, 255, 255, 0.72),
+    0 0 0 calc(0.5 * var(--u)) rgba(0, 0, 0, 0.08);
+  transform: translateY(110%);
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  padding: calc(20 * var(--u)) calc(22 * var(--u)) calc(16 * var(--u));
+}
+
+.thumb {
+  flex: none;
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+  border-radius: calc(13 * var(--u));
+  overflow: hidden;
+}
+
+.thumb .ai {
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+  border-radius: calc(13 * var(--u));
 }
 
 .sheetTitle {
-  margin-bottom: calc(12 * var(--u));
-  font-weight: 700;
-}
-
-.apps {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: calc(6 * var(--u));
-  text-align: center;
-  font-size: calc(10 * var(--u));
-  line-height: 1.2;
-}
-
-.app {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: calc(6 * var(--u));
+  gap: calc(2 * var(--u));
 }
 
-.tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(42 * var(--u));
-  height: calc(42 * var(--u));
-  border-radius: calc(12 * var(--u));
-  background: var(--mock-key);
-}
-
-.appSpot {
-  font-weight: 700;
-}
-
-.tileSpot {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(46 * var(--u));
-  height: calc(46 * var(--u));
-  margin: calc(-2 * var(--u));
-  border-radius: calc(14 * var(--u));
-  outline: calc(2.5 * var(--u)) solid var(--orange);
-  outline-offset: calc(2 * var(--u));
-}
-
-.tileSpot img {
-  width: calc(44 * var(--u));
-  height: auto;
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: calc(6 * var(--u));
-  margin-top: calc(16 * var(--u));
-  font-size: calc(11 * var(--u));
-}
-
-.actions div {
-  padding: calc(10 * var(--u)) calc(12 * var(--u));
-  border-radius: calc(10 * var(--u));
-  background: var(--white);
-}
-
-.buySheet {
-  display: flex;
-  flex-direction: column;
-  gap: calc(12 * var(--u));
-  padding: calc(12 * var(--u)) calc(14 * var(--u)) calc(22 * var(--u));
-  background: var(--white);
-}
-
-.buySheet .grab {
-  margin-bottom: calc(2 * var(--u));
-}
-
-.buyHead {
-  display: flex;
-  align-items: center;
-  gap: calc(8 * var(--u));
-  font-family: var(--font-display-stack);
-  font-weight: 800;
-  font-size: calc(15 * var(--u));
-}
-
-.buyHead img {
-  width: calc(24 * var(--u));
-  height: auto;
-}
-
-
-.amount {
-  font-family: var(--font-display-stack);
-  font-weight: 900;
-  font-size: calc(36 * var(--u));
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.amount span {
-  font-size: calc(15 * var(--u));
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.chips {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: calc(6 * var(--u));
-  text-align: center;
+.sheetTitle b {
+  font-size: calc(16 * var(--u));
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.chips span {
-  padding: calc(7 * var(--u)) 0;
-  border: calc(1.5 * var(--u)) solid var(--mock-line);
-  border-radius: calc(9 * var(--u));
+.sheetTitle span {
+  font-size: calc(14 * var(--u));
+  color: #636366;
 }
 
-.chips .chipOn {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--white);
-}
-
-/* Take profit: a switch that goes on while Spot sniffs. */
-.tp {
+.row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: calc(11 * var(--u));
-  font-weight: 600;
+  padding: calc(14 * var(--u)) 0 calc(12 * var(--u)) calc(14 * var(--u));
+  border-top: calc(1 * var(--u)) solid rgba(60, 60, 67, 0.16);
+  overflow: hidden;
 }
 
-.toggle {
-  position: relative;
+.rowLast {
+  padding-bottom: calc(22 * var(--u));
+}
+
+.item {
   flex: none;
-  width: calc(30 * var(--u));
-  height: calc(18 * var(--u));
-  border-radius: calc(9 * var(--u));
-  background: var(--mock-off);
+  width: calc(84 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(7 * var(--u));
 }
 
-/* The orange is a layer whose opacity comes up, not a background colour that
-   animates: a colour change repaints every frame, opacity is the compositor's. */
-.toggle::before {
-  content: "";
+.label {
+  width: calc(80 * var(--u));
+  font-size: calc(12.5 * var(--u));
+  line-height: calc(15 * var(--u));
+  text-align: center;
+}
+
+.itemSpot .label {
+  margin-top: calc(3 * var(--u));
+  font-weight: 600;
+}
+
+.person {
+  position: relative;
+  width: calc(62 * var(--u));
+  height: calc(62 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(#a9afbb, #858b98);
+  color: #fff;
+  font-size: calc(23 * var(--u));
+  font-weight: 600;
+}
+
+.badgeMsg {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  right: calc(-3 * var(--u));
+  bottom: calc(-3 * var(--u));
+  width: calc(23 * var(--u));
+  height: calc(23 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(7 * var(--u));
+  background: linear-gradient(#6cf279, #1fc13a);
+  box-shadow: 0 0 0 calc(2 * var(--u)) #f2f2f5;
+}
+
+.badgeMsg svg {
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
+}
+
+.ai {
+  display: block;
+  flex: none;
+  width: calc(62 * var(--u));
+  height: calc(62 * var(--u));
+  border-radius: calc(14 * var(--u));
+  overflow: hidden;
+  box-shadow: 0 0 0 calc(0.5 * var(--u)) rgba(0, 0, 0, 0.1);
+}
+
+.ai svg {
+  width: 100%;
+  height: 100%;
+}
+
+.aiSpot {
   background: var(--orange);
 }
 
-.toggle::after {
-  content: "";
-  position: absolute;
-  top: calc(2 * var(--u));
-  right: calc(2 * var(--u));
-  width: calc(14 * var(--u));
-  height: calc(14 * var(--u));
-  border-radius: 50%;
-  background: var(--white);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+.aiSpot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.checks {
-  display: grid;
-  font-size: calc(11 * var(--u));
-  font-weight: 600;
+.spotTile {
+  display: block;
 }
 
-.checks > span {
-  grid-area: 1 / 1;
-  display: flex;
-  align-items: center;
-  gap: calc(6 * var(--u));
-}
-
-.sniffing {
-  color: var(--mock-muted-light);
-  opacity: 0;
-}
-
-.passed {
-  color: var(--good);
-}
-
-.passed svg {
-  stroke-width: 2.6;
-}
-
-.confirm {
-  position: relative;
-  display: grid;
-  padding: calc(12 * var(--u)) 0;
-  border-radius: calc(12 * var(--u));
-  background: var(--ink);
-  color: var(--white);
-  font-weight: 700;
-}
-
-.confirm > span {
-  grid-area: 1 / 1;
+.action {
+  width: calc(62 * var(--u));
+  height: calc(62 * var(--u));
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  background: rgba(118, 118, 128, 0.14);
+}
+
+.actionIcon {
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  color: #1c1c1e;
+}
+
+/* ---------- Spot: the coin screen ---------- */
+.spot {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.spotScroll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(59 * var(--u));
+  padding: calc(8 * var(--u)) calc(20 * var(--u)) 0;
+}
+
+.spotTop {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  height: calc(48 * var(--u));
+}
+
+.spotBack {
+  flex: none;
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+.source {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: calc(15 * var(--u));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.coin {
+  display: flex;
+  align-items: center;
+  gap: calc(16 * var(--u));
+  height: calc(56 * var(--u));
+  margin-top: calc(12 * var(--u));
+}
+
+.face {
+  flex: none;
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+}
+
+.coinText {
+  flex: 1;
+  min-width: 0;
+}
+
+.symbolRow {
+  display: flex;
+  align-items: center;
   gap: calc(8 * var(--u));
 }
 
-.doneLabel {
+.symbol {
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: calc(32 * var(--u));
+  line-height: calc(36 * var(--u));
+  letter-spacing: calc(-0.8 * var(--u));
+}
+
+.verified {
+  flex: none;
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #000;
+}
+
+.verified svg {
+  width: calc(13 * var(--u));
+  height: calc(13 * var(--u));
+}
+
+.coinName {
+  margin-top: calc(2 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.priceCol {
+  text-align: right;
+}
+
+.price {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: calc(18 * var(--u));
+  line-height: calc(22 * var(--u));
+}
+
+.change {
+  margin-top: calc(2 * var(--u));
+  font-weight: 700;
+  font-size: calc(14 * var(--u));
+  line-height: calc(18 * var(--u));
+  color: #ff4d3d;
+}
+
+.caRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(48 * var(--u));
+  margin-top: calc(4 * var(--u));
+}
+
+.ca {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+}
+
+.ca b {
+  font-weight: 700;
+  font-size: calc(13 * var(--u));
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ca code {
+  font-family: var(--font-mono-stack);
+  font-weight: 500;
+  font-size: calc(13 * var(--u));
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.ca em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: calc(14 * var(--u));
+  color: var(--orange);
+}
+
+.out {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  color: var(--orange);
+}
+
+/* The receipt (SniffReport.tsx): white paper a hair off square, the stamp
+   first, the verdict, then the checks that prove it. */
+.paper {
+  position: relative;
+  margin-top: calc(12 * var(--u));
+  padding: calc(20 * var(--u));
+  border-radius: calc(8 * var(--u));
+  background: #fff;
+  color: #000;
+  transform: rotate(-0.8deg);
+  box-shadow: 0 calc(22 * var(--u)) calc(44 * var(--u)) rgba(0, 0, 0, 0.6);
+}
+
+.kicker {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono-stack);
+  font-weight: 500;
+  font-size: calc(12 * var(--u));
+  line-height: calc(16 * var(--u));
+  letter-spacing: calc(0.8 * var(--u));
+  text-transform: uppercase;
+  color: #5a554c;
+}
+
+.clock {
+  position: relative;
+  display: block;
+  width: calc(52 * var(--u));
+  height: calc(16 * var(--u));
+}
+
+.clock span {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.live {
   opacity: 0;
+}
+
+.slot {
+  position: relative;
+  height: calc(46 * var(--u));
+  margin-top: calc(16 * var(--u));
+}
+
+.slotEmpty {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(132 * var(--u));
+  height: calc(46 * var(--u));
+  border: calc(2 * var(--u)) dashed #bdb7ab;
+  border-radius: calc(8 * var(--u));
+  transform: rotate(-7deg);
+  opacity: 0;
+}
+
+.stamp {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: calc(46 * var(--u));
+  padding: calc(2 * var(--u)) calc(12 * var(--u));
+  border: calc(3 * var(--u)) solid #1f8a4c;
+  border-radius: calc(8 * var(--u));
+  background: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: calc(30 * var(--u));
+  line-height: calc(36 * var(--u));
+  letter-spacing: calc(1.5 * var(--u));
+  color: #1f8a4c;
+  transform: rotate(-7deg);
+}
+
+.stack {
+  display: grid;
+}
+
+.loading,
+.done {
+  grid-area: 1 / 1;
+}
+
+.loading {
+  opacity: 0;
+}
+
+.verdict {
+  margin-top: calc(12 * var(--u));
+  padding-bottom: calc(16 * var(--u));
+  border-bottom: calc(1.5 * var(--u)) dashed #bdb7ab;
+}
+
+.headline {
+  text-wrap: balance;
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: calc(25 * var(--u));
+  line-height: calc(29 * var(--u));
+  letter-spacing: calc(-0.4 * var(--u));
+}
+
+.verdictLine {
+  margin-top: calc(8 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(21 * var(--u));
+  color: #5a554c;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12 * var(--u));
+  padding: calc(12 * var(--u)) 0;
+  border-bottom: calc(1 * var(--u)) solid #eee9df;
+}
+
+.check > span:first-child {
+  font-weight: 600;
+  font-size: calc(16 * var(--u));
+  line-height: calc(22 * var(--u));
+  color: #1a1a1a;
+}
+
+.answer {
+  padding: calc(4 * var(--u)) calc(12 * var(--u));
+  border-radius: 999px;
+  background: #e3f1e8;
+  color: #1f6b45;
+  font-weight: 700;
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+}
+
+.pending {
+  width: calc(56 * var(--u));
+  height: calc(28 * var(--u));
+  border-radius: 999px;
+  background: #ecebe7;
+}
+
+.fold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: calc(44 * var(--u));
+  font-weight: 600;
+  font-size: calc(15 * var(--u));
+  color: #5a554c;
+}
+
+.show {
+  display: flex;
+  align-items: center;
+  gap: calc(4 * var(--u));
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.chev {
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  color: #5a554c;
+}
+
+/* The dock: the amounts, the key and the line under it. */
+.dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(200 * var(--u));
+  background: #000;
+}
+
+.dock::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-24 * var(--u));
+  height: calc(24 * var(--u));
+  background: linear-gradient(rgba(0, 0, 0, 0), #000);
+}
+
+.chips {
+  position: absolute;
+  left: calc(20 * var(--u));
+  right: calc(20 * var(--u));
+  top: calc(8 * var(--u));
+  height: calc(44 * var(--u));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(8 * var(--u));
+}
+
+.pill {
+  min-width: calc(56 * var(--u));
+  height: calc(44 * var(--u));
+  padding: 0 calc(16 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: calc(1 * var(--u)) solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: #141416;
+  font-weight: 700;
+  font-size: calc(15 * var(--u));
+}
+
+.pillOn {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: #000;
+}
+
+.key {
+  position: absolute;
+  left: calc(20 * var(--u));
+  right: calc(20 * var(--u));
+  top: calc(64 * var(--u));
+  height: calc(60 * var(--u));
+}
+
+.keyFace {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(16 * var(--u));
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: calc(19 * var(--u));
+  letter-spacing: calc(-0.2 * var(--u));
+  color: #000;
+  opacity: 0;
+}
+
+.keyWait,
+.keyAping {
+  background: #fff;
+  box-shadow: 0 calc(4 * var(--u)) 0 #8f8a82;
+}
+
+.keyApe {
+  background: #3ecf7a;
+  box-shadow: 0 calc(4 * var(--u)) 0 #1f8a4c;
+  opacity: 1;
+}
+
+.note {
+  position: absolute;
+  left: calc(20 * var(--u));
+  right: calc(20 * var(--u));
+  top: calc(136 * var(--u));
+  height: calc(18 * var(--u));
+}
+
+.note span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  text-align: center;
+  font-size: calc(13 * var(--u));
+  line-height: calc(18 * var(--u));
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+}
+
+.note .noteReady {
+  opacity: 1;
+}
+
+/* ---------- the moment a buy lands (Moment.tsx) ---------- */
+.moment {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* From the middle of the key, big enough to reach every corner. */
+.burst {
+  position: absolute;
+  left: calc(201 * var(--u));
+  top: calc(768 * var(--u));
+  width: calc(1640 * var(--u));
+  height: calc(1640 * var(--u));
+  margin: calc(-820 * var(--u)) 0 0 calc(-820 * var(--u));
+  border-radius: 50%;
+  background: var(--orange);
+  transform: scale(0);
+}
+
+.momentBody {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 calc(28 * var(--u)) calc(40 * var(--u));
+  opacity: 0;
+}
+
+.momentStage {
+  position: relative;
+  width: calc(220 * var(--u));
+  height: calc(176 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  position: absolute;
+  left: calc(30 * var(--u));
+  top: calc(8 * var(--u));
+  width: calc(160 * var(--u));
+  height: calc(160 * var(--u));
+  border: calc(4 * var(--u)) solid #fff;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.momentPup {
+  position: relative;
+  width: calc(176 * var(--u));
+  height: auto;
+  transform-origin: 50% 100%;
+}
+
+.words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #000;
+}
+
+.aped {
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: calc(76 * var(--u));
+  line-height: calc(80 * var(--u));
+  letter-spacing: calc(-3 * var(--u));
+}
+
+.got {
+  margin-top: calc(8 * var(--u));
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: calc(25 * var(--u));
+  line-height: calc(29 * var(--u));
+}
+
+.small {
+  max-width: calc(320 * var(--u));
+  margin-top: calc(12 * var(--u));
+  font-weight: 600;
+  font-size: calc(18 * var(--u));
+  line-height: calc(25 * var(--u));
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.momentKeys {
+  display: flex;
+  gap: calc(12 * var(--u));
+  margin-top: calc(28 * var(--u));
+}
+
+.momentShare,
+.momentDone {
+  height: calc(48 * var(--u));
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: calc(18 * var(--u));
+}
+
+.momentShare {
+  padding: 0 calc(40 * var(--u));
+  background: #000;
+  color: #fff;
+}
+
+.momentDone {
+  padding: 0 calc(32 * var(--u));
+  box-shadow: inset 0 0 0 calc(2 * var(--u)) #000;
+}
+
+/* ---------- the status bar and home bar: black over X, white over Spot ---------- */
+.barDark {
+  opacity: 0;
+}
+
+/* ---------- the three taps: lit, then pressed ---------- */
+/* The screen dims around the one thing to press (a ring with a hole in a
+   dark that reaches every edge), then a finger lands on it. */
+.focus {
+  position: absolute;
+  z-index: 52;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    0 0 0 calc(3.5 * var(--u)) var(--orange),
+    0 0 calc(22 * var(--u)) calc(6 * var(--u)) rgba(252, 78, 2, 0.55),
+    0 0 0 calc(2400 * var(--u)) rgba(0, 0, 0, 0.42);
+}
+
+/* Ana's Share, where the feed stops (her post 160 points down). */
+.focusShare {
+  left: calc(356 * var(--u));
+  top: calc(409 * var(--u));
+  width: calc(41 * var(--u));
+  height: calc(41 * var(--u));
+  border-radius: 50%;
+}
+
+/* Spot in the share sheet's row of apps. */
+.focusSpot {
+  left: calc(112 * var(--u));
+  top: calc(627 * var(--u));
+  width: calc(72 * var(--u));
+  height: calc(72 * var(--u));
+  border-radius: calc(19 * var(--u));
+  box-shadow:
+    0 0 0 calc(3.5 * var(--u)) var(--orange),
+    0 0 calc(22 * var(--u)) calc(6 * var(--u)) rgba(252, 78, 2, 0.55),
+    0 0 0 calc(2400 * var(--u)) rgba(0, 0, 0, 0.12);
+}
+
+/* The Ape key. */
+.focusKey {
+  left: calc(13 * var(--u));
+  top: calc(731 * var(--u));
+  width: calc(376 * var(--u));
+  height: calc(78 * var(--u));
+  border-radius: calc(22 * var(--u));
 }
 
 /* A finger on the glass: grey with a white rim, so it shows on dark and light. */
 .tap {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: calc(34 * var(--u));
-  height: calc(34 * var(--u));
-  margin: calc(-17 * var(--u)) 0 0 calc(-17 * var(--u));
+  z-index: 53;
+  width: calc(44 * var(--u));
+  height: calc(44 * var(--u));
+  margin: calc(-22 * var(--u)) 0 0 calc(-22 * var(--u));
   border-radius: 50%;
-  background: rgba(120, 120, 128, 0.5);
-  box-shadow: 0 0 0 calc(2 * var(--u)) rgba(255, 255, 255, 0.8);
+  background: rgba(120, 120, 128, 0.45);
+  box-shadow: 0 0 0 calc(2 * var(--u)) rgba(255, 255, 255, 0.85);
   opacity: 0;
   pointer-events: none;
+}
+
+.tap1 {
+  left: calc(376.6 * var(--u));
+  top: calc(429 * var(--u));
+}
+
+.tap2 {
+  left: calc(148 * var(--u));
+  top: calc(663 * var(--u));
+}
+
+.tap3 {
+  left: calc(201 * var(--u));
+  top: calc(770 * var(--u));
 }
 
 /* ---------- the caption: four bars and the step in words ---------- */
@@ -476,7 +1167,7 @@
   display: grid;
   justify-items: center;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 26px;
 }
 
 .bars {
@@ -559,26 +1250,41 @@
 
 /* ---------- the loop ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .feedA { animation: feedA var(--t) var(--d) infinite ease; }
-  .feedD { animation: feedD var(--t) var(--d) infinite ease; }
-  .chart polyline { animation: chart var(--t) var(--d) infinite ease-out; }
-  .banner { animation: banner var(--t) var(--d) infinite cubic-bezier(0.2, 0.9, 0.3, 1.2); }
-  .shade { animation: shade var(--t) var(--d) infinite ease; }
-  .shareSheet { animation: shareSheet var(--t) var(--d) infinite var(--ease-out); }
-  .buySheet { animation: buySheet var(--t) var(--d) infinite var(--ease-out); }
-  .shareRing { animation: ring var(--t) var(--d) infinite ease; }
-  .tileSpot { animation: tile var(--t) var(--d) infinite ease; }
-  .confirm { animation: press var(--t) var(--d) infinite ease; }
+  .xList { animation: scroll var(--t) var(--d) infinite; }
+  .shareLead { animation: pressShare var(--t) var(--d) infinite ease; }
+  .focusShare { animation: focusShare var(--t) var(--d) infinite ease; }
   .tap1 { animation: tap1 var(--t) var(--d) infinite ease-out; }
+  .veil { animation: veil var(--t) var(--d) infinite ease; }
+  .sheet { animation: sheet var(--t) var(--d) infinite var(--ease-out); }
+  .focusSpot { animation: focusSpot var(--t) var(--d) infinite ease; }
   .tap2 { animation: tap2 var(--t) var(--d) infinite ease-out; }
+  .spotTile { animation: pressSpot var(--t) var(--d) infinite ease; }
+  .spot { animation: spot var(--t) var(--d) infinite; }
+  .barDark { animation: barDark var(--t) var(--d) infinite ease; }
+  .barLight { animation: barLight var(--t) var(--d) infinite ease; }
+  .loading { animation: loading var(--t) var(--d) infinite ease; }
+  .done { animation: done var(--t) var(--d) infinite ease; }
+  .done .check,
+  .done .fold { animation: tick var(--t) calc(var(--d) + var(--i) * 0.12s) infinite var(--ease-out) both; }
+  .live { animation: live var(--t) var(--d) infinite ease; }
+  .at { animation: at var(--t) var(--d) infinite ease; }
+  .slotEmpty { animation: slotEmpty var(--t) var(--d) infinite ease; }
+  .stamp { animation: stamp var(--t) var(--d) infinite; }
+  .chips { animation: chips var(--t) var(--d) infinite ease; }
+  .keyWait { animation: keyWait var(--t) var(--d) infinite ease; }
+  .keyApe { animation: keyApe var(--t) var(--d) infinite ease; }
+  .keyAping { animation: keyAping var(--t) var(--d) infinite ease; }
+  .key { animation: pressKey var(--t) var(--d) infinite ease; }
+  .note .noteSniff { animation: noteSniff var(--t) var(--d) infinite ease; }
+  .note .noteReady { animation: noteReady var(--t) var(--d) infinite ease; }
+  .focusKey { animation: focusKey var(--t) var(--d) infinite ease; }
   .tap3 { animation: tap3 var(--t) var(--d) infinite ease-out; }
-  .tap4 { animation: tap4 var(--t) var(--d) infinite ease-out; }
-  .toggle::before { animation: toggleOn var(--t) var(--d) infinite ease; }
-  .toggle::after { animation: toggleKnob var(--t) var(--d) infinite cubic-bezier(0.3, 0.7, 0.3, 1.3); }
-  .sniffing { animation: sniffing var(--t) var(--d) infinite ease; }
-  .passed { animation: passed var(--t) var(--d) infinite ease; }
-  .faceLabel { animation: faceLabel var(--t) var(--d) infinite ease; }
-  .doneLabel { animation: doneLabel var(--t) var(--d) infinite ease; }
+  .burst { animation: burst var(--t) var(--d) infinite; }
+  .momentBody { animation: momentBody var(--t) var(--d) infinite var(--ease-out); }
+  .momentPup { animation: pop var(--t) var(--d) infinite; }
+  .ring1 { animation: ring var(--t) var(--d) infinite ease-out; }
+  .ring2 { animation: ring var(--t) calc(var(--d) + 0.18s) infinite ease-out both; }
+  .ring3 { animation: ring var(--t) calc(var(--d) + 0.36s) infinite ease-out both; }
   .says > .say1 { animation: say1 var(--t) var(--d) infinite ease; }
   .says > .say2 { animation: say2 var(--t) var(--d) infinite ease; }
   .says > .say3 { animation: say3 var(--t) var(--d) infinite ease; }
@@ -589,73 +1295,92 @@
   .bar4::after { animation: bar4 var(--t) var(--d) infinite linear; }
 }
 
-@keyframes feedA { 0% { opacity: 0; } 3% { opacity: 1; } 78% { opacity: 1; } 81% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes feedD { 0% { opacity: 1; } 3% { opacity: 0; } 78% { opacity: 0; } 81% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes chart { 0%, 3% { stroke-dashoffset: 1; } 16% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }
-@keyframes banner {
-  0%, 3% { transform: none; }
-  4% { transform: translateY(-180%); }
-  81% { transform: translateY(-180%); }
-  85% { transform: none; }
-  100% { transform: none; }
+/* The feed: a short scroll to Ana's post, and after the buy one long one,
+   exactly a loop of posts (688 points), so the end is the start. */
+@keyframes scroll {
+  0%, 2% { transform: none; animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
+  8.67% { transform: translateY(calc(-86 * var(--u))); }
+  84% { transform: translateY(calc(-86 * var(--u))); animation-timing-function: cubic-bezier(0.25, 0.6, 0.2, 1); }
+  94.67%, 100% { transform: translateY(calc(-688 * var(--u))); }
 }
-@keyframes shade { 0%, 20% { opacity: 0; } 24% { opacity: 0.55; } 75% { opacity: 0.55; } 79% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes shareSheet {
-  0%, 20% { transform: translateY(105%); }
-  25% { transform: none; }
-  46% { transform: none; }
-  50% { transform: translateY(105%); }
-  100% { transform: translateY(105%); }
-}
-@keyframes buySheet {
-  0%, 48% { transform: translateY(105%); }
-  53% { transform: none; }
-  75% { transform: none; }
-  79% { transform: translateY(105%); }
-  100% { transform: translateY(105%); }
-}
-@keyframes ring { 0%, 15% { transform: scale(1); } 17% { transform: scale(0.84); } 20% { transform: scale(1); } 100% { transform: scale(1); } }
-@keyframes tile { 0%, 38% { transform: scale(1); } 40% { transform: scale(0.88); } 43% { transform: scale(1); } 100% { transform: scale(1); } }
-@keyframes press { 0%, 64% { transform: scale(1); } 66% { transform: scale(0.95); } 69% { transform: scale(1); } 100% { transform: scale(1); } }
+@keyframes pressShare { 0%, 16% { transform: none; } 16.67% { transform: scale(0.84); } 17.67%, 100% { transform: none; } }
+@keyframes focusShare { 0%, 10% { opacity: 0; } 12%, 17.33% { opacity: 1; } 19.33%, 100% { opacity: 0; } }
 @keyframes tap1 {
-  0%, 14% { opacity: 0; transform: scale(0.4); }
-  16% { opacity: 0.9; transform: scale(0.75); }
-  21% { opacity: 0; transform: scale(1.6); }
-  100% { opacity: 0; transform: scale(1.6); }
+  0%, 15.67% { opacity: 0; transform: scale(0.4); }
+  16.33% { opacity: 0.9; transform: scale(0.75); }
+  19.33%, 100% { opacity: 0; transform: scale(1.6); }
 }
+@keyframes veil { 0%, 20% { opacity: 0; } 22.67%, 43.33% { opacity: 0.22; } 43.4%, 100% { opacity: 0; } }
+@keyframes sheet { 0%, 20% { transform: translateY(110%); } 23.33%, 43.33% { transform: none; } 43.4%, 100% { transform: translateY(110%); } }
+@keyframes focusSpot { 0%, 26.67% { opacity: 0; } 28.67%, 37.33% { opacity: 1; } 39.33%, 100% { opacity: 0; } }
 @keyframes tap2 {
-  0%, 37% { opacity: 0; transform: scale(0.4); }
-  39% { opacity: 0.9; transform: scale(0.75); }
-  44% { opacity: 0; transform: scale(1.6); }
-  100% { opacity: 0; transform: scale(1.6); }
+  0%, 35.33% { opacity: 0; transform: scale(0.4); }
+  36% { opacity: 0.9; transform: scale(0.75); }
+  39.33%, 100% { opacity: 0; transform: scale(1.6); }
 }
+@keyframes pressSpot { 0%, 35.67% { transform: none; } 36.33% { transform: scale(0.88); } 37.33%, 100% { transform: none; } }
+@keyframes spot {
+  0%, 40% { transform: translateY(100%); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  43.33% { transform: none; }
+  81.33% { transform: none; animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.2); }
+  84.67%, 100% { transform: translateY(100%); }
+}
+@keyframes barDark { 0%, 42% { opacity: 1; } 42.67%, 82.67% { opacity: 0; } 83.33%, 100% { opacity: 1; } }
+@keyframes barLight { 0%, 42% { opacity: 0; } 42.67%, 82.67% { opacity: 1; } 83.33%, 100% { opacity: 0; } }
+@keyframes loading { 0%, 50.67% { opacity: 1; } 52%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
+@keyframes done { 0%, 50.67% { opacity: 0; } 52%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
+@keyframes tick {
+  0%, 51.33% { opacity: 0; transform: translateY(calc(8 * var(--u))); }
+  53%, 86.67% { opacity: 1; transform: none; }
+  86.8%, 100% { opacity: 0; transform: translateY(calc(8 * var(--u))); }
+}
+@keyframes live { 0%, 56.33% { opacity: 1; } 56.67%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
+@keyframes at { 0%, 56.33% { opacity: 0; } 56.67%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
+@keyframes slotEmpty { 0%, 56.33% { opacity: 1; } 56.67%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
+/* The stamp comes down hard, a hair past its size, and settles. */
+@keyframes stamp {
+  0%, 56.33% { opacity: 0; transform: rotate(-7deg) scale(1.9); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
+  57.67% { opacity: 1; transform: rotate(-7deg) scale(0.94); animation-timing-function: var(--ease-out); }
+  58.67%, 86.67% { opacity: 1; transform: rotate(-7deg); }
+  86.8%, 100% { opacity: 0; transform: rotate(-7deg) scale(1.9); }
+}
+@keyframes chips { 0%, 56.67% { opacity: 0; } 58%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
+@keyframes keyWait { 0%, 56.67% { opacity: 1; } 57.33%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
+@keyframes keyApe { 0%, 56.67% { opacity: 0; } 57.33%, 68% { opacity: 1; } 68.33%, 100% { opacity: 0; } }
+@keyframes keyAping { 0%, 68% { opacity: 0; } 68.33%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
+@keyframes pressKey { 0%, 65.33% { transform: none; } 65.67% { transform: translateY(calc(3 * var(--u))); } 66.67%, 100% { transform: none; } }
+@keyframes noteSniff { 0%, 56.67% { opacity: 1; } 57.33%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
+@keyframes noteReady { 0%, 56.67% { opacity: 0; } 57.33%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
+@keyframes focusKey { 0%, 60% { opacity: 0; } 62%, 66.67% { opacity: 1; } 68%, 100% { opacity: 0; } }
 @keyframes tap3 {
-  0%, 63% { opacity: 0; transform: scale(0.4); }
-  65% { opacity: 0.9; transform: scale(0.75); }
-  70% { opacity: 0; transform: scale(1.6); }
-  100% { opacity: 0; transform: scale(1.6); }
+  0%, 65% { opacity: 0; transform: scale(0.4); }
+  65.67% { opacity: 0.9; transform: scale(0.75); }
+  68.33%, 100% { opacity: 0; transform: scale(1.6); }
 }
-@keyframes tap4 {
-  0%, 52% { opacity: 0; transform: scale(0.4); }
-  54% { opacity: 0.9; transform: scale(0.75); }
-  58% { opacity: 0; transform: scale(1.6); }
-  100% { opacity: 0; transform: scale(1.6); }
+@keyframes burst {
+  0%, 70% { transform: scale(0); animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+  73.33%, 86.67% { transform: scale(1); }
+  86.8%, 100% { transform: scale(0); }
 }
-@keyframes toggleOn { 0%, 54% { opacity: 0; } 56% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes toggleKnob {
-  0%, 54% { transform: translateX(calc(-12 * var(--u))); }
-  56% { transform: none; }
-  100% { transform: none; }
+@keyframes momentBody {
+  0%, 72.33% { opacity: 0; transform: translateY(calc(12 * var(--u))); }
+  74.67%, 86.67% { opacity: 1; transform: none; }
+  86.8%, 100% { opacity: 0; transform: translateY(calc(12 * var(--u))); }
 }
-@keyframes sniffing { 0% { opacity: 1; } 58% { opacity: 1; } 61% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes passed { 0% { opacity: 0; } 58% { opacity: 0; } 61% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes faceLabel { 0% { opacity: 1; } 69% { opacity: 1; } 71% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes doneLabel { 0% { opacity: 0; } 69% { opacity: 0; } 71% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes say1 { 0% { opacity: 0; } 3% { opacity: 1; } 20% { opacity: 1; } 23% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes say2 { 0%, 20% { opacity: 0; } 23% { opacity: 1; } 46% { opacity: 1; } 49% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes say3 { 0%, 46% { opacity: 0; } 49% { opacity: 1; } 75% { opacity: 1; } 78% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes say4 { 0% { opacity: 1; } 3% { opacity: 0; } 75% { opacity: 0; } 78% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes bar1 { 0% { transform: scaleX(0); } 22% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
-@keyframes bar2 { 0%, 22% { transform: scaleX(0); } 48% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
-@keyframes bar3 { 0%, 48% { transform: scaleX(0); } 78% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
-@keyframes bar4 { 0%, 78% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+@keyframes pop {
+  0%, 72.33% { transform: scale(0.5); animation-timing-function: cubic-bezier(0.3, 0.7, 0.4, 1.4); }
+  74.33%, 100% { transform: none; }
+}
+@keyframes ring {
+  0%, 72.67% { opacity: 0; transform: scale(0.6); }
+  73.33% { opacity: 0.9; }
+  79.33%, 100% { opacity: 0; transform: scale(1.7); }
+}
+@keyframes say1 { 0% { opacity: 0; } 2%, 20.33% { opacity: 1; } 22.33%, 100% { opacity: 0; } }
+@keyframes say2 { 0%, 20.33% { opacity: 0; } 22.33%, 42.33% { opacity: 1; } 44.33%, 100% { opacity: 0; } }
+@keyframes say3 { 0%, 42.33% { opacity: 0; } 44.33%, 81% { opacity: 1; } 83%, 100% { opacity: 0; } }
+@keyframes say4 { 0% { opacity: 1; } 2%, 81% { opacity: 0; } 83%, 100% { opacity: 1; } }
+@keyframes bar1 { 0% { transform: scaleX(0); } 21.33%, 100% { transform: scaleX(1); } }
+@keyframes bar2 { 0%, 21.33% { transform: scaleX(0); } 43.33%, 100% { transform: scaleX(1); } }
+@keyframes bar3 { 0%, 43.33% { transform: scaleX(0); } 82%, 100% { transform: scaleX(1); } }
+@keyframes bar4 { 0%, 82% { transform: scaleX(0); } 100% { transform: scaleX(1); } }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EarlyChart } from "@/components/EarlyChart";
 import { JoinButton } from "@/components/JoinButton";
+import { LockScreen } from "@/components/LockScreen";
 import { PhoneDemo } from "@/components/PhoneDemo";
 import { Reveal } from "@/components/Reveal";
 import { Sources } from "@/components/Sources";
@@ -42,35 +43,21 @@ const SNIFF = [
   { q: "How old?", a: "20 min", tone: "warn" },
 ] as const;
 
+/* The example coin's picture: a waffle, the way a new coin's picture is a joke. */
+const WaffleFace = () => (
+  <svg viewBox="0 0 32 32" aria-hidden="true">
+    <circle cx="16" cy="16" r="16" fill="#ffcf70" />
+    <rect x="6" y="6" width="20" height="20" rx="5" fill="#e39a2d" />
+    <path d="M6 12.7h20M6 19.3h20M12.7 6v20M19.3 6v20" stroke="#b86f12" strokeWidth="1.6" />
+    <rect x="13" y="13" width="6" height="5" rx="1.2" fill="#fff3b0" />
+  </svg>
+);
+
 function Mark({ tone }: { tone: (typeof SNIFF)[number]["tone"] }) {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {tone === "good" ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : <path d="M12 5v9M12 19h.01" />}
     </svg>
-  );
-}
-
-/* A lock-screen notification, drawn: what Spot says once the coin is yours. */
-function Notice({ title, text, when, action }: { title: string; text: string; when: string; action?: string }) {
-  return (
-    <div className={styles.noticeCard}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/spot-icon.svg" alt="" width={38} height={36} />
-      <div>
-        <p className={styles.noticeTop}>
-          <span>Spot</span>
-          <span>{when}</span>
-        </p>
-        <p className={styles.noticeText}>
-          <b>{title}</b> {text}
-        </p>
-      </div>
-      {action && (
-        <span className={styles.noticeAction} aria-hidden="true">
-          {action}
-        </span>
-      )}
-    </div>
   );
 }
 
@@ -163,7 +150,10 @@ export default async function Home() {
                     <span>Sniff report</span>
                     <span>Example</span>
                   </p>
-                  <p className={styles.reportCoin}>$EXAMPLE</p>
+                  <p className={styles.reportCoin}>
+                    <WaffleFace />
+                    $WAFFLE
+                  </p>
                   <ul className={styles.rows}>
                     {SNIFF.map((c, i) => (
                       <li key={c.q} style={{ "--i": i } as React.CSSProperties}>
@@ -200,21 +190,7 @@ export default async function Home() {
                 </p>
               </div>
               <div className={styles.visual}>
-                <div className={styles.lock}>
-                  <p className={styles.lockTime} aria-hidden="true">
-                    9:41
-                  </p>
-                  <ul className={styles.lockList} aria-label="Example notifications from Spot">
-                    <li>
-                      <Reveal className={styles.notice}>
-                        <Notice title="GRRR." text="The dev is dumping $EXAMPLE. Sell the rest?" when="now" action="Sell" />
-                      </Reveal>
-                    </li>
-                    <li>
-                      <Notice title="$EXAMPLE doubled." text="Sold half, so your $25 is back. The rest rides." when="1h ago" />
-                    </li>
-                  </ul>
-                </div>
+                <LockScreen />
               </div>
             </div>
           </div>
