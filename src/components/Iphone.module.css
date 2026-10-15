@@ -1,0 +1,186 @@
+/* AN IPHONE, DRAWN. One iOS point is --u: the device's width over 428, the
+   frame's width in points. Every size inside is a multiple of it, so the
+   phone scales as one picture. The frame is Cosmic Orange titanium: a lit
+   edge, a darker rim, and the shadow it throws. */
+.device {
+  container-type: inline-size;
+  --u: calc(100cqw / 428);
+}
+
+.phone {
+  position: relative;
+  aspect-ratio: 428 / 900;
+  border-radius: calc(68 * var(--u));
+  background: linear-gradient(140deg, #f7a36a 0%, #e8692a 18%, #c9531f 46%, #ef7b3b 64%, #b8461a 100%);
+  box-shadow:
+    inset 0 0 0 calc(1 * var(--u)) rgba(255, 255, 255, 0.42),
+    inset 0 0 0 calc(2.5 * var(--u)) rgba(120, 40, 10, 0.35),
+    0 calc(60 * var(--u)) calc(120 * var(--u)) rgba(0, 0, 0, 0.55),
+    0 calc(20 * var(--u)) calc(40 * var(--u)) rgba(0, 0, 0, 0.35);
+}
+
+/* The keys: the Action button and volume on the left, the side button and
+   Camera Control on the right. */
+.key {
+  position: absolute;
+  width: calc(5 * var(--u));
+  border-radius: calc(2 * var(--u));
+  background: linear-gradient(90deg, #a8441a, #e0662a, #a8441a);
+}
+
+.action {
+  left: calc(-3 * var(--u));
+  top: calc(168 * var(--u));
+  height: calc(34 * var(--u));
+}
+
+.volUp {
+  left: calc(-3 * var(--u));
+  top: calc(228 * var(--u));
+  height: calc(62 * var(--u));
+}
+
+.volDown {
+  left: calc(-3 * var(--u));
+  top: calc(302 * var(--u));
+  height: calc(62 * var(--u));
+}
+
+.side {
+  right: calc(-3 * var(--u));
+  top: calc(258 * var(--u));
+  height: calc(100 * var(--u));
+}
+
+.camera {
+  right: calc(-2 * var(--u));
+  top: calc(540 * var(--u));
+  width: calc(4 * var(--u));
+  height: calc(62 * var(--u));
+  opacity: 0.8;
+}
+
+.bezel {
+  position: absolute;
+  inset: calc(4 * var(--u));
+  border-radius: calc(64 * var(--u));
+  background: #050505;
+}
+
+.screen {
+  position: absolute;
+  left: calc(13 * var(--u));
+  top: calc(13 * var(--u));
+  width: calc(402 * var(--u));
+  height: calc(874 * var(--u));
+  border-radius: calc(55 * var(--u));
+  overflow: hidden;
+  /* The radius clips what slides and scales inside too, on every engine. */
+  clip-path: inset(0 round calc(55 * var(--u)));
+  isolation: isolate;
+  background: #000;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+}
+
+.island {
+  position: absolute;
+  left: calc(138 * var(--u));
+  top: calc(11 * var(--u));
+  width: calc(126 * var(--u));
+  height: calc(37 * var(--u));
+  border-radius: calc(19 * var(--u));
+  background: #000;
+  z-index: 60;
+}
+
+/* ---------- the status bar ---------- */
+.status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(54 * var(--u));
+  z-index: 50;
+  pointer-events: none;
+}
+
+.dark {
+  color: #000;
+}
+
+.light {
+  color: #fff;
+}
+
+.time {
+  position: absolute;
+  left: 0;
+  top: calc(17 * var(--u));
+  width: calc(140 * var(--u));
+  text-align: center;
+  font-weight: 600;
+  font-size: calc(17 * var(--u));
+  line-height: calc(22 * var(--u));
+  letter-spacing: calc(-0.3 * var(--u));
+}
+
+.back {
+  position: absolute;
+  left: 0;
+  top: calc(18 * var(--u));
+  width: calc(140 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(4 * var(--u));
+  font-weight: 600;
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  letter-spacing: calc(-0.2 * var(--u));
+}
+
+.back svg {
+  width: calc(7 * var(--u));
+  height: calc(10 * var(--u));
+}
+
+.icons {
+  position: absolute;
+  left: calc(264 * var(--u));
+  top: calc(21 * var(--u));
+  width: calc(140 * var(--u));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(6 * var(--u));
+  fill: currentColor;
+}
+
+.signal {
+  width: calc(18 * var(--u));
+  height: calc(12 * var(--u));
+}
+
+.wifi {
+  width: calc(17 * var(--u));
+  height: calc(12 * var(--u));
+}
+
+.battery {
+  width: calc(27 * var(--u));
+  height: calc(13 * var(--u));
+}
+
+/* ---------- the home bar ---------- */
+.homeBar {
+  position: absolute;
+  left: calc(131.5 * var(--u));
+  bottom: calc(8 * var(--u));
+  width: calc(139 * var(--u));
+  height: calc(5 * var(--u));
+  border-radius: calc(3 * var(--u));
+  z-index: 55;
+  background: currentColor;
+}

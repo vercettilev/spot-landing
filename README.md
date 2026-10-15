@@ -14,8 +14,10 @@ src/lib/line.ts               the line: places and referral credit, in Redis (no
 src/lib/referral.ts           what page and server share about codes and links
 src/app/r/[code]/route.ts     a shared link, usespot.fun/r/CODE, lands on the page with the code
 src/components/SpotPass.tsx   what a reader sees once they are in: place, stamp, their link
-src/components/PhoneDemo.tsx  Spot on a phone, on a loop: share, sniff, sell half at 2x on, Ape $25, done (example data)
-src/components/EarlyChart.tsx "Early, not exit liquidity." as a chart: the CA drops, you're in, they buy the top
+src/components/PhoneDemo.tsx  Spot on an iPhone, on a loop: a post on X, Share, Spot, the sniff stamped CLEAN, Ape $25, back to the feed (SOL, example data)
+src/components/Iphone.tsx     the iPhone the demo and the lock screen are drawn on, sized in iOS points
+src/components/EarlyChart.tsx "Early, not exit liquidity." as a coin's chart: the CA drops, you're in, they buy the top
+src/components/LockScreen.tsx "Initials out at 2x" as a locked iPhone: the 2x ping, and the dump alert dropping in on top
 src/components/Sources.tsx    the apps Spot reads posts from on its own: X, TikTok, Telegram, YouTube
 src/components/JoinButton.tsx the second "Save my spot": back up to the form, cursor in the field
 src/components/Reveal.tsx     plays the sniff report and the dump alert once they scroll into view

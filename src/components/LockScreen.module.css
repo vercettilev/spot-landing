@@ -1,0 +1,159 @@
+/* THE LOCK SCREEN, close up. The phone is as wide as the column allows (up
+   to 400px) and only its top shows, fading out under the notifications, so
+   they read at a size a person can read. Inside, sizes are iOS points (--u,
+   see Iphone.module.css). */
+.frame {
+  --w: min(400px, 100%);
+  position: relative;
+  isolation: isolate;
+  width: var(--w);
+  margin: 0 auto;
+}
+
+/* The same light the phone in the hero sits in. */
+.glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 260%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(252, 78, 2, 0.4) 0%, rgba(252, 78, 2, 0.14) 30%, rgba(252, 78, 2, 0.04) 50%, rgba(252, 78, 2, 0) 66%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 1.32 widths of a 2.1-width phone: the clock and the pings, then the fade. */
+.crop {
+  aspect-ratio: 1 / 1.32;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 76%, transparent);
+  mask-image: linear-gradient(#000 76%, transparent);
+}
+
+/* The wallpaper: ink, lit orange from under the notifications. */
+.wall {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 34% at 50% 52%, rgba(252, 78, 2, 0.7), rgba(252, 78, 2, 0.22) 50%, rgba(252, 78, 2, 0) 78%),
+    radial-gradient(60% 30% at 85% 0%, rgba(252, 78, 2, 0.2), rgba(252, 78, 2, 0) 70%),
+    linear-gradient(#141416, #0b0b0c 70%);
+}
+
+.head {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(62 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.lock {
+  width: calc(14 * var(--u));
+  height: calc(18 * var(--u));
+}
+
+.date {
+  margin-top: calc(12 * var(--u));
+  font-weight: 600;
+  font-size: calc(20 * var(--u));
+  line-height: calc(24 * var(--u));
+  letter-spacing: calc(-0.2 * var(--u));
+}
+
+.clock {
+  margin-top: calc(2 * var(--u));
+  font-weight: 700;
+  font-size: calc(104 * var(--u));
+  line-height: 1;
+  letter-spacing: calc(-3 * var(--u));
+}
+
+/* The notifications, newest on top, under the clock. */
+.list {
+  position: absolute;
+  left: calc(12 * var(--u));
+  right: calc(12 * var(--u));
+  top: calc(262 * var(--u));
+  display: grid;
+  gap: calc(8 * var(--u));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(12 * var(--u));
+  padding: calc(14 * var(--u)) calc(16 * var(--u)) calc(15 * var(--u)) calc(14 * var(--u));
+  border-radius: calc(24 * var(--u));
+  background: rgba(246, 245, 243, 0.88);
+  backdrop-filter: blur(calc(20 * var(--u))) saturate(1.6);
+  -webkit-backdrop-filter: blur(calc(20 * var(--u))) saturate(1.6);
+  box-shadow: 0 calc(10 * var(--u)) calc(30 * var(--u)) rgba(0, 0, 0, 0.28);
+  color: #000;
+}
+
+.icon {
+  flex: none;
+  width: calc(38 * var(--u));
+  height: auto;
+  margin-top: calc(2 * var(--u));
+}
+
+.words {
+  flex: 1;
+  min-width: 0;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(8 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+}
+
+.top b {
+  font-weight: 600;
+}
+
+.top span {
+  flex: none;
+  font-size: calc(13 * var(--u));
+  color: rgba(60, 60, 67, 0.62);
+}
+
+.text {
+  margin-top: calc(1 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  color: #111;
+}
+
+/* The dump alert arrives on top of the 2x, once, as a banner would. */
+.drop[data-reveal="armed"] .card {
+  opacity: 0;
+}
+
+.drop[data-reveal="in"] .card {
+  animation: drop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.3s both;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-18 * var(--u))) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
