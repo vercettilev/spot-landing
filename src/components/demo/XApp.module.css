@@ -1,6 +1,6 @@
 /* X, LIGHT: the For you feed. Sizes are iOS points (--u, see
    Iphone.module.css); the clocks (--t a loop, --m the three apps) come from
-   PhoneDemo.module.css. It shows for the first third of the apps' clock. */
+   PhoneDemo.module.css. PhoneDemo.module.css slides it in and out. */
 .app {
   position: absolute;
   inset: 0;
@@ -274,20 +274,10 @@
 
 /* ---------- the clock ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .app { animation: show var(--m) var(--d) infinite; }
   .xList { animation: scroll var(--t) var(--d) infinite; }
   .shareLead { animation: press var(--t) var(--d) infinite ease; }
 }
 
-/* On for the first third of the three apps: it leaves to the left as
-   TikTok comes in, the way iOS swipes between apps, and comes back in from
-   the right after Telegram. */
-@keyframes show {
-  0%, 32.444% { transform: none; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
-  33.333% { transform: translateX(-100%); }
-  33.334%, 99.111% { transform: translateX(100%); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
-  100% { transform: none; }
-}
 /* The feed: a short scroll to Ana's post, and after the buy one long one,
    exactly a loop of posts (688 points), so the end is the start. */
 @keyframes scroll {

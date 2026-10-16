@@ -37,6 +37,17 @@ const TG_FORWARD = "M13.4 5.4 19.6 11l-6.2 5.6v-3.4c-4.3 0-7 1.2-9.1 4.4.5-4.6 3
 const TG_EYE = "M1.8 12S5.6 5.6 12 5.6 22.2 12 22.2 12 18.4 18.4 12 18.4 1.8 12 1.8 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z";
 const TG_BELL = "M18 16.5V11a6 6 0 0 0-12 0v5.5L4.5 18h15L18 16.5zM10 20.5a2 2 0 0 0 4 0";
 
+/* ---------- Safari's toolbar, in its weight ---------- */
+const SF_BACK = "M15 5l-7 7 7 7";
+const SF_FWD = "M9 5l7 7-7 7";
+const SF_SHARE = "M12 3.6v11M8.3 7.3 12 3.6l3.7 3.7M8.2 10.2H6.8a1.6 1.6 0 0 0-1.6 1.6v7.6A1.6 1.6 0 0 0 6.8 21h10.4a1.6 1.6 0 0 0 1.6-1.6v-7.6a1.6 1.6 0 0 0-1.6-1.6h-1.4";
+const SF_BOOK = "M12 6.6C10.2 5.3 7.9 4.6 5 4.6v13.2c2.9 0 5.2.7 7 2 1.8-1.3 4.1-2 7-2V4.6c-2.9 0-5.2.7-7 2zM12 6.6v13.2";
+const SF_TABS = "M8.2 8.2V6A1.6 1.6 0 0 1 9.8 4.4h8.6A1.6 1.6 0 0 1 20 6v8.6a1.6 1.6 0 0 1-1.6 1.6h-2.2M5.6 8.2h8.6a1.6 1.6 0 0 1 1.6 1.6v8.6a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18.4V9.8a1.6 1.6 0 0 1 1.6-1.6z";
+const SF_PAGE = "M6.5 5h11A1.5 1.5 0 0 1 19 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5v-11A1.5 1.5 0 0 1 6.5 5zM8.5 9h7M8.5 12.5h7";
+const SF_RELOAD = "M18.6 12a6.6 6.6 0 1 1-1.9-4.7M18.8 4.6v3.6h-3.6";
+const WEB_SEARCH = "M10.5 4.5a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM19.5 19.5l-4.6-4.6";
+const WEB_MENU = "M4 7h16M4 12h16M4 17h16";
+
 /* Filled marks, drawn in the text's colour. */
 const FILLED = {
   logo: X_LOGO,
@@ -70,9 +81,18 @@ const LINED = {
   tgBack: [TG_BACK, 2.6],
   tgEye: [TG_EYE, 1.9],
   tgBell: [TG_BELL, 1.9],
+  sfBack: [SF_BACK, 2.2],
+  sfFwd: [SF_FWD, 2.2],
+  sfShare: [SF_SHARE, 1.9],
+  sfBook: [SF_BOOK, 1.9],
+  sfTabs: [SF_TABS, 1.9],
+  sfPage: [SF_PAGE, 1.7],
+  sfReload: [SF_RELOAD, 1.8],
+  webSearch: [WEB_SEARCH, 2],
+  webMenu: [WEB_MENU, 2],
 } as const;
 
-export type Mark = keyof typeof FILLED | keyof typeof LINED | "grok" | "chart";
+export type Mark = keyof typeof FILLED | keyof typeof LINED | "grok" | "chart" | "chartDex";
 
 export const Use = ({ name, className }: { name: Mark; className?: string }) => (
   <svg className={className}>
@@ -131,7 +151,9 @@ export function Sprite() {
       <symbol id="pd-grok" viewBox="0 0 33 32">
         <path d={X_GROK} fill="currentColor" />
       </symbol>
-      <symbol id="pd-chart" viewBox="0 0 318 179">
+      {/* SOL's daily candles, without a legend: the chart on X and in
+          Telegram is TradingView's, the one in Safari is DEX Screener's. */}
+      <symbol id="pd-candles" viewBox="0 0 318 179">
         <rect width="318" height="179" fill="#131722" />
         {CANDLES.grid.map(([v, gy]) => (
           <g key={v}>
@@ -152,9 +174,6 @@ export function Sprite() {
         <text x="299" y={last + 3.2} textAnchor="middle" fontSize="8.2" fontWeight="600" fill="#fff">
           106.64
         </text>
-        <text x="8" y="14" fontSize="9" fontWeight="600" fill="#d1d4dc">
-          SOL / U.S. Dollar · 1D
-        </text>
         <text x="8" y="25" fontSize="7.6" fill="#787b86">
           O <tspan fill="#ef5350">111.11</tspan>
           <tspan dx="5">H </tspan>
@@ -163,6 +182,18 @@ export function Sprite() {
           <tspan fill="#ef5350">105.97</tspan>
           <tspan dx="5">C </tspan>
           <tspan fill="#ef5350">106.64 −4.02%</tspan>
+        </text>
+      </symbol>
+      <symbol id="pd-chart" viewBox="0 0 318 179">
+        <use href="#pd-candles" />
+        <text x="8" y="14" fontSize="9" fontWeight="600" fill="#d1d4dc">
+          SOL / U.S. Dollar · 1D
+        </text>
+      </symbol>
+      <symbol id="pd-chartDex" viewBox="0 0 318 179">
+        <use href="#pd-candles" />
+        <text x="8" y="14" fontSize="9" fontWeight="600" fill="#d1d4dc">
+          SOL/USDC · Raydium · 1D
         </text>
       </symbol>
     </svg>

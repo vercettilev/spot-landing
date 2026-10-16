@@ -23,8 +23,9 @@ const Chevron = ({ back = false }: { back?: boolean }) => (
 
 /**
  * THE PHONE DEMO'S CLOCK AND ITS CONTROLS: the puppy on top, the phone (drawn
- * on the server and passed in), and under it the apps the loop goes through,
- * the step in words between a back and an on arrow, and a Pause button.
+ * on the server and passed in), and under it the apps the loop goes through
+ * (and a word that they are not the only ones) and the step in words between
+ * a back and an on arrow.
  *
  * The loop runs by itself, through each app in turn. The arrows move it a
  * step either way and an app's name jumps to it, and it carries on from
@@ -32,15 +33,32 @@ const Chevron = ({ back = false }: { back?: boolean }) => (
  * the caption is set to the same moment, so nothing falls out of step.
  *
  * The clock can be stopped. Anything that moves for more than five seconds
- * beside other content needs a way to stop it (WCAG 2.2.2), so the caption
- * carries a Pause button and a tap on the phone does the same. It also stops
- * by itself when the phone scrolls out of view: a loop running three screens
- * below the fold runs for nobody.
+ * beside other content needs a way to stop it (WCAG 2.2.2). The phone is
+ * that way, the way a video is: a tap, or Enter or Space on it, holds the
+ * loop and a play mark shows over it; again, and it plays on. A held step's
+ * arrows show its clearest frame. The loop also stops by itself when the
+ * phone scrolls out of view: running three screens below the fold, it runs
+ * for nobody.
  */
-export function DemoLoop({ apps, children }: { apps: { name: string; icon: React.ReactNode }[]; children: React.ReactNode }) {
+export function DemoLoop({
+  apps,
+  children,
+}: {
+  apps: { name: string; see: string; icon: React.ReactNode }[];
+  children: React.ReactNode;
+}) {
   const figure = useRef<HTMLElement>(null);
   const [held, setHeld] = useState(false); // stopped by the reader
   const [away, setAway] = useState(false); // scrolled out of view
+  const [moving, setMoving] = useState(true); // no loop under reduced motion, so nothing to hold
+
+  useEffect(() => {
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setMoving(!still.matches);
+    update();
+    still.addEventListener("change", update);
+    return () => still.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const el = figure.current;
@@ -53,6 +71,21 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
 
   const paused = held || away;
   const toggle = () => setHeld((v) => !v);
+  const hold = moving
+    ? {
+        role: "button",
+        tabIndex: 0,
+        title: held ? "Play" : "Pause",
+        "aria-label": "Pause the demo",
+        "aria-pressed": held,
+        onClick: toggle,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          toggle();
+        },
+      }
+    : {};
   const total = LOOP * apps.length;
 
   /* The clock's animations: the phone's and the caption's, not the puppy's,
@@ -86,16 +119,20 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
   };
 
   return (
-    <figure ref={figure} className={`${styles.demo}${paused ? ` ${styles.paused}` : ""}`}>
+    <figure ref={figure} className={`${styles.demo}${paused ? ` ${styles.paused}` : ""}${held ? ` ${styles.held}` : ""}`}>
       <div className={styles.glow} aria-hidden="true" />
       <div className={styles.pup}>
         <SpotPuppy halo cheer label="Spot the puppy. Press to make it bark." />
       </div>
 
-      {/* A tap on the phone pauses it, the way a tap on a video does; the
-          button in the caption says the same thing out loud. */}
-      <div className={styles.stage} onClick={toggle}>
+      {/* A tap on the phone holds it, the way a tap on a video does. */}
+      <div className={styles.stage} {...hold}>
         {children}
+        <span className={styles.playMark} aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor" />
+          </svg>
+        </span>
       </div>
 
       <figcaption className={styles.caption}>
@@ -107,6 +144,10 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
               <span className={styles.railName}>{a.name}</span>
             </button>
           ))}
+          {/* Not these four alone: from anywhere else, a screenshot does it. */}
+          <span className={styles.railMore} title="Anything else: share a screenshot">
+            + any app
+          </span>
         </span>
         <span className={styles.steps}>
           <button type="button" className={styles.arrow} onClick={() => step(-1)} aria-label="Previous step">
@@ -115,7 +156,7 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
           <span className={styles.says}>
             {apps.map((a, i) => (
               <span key={a.name} className={`${styles.see} ${styles[`see${i}`]}`}>
-                See it on {a.name}.{" "}
+                {a.see}{" "}
               </span>
             ))}
             {SAYS.map((words, i) => (
@@ -126,14 +167,8 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
           </span>
           <button type="button" className={styles.arrow} onClick={() => step(1)} aria-label="Next step">
             <Chevron />
-            <svg className={styles.progress} viewBox="0 0 44 44" aria-hidden="true">
-              <circle cx="22" cy="22" r="21.25" pathLength={1} />
-            </svg>
           </button>
         </span>
-        <button type="button" className={styles.pause} onClick={toggle}>
-          {held ? "Play" : "Pause"}
-        </button>
       </figcaption>
     </figure>
   );
