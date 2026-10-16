@@ -1,6 +1,7 @@
 import { DemoLoop } from "./DemoLoop";
 import { HomeBar, Iphone, StatusBar } from "./Iphone";
 import { Line, Sprite, X_LOGO } from "./demo/marks";
+import { SafariApp } from "./demo/SafariApp";
 import { TelegramApp } from "./demo/TelegramApp";
 import { TikTokApp } from "./demo/TikTokApp";
 import { XApp } from "./demo/XApp";
@@ -23,11 +24,57 @@ const OUT = "M8 16L16 8M9.5 8H16v6.5";
 const DOWN = "M7 10l5 5 5-5";
 
 /* ---------- iOS app icons, 64 points, as iOS 26 draws them ---------- */
-type App = "x" | "tiktok" | "telegram" | "airdrop" | "messages" | "mail" | "notes";
+type App = "x" | "tiktok" | "telegram" | "safari" | "page" | "airdrop" | "messages" | "mail" | "notes";
+
+/* Safari's compass: its blue face and the 36 ticks round it. */
+const TICKS = Array.from({ length: 36 }, (_, i) => i);
 
 function AppIcon({ app, id, className = styles.ai }: { app: App; id: string; className?: string }) {
   let body: React.ReactNode = null;
-  if (app === "tiktok") {
+  if (app === "safari") {
+    body = (
+      <>
+        <defs>
+          <linearGradient id={`${id}sfbg`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff" />
+            <stop offset="1" stopColor="#e6e7ea" />
+          </linearGradient>
+          <radialGradient id={`${id}sfc`} cx="50%" cy="25%" r="80%">
+            <stop offset="0" stopColor="#29D7FF" />
+            <stop offset="1" stopColor="#1A5BEB" />
+          </radialGradient>
+        </defs>
+        <rect width="64" height="64" fill={`url(#${id}sfbg)`} />
+        <circle cx="32" cy="32" r="24.5" fill={`url(#${id}sfc)`} />
+        {TICKS.map((i) => (
+          <line
+            key={i}
+            x1="32"
+            y1="9.6"
+            x2="32"
+            y2={i % 3 === 0 ? 12.6 : 11.4}
+            stroke="#fff"
+            strokeOpacity={i % 3 === 0 ? 0.95 : 0.6}
+            strokeWidth={i % 3 === 0 ? 1.1 : 0.7}
+            transform={`rotate(${i * 10} 32 32)`}
+          />
+        ))}
+        <g transform="rotate(45 32 32)">
+          <path d="M32 13.5 35.2 32H28.8z" fill="#FF3B30" />
+          <path d="M32 50.5 28.8 32h6.4z" fill="#fff" />
+        </g>
+        <circle cx="32" cy="32" r="1.6" fill="#fff" />
+      </>
+    );
+  } else if (app === "page") {
+    /* A coin page's own icon in the share sheet: a chart on dark. */
+    body = (
+      <>
+        <rect width="64" height="64" fill="#111214" />
+        <path d="M12 44 23 31l8 7 11-15 10 9" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    );
+  } else if (app === "tiktok") {
     body = (
       <>
         <rect width="64" height="64" fill="#000" />
@@ -140,17 +187,21 @@ const SpotIcon = () => (
 /* Where the post comes from in each, in the share sheet and in Spot's own
    words (sourceLine in mobile/src/logic.ts). */
 const APPS = [
-  { app: "x", name: "X", title: "Ana on X: “Buying the $SOL dip”", site: "x.com", from: "from @ana_trades on X" },
-  { app: "tiktok", name: "TikTok", title: "nico.charts on TikTok", site: "tiktok.com", from: "from @nico.charts on TikTok" },
-  { app: "telegram", name: "Telegram", title: "Mika Onchain", site: "t.me", from: "from @mika_onchain on Telegram" },
+  { app: "x", thumb: "x", name: "X", see: "See it on X.", title: "Ana on X: “Buying the $SOL dip”", site: "x.com", from: "from @ana_trades on X" },
+  { app: "tiktok", thumb: "tiktok", name: "TikTok", see: "See it on TikTok.", title: "nico.charts on TikTok", site: "tiktok.com", from: "from @nico.charts on TikTok" },
+  { app: "telegram", thumb: "telegram", name: "Telegram", see: "See it on Telegram.", title: "Mika Onchain", site: "t.me", from: "from @mika_onchain on Telegram" },
+  { app: "safari", thumb: "page", name: "Safari", see: "See it in Safari.", title: "SOL/USDC on Raydium", site: "dexscreener.com", from: "from dexscreener.com" },
 ] as const;
 
 /* Each app's own class for the parts that change with it: shown for its
-   third of the apps' clock (see the module). */
-const NTH = [styles.app0, styles.app1, styles.app2];
+   quarter of the apps' clock (see the module). */
+const NTH = [styles.app0, styles.app1, styles.app2, styles.app3];
+
+/* The layer each app sits on, slid in and out on the apps' clock. */
+const LAYERS = [styles.layer0, styles.layer1, styles.layer2, styles.layer3];
 
 /* Over Spot, iOS's way back ("◀ X") to the app the loop came from. */
-const BACKS = [styles.back0, styles.back1, styles.back2];
+const BACKS = [styles.back0, styles.back1, styles.back2, styles.back3];
 
 /* ---------- the iOS 26 share sheet, opened from the post ---------- */
 const PEOPLE = [
@@ -168,7 +219,7 @@ function ShareSheet({ id }: { id: string }) {
         {APPS.map((a, i) => (
           <div key={a.app} className={`${styles.sheetHead} ${NTH[i]}`}>
             <span className={styles.thumb}>
-              <AppIcon app={a.app} id={`${id}${a.app}`} />
+              <AppIcon app={a.thumb} id={`${id}${a.app}`} />
             </span>
             <span className={styles.sheetTitle}>
               <b>{a.title}</b>
@@ -398,17 +449,18 @@ function SpotScreen() {
 }
 
 /**
- * SPOT, DOING ITS ONE THING, on a real phone, from three apps in turn: a
- * post on X, then a TikTok, then a Telegram channel, each time Share, Spot
- * in the share sheet, Spot's sniff report stamped CLEAN, Ape $25, the orange
- * moment, and back to the app. Three taps, each one lit before it lands, so
- * a first-time reader sees where to press. They are three of the four apps
- * Spot reads posts from on its own (src/engine/posts.ts); a Reddit post or a
+ * SPOT, DOING ITS ONE THING, on a real phone, from four apps in turn: a
+ * post on X, a TikTok, a Telegram channel, and SOL's page on DEX Screener in
+ * Safari; each time Share, Spot in the share sheet, Spot's sniff report
+ * stamped CLEAN, Ape $25, the orange moment, and back to the app. Three
+ * taps, each one lit before it lands, so a first-time reader sees where to
+ * press. Spot reads each of these on its own: the posts (src/engine/posts.ts)
+ * and a link with the coin in it (src/engine/links.ts). A Reddit post or a
  * news page would need a screenshot, so they are not here. The coin is SOL,
  * the post and the sniff in the app's own words (example data).
  *
  * Pure CSS: every moving part runs on a 15-second clock per loop and a
- * 45-second one across the apps (see the module). With reduced motion, or
+ * 60-second one across the apps (see the module). With reduced motion, or
  * before the styles run, it rests on Spot's screen with the Ape key. The
  * screen is a picture; the caption says the steps. Drawn on the server: only
  * the clock's controls (DemoLoop) run in the browser.
@@ -416,13 +468,15 @@ function SpotScreen() {
 export function PhoneDemo() {
   return (
     <DemoLoop
-      apps={APPS.map((a) => ({ name: a.name, icon: <AppIcon app={a.app} id={`rail${a.app}`} className={styles.railIcon} /> }))}
+      apps={APPS.map((a) => ({ name: a.name, see: a.see, icon: <AppIcon app={a.app} id={`rail${a.app}`} className={styles.railIcon} /> }))}
     >
       <Iphone>
         <Sprite />
-        <XApp />
-        <TikTokApp />
-        <TelegramApp />
+        {[<XApp key="x" />, <TikTokApp key="tiktok" />, <TelegramApp key="telegram" />, <SafariApp key="safari" />].map((app, i) => (
+          <div key={APPS[i]!.app} className={`${styles.layer} ${LAYERS[i]}`}>
+            {app}
+          </div>
+        ))}
         <i className={styles.veil} />
         <ShareSheet id="pd" />
         <SpotScreen />
@@ -435,12 +489,15 @@ export function PhoneDemo() {
         <i className={`${styles.tap} ${styles.tapTikTok}`} />
         <i className={`${styles.focus} ${styles.focusTelegram}`} />
         <i className={`${styles.tap} ${styles.tapTelegram}`} />
+        <i className={`${styles.focus} ${styles.focusSafari}`} />
+        <i className={`${styles.tap} ${styles.tapSafari}`} />
         <i className={`${styles.focus} ${styles.focusSpot}`} />
         <i className={`${styles.tap} ${styles.tap2}`} />
         <i className={`${styles.focus} ${styles.focusKey}`} />
         <i className={`${styles.tap} ${styles.tap3}`} />
         {/* The top of the screen: black over X and Telegram, white over
-            TikTok, and over Spot the way back to whichever app sent it. */}
+            TikTok and the coin page, and over Spot the way back to whichever
+            app sent it. */}
         <StatusBar tone="dark" className={styles.barDark} />
         <StatusBar tone="light" className={styles.barLight} />
         {APPS.map((a, i) => (

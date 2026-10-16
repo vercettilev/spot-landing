@@ -1,14 +1,12 @@
 /* TIKTOK, For You, dark. Sizes are iOS points (--u, see Iphone.module.css);
    the clocks (--t a loop, --m the three apps) come from PhoneDemo.module.css.
-   It is on for the middle third of the apps' clock, X before it and
-   Telegram after, coming in from the right. */
+   PhoneDemo.module.css slides it in and out. */
 .app {
   position: absolute;
   inset: 0;
   overflow: hidden;
   background: #000;
   color: #fff;
-  transform: translateX(100%);
 }
 
 /* Two videos one above the other: a swipe up brings the second. */
@@ -399,22 +397,14 @@
 
 /* ---------- the clock ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .app { animation: show var(--m) var(--d) infinite; }
-  .pages { animation: swipe var(--m) var(--d) infinite; }
+  .pages { animation: keep var(--m) var(--d) infinite; }
   .shareLead { animation: press var(--t) var(--d) infinite ease; }
 }
 
-/* In from the right for its third of the three apps, out to the left. */
-@keyframes show {
-  0%, 32.444% { transform: translateX(100%); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
-  33.333%, 65.778% { transform: none; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
-  66.667%, 100% { transform: translateX(-100%); }
-}
-/* Keep scrolling: once Spot has gone, a swipe up to Dan's ramen; back to
-   the top once the app is out of sight. */
-@keyframes swipe {
-  0%, 61.333% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
-  63.111%, 66.889% { transform: translateY(calc(-791 * var(--u))); }
-  66.9%, 100% { transform: none; }
-}
 @keyframes press { 0%, 16% { transform: none; } 16.67% { transform: scale(0.84); } 17.67%, 100% { transform: none; } }
+/* Keep scrolling: once Spot has gone, a swipe up to Dan's ramen. */
+@keyframes keep {
+  0%, 46% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
+  47.333%, 50.165% { transform: translateY(calc(-791 * var(--u))); }
+  50.167%, 100% { transform: none; }
+}

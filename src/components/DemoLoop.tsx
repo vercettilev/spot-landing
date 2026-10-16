@@ -24,7 +24,8 @@ const Chevron = ({ back = false }: { back?: boolean }) => (
 /**
  * THE PHONE DEMO'S CLOCK AND ITS CONTROLS: the puppy on top, the phone (drawn
  * on the server and passed in), and under it the apps the loop goes through
- * and the step in words between a back and an on arrow.
+ * (and a word that they are not the only ones) and the step in words between
+ * a back and an on arrow.
  *
  * The loop runs by itself, through each app in turn. The arrows move it a
  * step either way and an app's name jumps to it, and it carries on from
@@ -39,7 +40,13 @@ const Chevron = ({ back = false }: { back?: boolean }) => (
  * phone scrolls out of view: running three screens below the fold, it runs
  * for nobody.
  */
-export function DemoLoop({ apps, children }: { apps: { name: string; icon: React.ReactNode }[]; children: React.ReactNode }) {
+export function DemoLoop({
+  apps,
+  children,
+}: {
+  apps: { name: string; see: string; icon: React.ReactNode }[];
+  children: React.ReactNode;
+}) {
   const figure = useRef<HTMLElement>(null);
   const [held, setHeld] = useState(false); // stopped by the reader
   const [away, setAway] = useState(false); // scrolled out of view
@@ -137,6 +144,10 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
               <span className={styles.railName}>{a.name}</span>
             </button>
           ))}
+          {/* Not these four alone: from anywhere else, a screenshot does it. */}
+          <span className={styles.railMore} title="Anything else: share a screenshot">
+            + any app
+          </span>
         </span>
         <span className={styles.steps}>
           <button type="button" className={styles.arrow} onClick={() => step(-1)} aria-label="Previous step">
@@ -145,7 +156,7 @@ export function DemoLoop({ apps, children }: { apps: { name: string; icon: React
           <span className={styles.says}>
             {apps.map((a, i) => (
               <span key={a.name} className={`${styles.see} ${styles[`see${i}`]}`}>
-                See it on {a.name}.{" "}
+                {a.see}{" "}
               </span>
             ))}
             {SAYS.map((words, i) => (

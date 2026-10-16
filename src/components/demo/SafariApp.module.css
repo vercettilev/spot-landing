@@ -1,0 +1,286 @@
+/* SAFARI, on a coin's page on DEX Screener, dark. Sizes are iOS points (--u,
+   see Iphone.module.css); the clocks (--t, --m) come from
+   PhoneDemo.module.css, which also slides the app in and out. */
+.app {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0d0e10;
+  color: #e7e9ee;
+}
+
+/* ---------- the page ---------- */
+.page {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+.site {
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  height: calc(48 * var(--u));
+  margin-top: calc(54 * var(--u));
+  padding: 0 calc(14 * var(--u));
+  border-bottom: calc(1 * var(--u)) solid rgba(255, 255, 255, 0.06);
+}
+
+.logo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  font-weight: 800;
+  font-size: calc(14 * var(--u));
+  letter-spacing: calc(1.4 * var(--u));
+  color: #fff;
+}
+
+.logo i {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  border-radius: calc(6 * var(--u));
+  background: linear-gradient(135deg, #f3f4f6, #9ca3af);
+}
+
+.siteIcon {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  color: #c4c7cf;
+}
+
+.pair {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  padding: calc(14 * var(--u)) calc(14 * var(--u)) 0;
+}
+
+.face {
+  flex: none;
+  width: calc(30 * var(--u));
+  height: calc(30 * var(--u));
+}
+
+.names {
+  display: flex;
+  align-items: baseline;
+  gap: calc(5 * var(--u));
+  margin-right: calc(4 * var(--u));
+}
+
+.names b {
+  font-weight: 800;
+  font-size: calc(19 * var(--u));
+  color: #fff;
+}
+
+.names span {
+  font-size: calc(16 * var(--u));
+  color: #9aa0aa;
+}
+
+.chip {
+  padding: calc(3 * var(--u)) calc(8 * var(--u));
+  border-radius: calc(6 * var(--u));
+  background: #1f2026;
+  font-weight: 600;
+  font-size: calc(11.5 * var(--u));
+  color: #c4c7cf;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  gap: calc(10 * var(--u));
+  padding: calc(8 * var(--u)) calc(14 * var(--u)) 0;
+  font-weight: 800;
+  font-size: calc(28 * var(--u));
+  line-height: calc(34 * var(--u));
+  letter-spacing: calc(-0.5 * var(--u));
+  color: #fff;
+}
+
+.price span {
+  font-weight: 700;
+  font-size: calc(15 * var(--u));
+  letter-spacing: 0;
+  color: #ef4444;
+}
+
+.chart {
+  display: block;
+  width: calc(374 * var(--u));
+  height: calc(210 * var(--u));
+  margin: calc(12 * var(--u)) calc(14 * var(--u)) 0;
+  border-radius: calc(10 * var(--u));
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.stats,
+.moves {
+  display: grid;
+  gap: calc(8 * var(--u));
+  padding: calc(10 * var(--u)) calc(14 * var(--u)) 0;
+}
+
+.stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.moves {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: calc(8 * var(--u));
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 * var(--u));
+  padding: calc(8 * var(--u)) calc(10 * var(--u));
+  border-radius: calc(10 * var(--u));
+  background: #17181c;
+}
+
+.stat span {
+  font-weight: 600;
+  font-size: calc(10.5 * var(--u));
+  letter-spacing: calc(0.6 * var(--u));
+  text-transform: uppercase;
+  color: #8b909a;
+}
+
+.stat b {
+  font-weight: 700;
+  font-size: calc(15 * var(--u));
+  color: #fff;
+}
+
+.stat .up,
+.trade .up {
+  color: #22c55e;
+}
+
+.stat .down,
+.trade .down {
+  color: #ef4444;
+}
+
+.tabs {
+  display: flex;
+  gap: calc(16 * var(--u));
+  padding: calc(16 * var(--u)) calc(14 * var(--u)) calc(8 * var(--u));
+  font-size: calc(14 * var(--u));
+  color: #8b909a;
+}
+
+.tabs b {
+  font-weight: 700;
+  color: #fff;
+}
+
+.trades {
+  padding: 0 calc(14 * var(--u));
+}
+
+.trade {
+  display: grid;
+  grid-template-columns: calc(40 * var(--u)) calc(44 * var(--u)) minmax(0, 1fr) calc(64 * var(--u));
+  align-items: center;
+  height: calc(34 * var(--u));
+  border-bottom: calc(1 * var(--u)) solid rgba(255, 255, 255, 0.05);
+  font-size: calc(13.5 * var(--u));
+  color: #c4c7cf;
+}
+
+.trade b {
+  font-weight: 700;
+}
+
+.usd,
+.sol {
+  text-align: right;
+}
+
+/* The strip under the status bar, in the page's own colour, that the page
+   scrolls under. */
+.top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(54 * var(--u));
+  background: #0d0e10;
+}
+
+/* ---------- Safari's toolbar, dark glass over a dark page ---------- */
+.bar {
+  position: absolute;
+  left: calc(10 * var(--u));
+  right: calc(10 * var(--u));
+  bottom: calc(24 * var(--u));
+  height: calc(108 * var(--u));
+  padding: calc(8 * var(--u)) calc(10 * var(--u)) 0;
+  border-radius: calc(30 * var(--u));
+  background: rgba(36, 36, 40, 0.9);
+  -webkit-backdrop-filter: blur(calc(24 * var(--u))) saturate(1.6);
+  backdrop-filter: blur(calc(24 * var(--u))) saturate(1.6);
+  box-shadow:
+    0 calc(10 * var(--u)) calc(30 * var(--u)) rgba(0, 0, 0, 0.4),
+    inset 0 0 0 calc(1 * var(--u)) rgba(255, 255, 255, 0.08);
+}
+
+.url {
+  height: calc(42 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 calc(12 * var(--u));
+  border-radius: calc(21 * var(--u));
+  background: rgba(118, 118, 128, 0.24);
+  font-size: calc(16 * var(--u));
+  color: #fff;
+}
+
+.urlIcon {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+  color: rgba(235, 235, 245, 0.6);
+}
+
+/* Back, forward, Share in the middle, bookmarks, tabs. */
+.tools {
+  height: calc(52 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  color: #fff;
+}
+
+.tool {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+}
+
+.off {
+  color: rgba(235, 235, 245, 0.3);
+}
+
+.share {
+  display: flex;
+}
+
+/* ---------- the clock ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .page { animation: keep var(--m) var(--d) infinite; }
+  .share { animation: press var(--t) var(--d) infinite ease; }
+}
+
+@keyframes press { 0%, 16% { transform: none; } 16.67% { transform: scale(0.84); } 17.67%, 100% { transform: none; } }
+/* Keep scrolling: once Spot has gone, on down the trades. */
+@keyframes keep {
+  0%, 96% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
+  97.333%, 100% { transform: translateY(calc(-170 * var(--u))); }
+}

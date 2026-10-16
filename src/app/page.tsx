@@ -118,7 +118,10 @@ export default async function Home() {
               </p>
               <p className={styles.sources}>
                 <Sources className={styles.marks} />
-                <span>Works from X, TikTok, Telegram and YouTube. Anything else, share a&nbsp;screenshot.</span>
+                <span>
+                  Works from X, TikTok, Telegram, YouTube and coin pages in your browser. Anything else, share
+                  a&nbsp;screenshot.
+                </span>
               </p>
             </div>
             <div className={styles.visual}>
