@@ -71,6 +71,12 @@ export function memoryKv(): Kv & { advance(seconds: number): void } {
       s.add(member);
       return true;
     },
+    async srem(key, member) {
+      sets.get(key)?.delete(member);
+    },
+    async smembers(key) {
+      return [...(sets.get(key) ?? [])];
+    },
     async scard(key) {
       return sets.get(key)?.size ?? 0;
     },

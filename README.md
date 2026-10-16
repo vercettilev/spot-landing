@@ -24,6 +24,9 @@ src/components/Sources.tsx    where Spot reads a coin from on its own: X, TikTok
 src/components/JoinButton.tsx the second "Save my spot": back up to the form, cursor in the field
 src/components/Reveal.tsx     plays the sniff report and the dump alert once they scroll into view
 src/lib/email.ts              optional notes to ourselves (new signup, or a rescue if the store is down)
+src/lib/invite.ts             who is invited next, once each, and the unsubscribe links (with inviteMail.ts, the email)
+src/app/admin                 the owner's invites page, behind SPOT_ADMIN_KEY; its API is src/app/api/admin/invites
+src/app/unsubscribe           where an invite's unsubscribe link lands; a mail app's one-click goes to src/app/api/unsubscribe
 src/components/SpotPuppy.tsx  the mascot; press it and it barks, the angry one growls
 src/app/api/resolve, sniff    the app's API: a share in, its coin out; a coin in, the sniff out
 src/engine/                   what those two run on (see src/engine/README.md)
@@ -68,6 +71,18 @@ npm run waitlist -- --csv  # the list in line order
 ```
 
 With the Redis variables in `.env.local` as well (connect it to Development too), the CSV comes in line order with each person's place, code, whose link brought them and how many friends they brought. Invite people in that order: it is the one the page showed them.
+
+## Inviting people
+
+When Spot is ready for a phone, `/admin` sends the people waiting for it one invite each, in line order. It shows the list per phone (on it, invited, waiting, no link yet, unsubscribed) and the next people in line with their addresses masked; sends you a test; and invites the next N, at most 100 a press. Nobody gets a second invite: each person is claimed in Redis before their email goes, and a failed email gives the claim back for the next press. Every invite has an unsubscribe link (and the headers mail apps use for one-click unsubscribe); who unsubscribed is never mailed again.
+
+Set up once, in this order:
+
+1. **Resend.** Make an account, add the domain `usespot.fun`, and add the DNS records it lists at Squarespace, next to Google Workspace's: a DKIM key (`resend._domainkey`) and a `send.` subdomain for bounces, which leave the inbox alone. While there, add a DMARC record if there is none (there was none on 16 October 2026): TXT, host `_dmarc`, value `v=DMARC1; p=none;`. Gmail and Yahoo look for it. Wait until Resend says the domain is verified: mail from an unverified domain lands in spam or nowhere. The free plan sends 100 a day and 3,000 a month, so a day's 100 is one full press; `OPS_INBOX`, if set, spends from the same 100 with a note per signup.
+2. **Vercel, Production:** `RESEND_API_KEY` (from Resend), `MAIL_FROM` (`Spot <hello@usespot.fun>`; people reply to invites, so make `hello@` an alias of a Workspace inbox, or set `MAIL_REPLY_TO`), `SPOT_ADMIN_KEY` (a long random string; `openssl rand -hex 24` makes one), and the link each phone's invite opens: `INVITE_URL_ANDROID` (the dApp Store listing, or the test APK), `INVITE_URL_SEEKER` (if Seeker should go elsewhere; else Android's), `INVITE_URL_IPHONE` (when there is one). A phone without a link is not invited. Also `MAIL_POSTAL_ADDRESS`, the company's postal address, for the footer: US law (CAN-SPAM) wants one in mail like this. Optional: `MAIL_REPLY_TO` (else `OPS_INBOX`, else `MAIL_FROM`). Redeploy.
+3. Open `www.usespot.fun/admin`, enter the key, send yourself a test, then invite.
+
+Who was invited and who unsubscribed live in Redis (`spot:invited`, `spot:unsubscribed`), as hashes of addresses, like the line.
 
 ## Things to know
 

@@ -35,6 +35,8 @@ export interface Kv {
   zrank(key: string, member: string): Promise<number | null>;
   zrange(key: string): Promise<string[]>;
   sadd(key: string, member: string): Promise<boolean>;
+  srem(key: string, member: string): Promise<void>;
+  smembers(key: string): Promise<string[]>;
   scard(key: string): Promise<number>;
 }
 
@@ -190,6 +192,10 @@ export function upstashKv(url: string, token: string): Kv {
     zrank: async (k, m) => num(await r.zrank(k, m)),
     zrange: async (k) => (await r.zrange<string[]>(k, 0, -1)).map(String),
     sadd: async (k, m) => (await r.sadd(k, m)) === 1,
+    srem: async (k, m) => {
+      await r.srem(k, m);
+    },
+    smembers: async (k) => (await r.smembers<string[]>(k)).map(String),
     scard: (k) => r.scard(k),
   };
 }

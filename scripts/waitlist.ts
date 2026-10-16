@@ -16,8 +16,7 @@
  * Invite people in this order: it is the one the page showed them.
  */
 import { readFileSync, existsSync } from "node:fs";
-import { get, list } from "@vercel/blob";
-import { PREFIX, type SignupRecord } from "../src/lib/store";
+import { allSignups, type SignupRecord } from "../src/lib/store";
 import { getKv, lineOrder } from "../src/lib/line";
 
 if (existsSync(".env.local")) {
@@ -36,25 +35,7 @@ if (!usable(env.BLOB_READ_WRITE_TOKEN) && !(usable(env.BLOB_STORE_ID) && usable(
 }
 
 async function main() {
-  const paths: string[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await list({ prefix: PREFIX, cursor, limit: 1000 });
-    paths.push(...page.blobs.map((b) => b.pathname));
-    cursor = page.hasMore ? page.cursor : undefined;
-  } while (cursor);
-
-  const rows: SignupRecord[] = [];
-  for (const pathname of paths) {
-    const res = await get(pathname, { access: "private" });
-    if (!res) continue; // deleted between list and get
-    try {
-      rows.push(JSON.parse(await new Response(res.stream).text()) as SignupRecord);
-    } catch {
-      console.error(`unreadable: ${pathname}`);
-    }
-  }
-  rows.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const rows = await allSignups();
 
   /* The line's order where it has one; anyone it does not know (signed up
      while it was down) follows in arrival order. */
