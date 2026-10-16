@@ -15,7 +15,7 @@ src/lib/referral.ts           what page and server share about codes and links
 src/app/r/[code]/route.ts     a shared link, usespot.fun/r/CODE, lands on the page with the code
 src/components/SpotPass.tsx   what a reader sees once they are in: place, stamp, their link
 src/components/PhoneDemo.tsx  Spot on an iPhone, on a loop through X, TikTok and Telegram: a post, Share, Spot, the sniff stamped CLEAN, Ape $25, back to the app (SOL, example data)
-src/components/DemoLoop.tsx   the demo's clock controls: the apps to jump to, the step arrows, Pause
+src/components/DemoLoop.tsx   the demo's clock controls: the apps to jump to, the step arrows; a tap on the phone holds it
 src/components/demo/          the three apps the demo goes through, and the marks and chart they share
 src/components/Iphone.tsx     the iPhone the demo and the lock screen are drawn on, sized in iOS points
 src/components/EarlyChart.tsx "Early, not exit liquidity." as a coin's chart: the CA drops, you're in, they buy the top
