@@ -4,11 +4,19 @@
    opens, sniffs, stamps CLEAN, Ape $25 lit and pressed, the orange moment),
    81.33–100% keep scrolling (Spot goes, the feed scrolls on to where it
    began, so the loop has no seam). The caption's arrows jump to those same
-   marks (STEPS in DemoLoop.tsx). Without motion everything rests on Spot's
-   screen with the Ape key (the base styles). Inside the phone, sizes are iOS
-   points (--u, see Iphone.module.css). */
+   marks (STEP_STARTS in DemoLoop.tsx).
+   THE APPS' CLOCK. --m is three loops: X for the first third, TikTok the
+   second, Telegram the last. What changes with the app (which app shows,
+   where its Share is lit, the share sheet's title, Spot's "from … on …",
+   the status bar's tone and its way back, the first step's words and the
+   lit app under the phone) runs on --m and changes at the seams, where one
+   app swipes in over the last, or while Spot covers the screen.
+   Without motion everything rests on Spot's screen with the Ape key, come
+   from X (the base styles). Inside the phone, sizes are iOS points (--u, see
+   Iphone.module.css). */
 .demo {
   --t: 15s;
+  --m: 45s;
   --d: 0s;
   --phone-w: min(300px, 78vw);
   --pup-w: calc(var(--phone-w) * 0.46);
@@ -57,7 +65,7 @@
 /* Stopped by the reader, or scrolled away: every clock in the phone and in
    the caption holds its frame. The puppy is left out, so a press still barks.
    Important, because each animation is set with the shorthand, which says
-   "running" too, and some of those rules (.says > .say1, .done .check) are
+   "running" too, and some of those rules (.says > .say2, .done .check) are
    as specific as this one and come later: without it the words and the
    receipt's rows went on while the phone stood still. */
 .paused .stage *,
@@ -66,286 +74,6 @@
 .paused .caption *,
 .paused .caption *::after {
   animation-play-state: paused !important;
-}
-
-/* ---------- X, light ---------- */
-/* The marks the feed repeats, drawn once (see Sprite). */
-.sprite {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
-.xApp {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  background: #fff;
-  color: #0f1419;
-}
-
-.xList {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(147 * var(--u));
-}
-
-/* Every post has a set height, so the feed's loop is exact on any font. */
-.post {
-  display: flex;
-  gap: calc(12 * var(--u));
-  height: calc(99 * var(--u));
-  padding: calc(12 * var(--u)) calc(16 * var(--u));
-  border-bottom: calc(1 * var(--u)) solid #eff3f4;
-  overflow: hidden;
-  background: #fff;
-}
-
-.postTall {
-  height: calc(292 * var(--u));
-}
-
-.av {
-  flex: none;
-  width: calc(40 * var(--u));
-  height: calc(40 * var(--u));
-  border-radius: 50%;
-}
-
-.avTheo {
-  background: linear-gradient(135deg, #30cfd0, #330867);
-}
-
-.avAna {
-  background: radial-gradient(circle at 34% 30%, #ffe0b0 0 16%, #ff9d5c 40%, #e2552f 100%);
-}
-
-.avDan {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
-}
-
-.avMika {
-  background: linear-gradient(135deg, #a18cd1, #fbc2eb);
-}
-
-.avLeo {
-  background: linear-gradient(135deg, #f6d365, #fda085);
-}
-
-.postBody {
-  flex: 1;
-  min-width: 0;
-}
-
-.postHead {
-  display: flex;
-  align-items: center;
-  gap: calc(3 * var(--u));
-  font-size: calc(15 * var(--u));
-  line-height: calc(20 * var(--u));
-  white-space: nowrap;
-}
-
-.postHead b {
-  font-weight: 700;
-}
-
-.badge {
-  flex: none;
-  width: calc(18 * var(--u));
-  height: calc(18 * var(--u));
-  margin-right: calc(1 * var(--u));
-  color: #1d9bf0;
-}
-
-.handle {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #536471;
-}
-
-.more {
-  flex: none;
-  width: calc(17 * var(--u));
-  height: calc(17 * var(--u));
-  margin-left: auto;
-  color: #536471;
-}
-
-.postText {
-  margin-top: calc(2 * var(--u));
-  font-size: calc(15 * var(--u));
-  line-height: calc(20 * var(--u));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cash {
-  color: #1d9bf0;
-}
-
-.media {
-  height: calc(181 * var(--u));
-  margin-top: calc(12 * var(--u));
-  border: calc(1 * var(--u)) solid #cfd9de;
-  border-radius: calc(16 * var(--u));
-  overflow: hidden;
-}
-
-.tv {
-  width: 100%;
-  height: 100%;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
-.acts {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: calc(20 * var(--u));
-  margin-top: calc(12 * var(--u));
-  color: #536471;
-}
-
-.act {
-  display: flex;
-  align-items: center;
-  gap: calc(4 * var(--u));
-  font-size: calc(13 * var(--u));
-}
-
-.xi {
-  width: calc(18.75 * var(--u));
-  height: calc(18.75 * var(--u));
-}
-
-.actsEnd {
-  display: flex;
-  align-items: center;
-  gap: calc(16 * var(--u));
-}
-
-.share {
-  display: flex;
-}
-
-.xTop {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: calc(98 * var(--u));
-  background: #fff;
-}
-
-.me {
-  position: absolute;
-  left: calc(16 * var(--u));
-  top: calc(60 * var(--u));
-  width: calc(32 * var(--u));
-  height: calc(32 * var(--u));
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7f7fd5, #86a8e7 50%, #91eae4);
-}
-
-.xLogo {
-  position: absolute;
-  left: calc(189 * var(--u));
-  top: calc(64 * var(--u));
-  width: calc(24 * var(--u));
-  height: calc(24 * var(--u));
-}
-
-.xTabs {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(98 * var(--u));
-  height: calc(49 * var(--u));
-  display: flex;
-  align-items: center;
-  gap: calc(26 * var(--u));
-  padding-left: calc(16 * var(--u));
-  border-bottom: calc(1 * var(--u)) solid #eff3f4;
-  background: #fff;
-}
-
-.xTab {
-  position: relative;
-  height: calc(49 * var(--u));
-  display: flex;
-  align-items: center;
-  font-size: calc(15 * var(--u));
-  font-weight: 500;
-  color: #536471;
-}
-
-.xTabOn {
-  font-weight: 700;
-  color: #0f1419;
-}
-
-.xTabOn i {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(4 * var(--u));
-  border-radius: calc(2 * var(--u));
-  background: #1d9bf0;
-}
-
-.xTabPlus {
-  width: calc(18.75 * var(--u));
-  height: calc(18.75 * var(--u));
-  margin: 0 calc(16 * var(--u)) 0 auto;
-}
-
-.fab {
-  position: absolute;
-  right: calc(16 * var(--u));
-  bottom: calc(99 * var(--u));
-  width: calc(56 * var(--u));
-  height: calc(56 * var(--u));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #1d9bf0;
-  box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(0, 0, 0, 0.22);
-}
-
-.fabIcon {
-  width: calc(24 * var(--u));
-  height: calc(24 * var(--u));
-  color: #fff;
-}
-
-.xBar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(83 * var(--u));
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-start;
-  padding-top: calc(12 * var(--u));
-  border-top: calc(1 * var(--u)) solid #eff3f4;
-  background: rgba(255, 255, 255, 0.97);
-}
-
-.xb {
-  width: calc(26 * var(--u));
-  height: calc(26 * var(--u));
-}
-
-.xbGrok {
-  width: calc(24 * var(--u));
-  height: calc(24 * var(--u));
 }
 
 /* ---------- the share sheet (iOS 26) ---------- */
@@ -373,6 +101,20 @@
     inset 0 0 0 calc(1 * var(--u)) rgba(255, 255, 255, 0.72),
     0 0 0 calc(0.5 * var(--u)) rgba(0, 0, 0, 0.08);
   transform: translateY(110%);
+}
+
+/* One title per app, in the same place; the app's own shows. */
+.heads {
+  display: grid;
+}
+
+.heads > * {
+  grid-area: 1 / 1;
+}
+
+.app1,
+.app2 {
+  opacity: 0;
 }
 
 .sheetHead {
@@ -558,8 +300,17 @@
   height: calc(24 * var(--u));
 }
 
-.source {
+.sources {
   flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.sources > * {
+  grid-area: 1 / 1;
+}
+
+.source {
   min-width: 0;
   font-weight: 600;
   font-size: calc(15 * var(--u));
@@ -1088,8 +839,14 @@
   box-shadow: inset 0 0 0 calc(2 * var(--u)) #000;
 }
 
-/* ---------- the status bar and home bar: black over X, white over Spot ---------- */
-.barDark {
+/* ---------- the status bar and home bar ---------- */
+/* Black over X and Telegram, white over TikTok, and over Spot white with the
+   way back to the app it came from. At rest: Spot, come from X. */
+.barDark,
+.barLight,
+.back1,
+.back2,
+.homeDark {
   opacity: 0;
 }
 
@@ -1107,12 +864,29 @@
     0 0 0 calc(2400 * var(--u)) rgba(0, 0, 0, 0.42);
 }
 
-/* Ana's Share, where the feed stops (her post 160 points down). */
-.focusShare {
+/* Share in each app: Ana's on X, where the feed stops (her post 160 points
+   down); the arrow on TikTok's rail; the round button by Mika's post. */
+.focusX {
   left: calc(356 * var(--u));
   top: calc(409 * var(--u));
   width: calc(41 * var(--u));
   height: calc(41 * var(--u));
+  border-radius: 50%;
+}
+
+.focusTikTok {
+  left: calc(339 * var(--u));
+  top: calc(642 * var(--u));
+  width: calc(54 * var(--u));
+  height: calc(54 * var(--u));
+  border-radius: 50%;
+}
+
+.focusTelegram {
+  left: calc(334 * var(--u));
+  top: calc(736 * var(--u));
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
   border-radius: 50%;
 }
 
@@ -1152,9 +926,19 @@
   pointer-events: none;
 }
 
-.tap1 {
+.tapX {
   left: calc(376.6 * var(--u));
   top: calc(429 * var(--u));
+}
+
+.tapTikTok {
+  left: calc(366 * var(--u));
+  top: calc(669 * var(--u));
+}
+
+.tapTelegram {
+  left: calc(357 * var(--u));
+  top: calc(759 * var(--u));
 }
 
 .tap2 {
@@ -1173,6 +957,123 @@
   justify-items: center;
   gap: 14px;
   margin-top: 24px;
+}
+
+/* The apps the loop goes through, each a key to jump to it; the one on the
+   phone wears the orange. */
+.rail {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.railKey {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px 0 7px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: none;
+  color: var(--stone-light);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, transform 0.08s;
+}
+
+.railKey:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--white);
+}
+
+.railKey:active {
+  transform: scale(0.96);
+}
+
+.railIcon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.railIcon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.railOn {
+  position: absolute;
+  inset: -1.5px;
+  border: 1.5px solid var(--orange);
+  border-radius: inherit;
+  background: rgba(252, 78, 2, 0.12);
+  pointer-events: none;
+}
+
+.on1,
+.on2 {
+  opacity: 0;
+}
+
+/* On a wide screen the apps stand in a column beside the phone, level with
+   its middle, so they are seen with it rather than under the fold: icons
+   alone where the column is narrow, named once there is room. */
+@media (min-width: 960px) {
+  .rail {
+    position: absolute;
+    right: calc(100% + 18px);
+    top: calc(var(--pup-room) + var(--phone-w) * 1.0514);
+    flex-direction: column;
+    gap: 10px;
+    transform: translateY(-50%);
+  }
+  .railKey {
+    flex-direction: column;
+    gap: 6px;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 16px;
+    font-size: 12px;
+  }
+  .railIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .railName {
+    display: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .rail {
+    right: calc(100% + 28px);
+  }
+  .railKey {
+    width: 78px;
+    height: auto;
+    padding: 10px 0 9px;
+    border-radius: 18px;
+  }
+  .railIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+  }
+  .railName {
+    display: inline;
+  }
 }
 
 .steps {
@@ -1278,28 +1179,39 @@
   transform: translateY(1px);
 }
 
-/* No loop under reduced motion, so nothing to pause or step through. */
+/* No loop under reduced motion, so nothing to pause, step through or jump to. */
 @media (prefers-reduced-motion: reduce) {
   .pause,
-  .arrow {
+  .arrow,
+  .rail {
     display: none;
   }
 }
 
 /* ---------- the loop ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .xList { animation: scroll var(--t) var(--d) infinite; }
-  .shareLead { animation: pressShare var(--t) var(--d) infinite ease; }
-  .focusShare { animation: focusShare var(--t) var(--d) infinite ease; }
-  .tap1 { animation: tap1 var(--t) var(--d) infinite ease-out; }
+  .focusX { animation: focusX var(--m) var(--d) infinite ease; }
+  .tapX { animation: tapX var(--m) var(--d) infinite ease-out; }
+  .focusTikTok { animation: focusTikTok var(--m) var(--d) infinite ease; }
+  .tapTikTok { animation: tapTikTok var(--m) var(--d) infinite ease-out; }
+  .focusTelegram { animation: focusTelegram var(--m) var(--d) infinite ease; }
+  .tapTelegram { animation: tapTelegram var(--m) var(--d) infinite ease-out; }
+  .app0 { animation: app0 var(--m) var(--d) infinite; }
+  .app1 { animation: app1 var(--m) var(--d) infinite; }
+  .app2 { animation: app2 var(--m) var(--d) infinite; }
   .veil { animation: veil var(--t) var(--d) infinite ease; }
   .sheet { animation: sheet var(--t) var(--d) infinite var(--ease-out); }
   .focusSpot { animation: focusSpot var(--t) var(--d) infinite ease; }
   .tap2 { animation: tap2 var(--t) var(--d) infinite ease-out; }
   .spotTile { animation: pressSpot var(--t) var(--d) infinite ease; }
   .spot { animation: spot var(--t) var(--d) infinite; }
-  .barDark { animation: barDark var(--t) var(--d) infinite ease; }
-  .barLight { animation: barLight var(--t) var(--d) infinite ease; }
+  .barDark,
+  .homeDark { animation: dark var(--m) var(--d) infinite ease; }
+  .barLight { animation: lightApp var(--m) var(--d) infinite ease; }
+  .homeLight { animation: light var(--m) var(--d) infinite ease; }
+  .back0 { animation: back0 var(--m) var(--d) infinite ease; }
+  .back1 { animation: back1 var(--m) var(--d) infinite ease; }
+  .back2 { animation: back2 var(--m) var(--d) infinite ease; }
   .loading { animation: loading var(--t) var(--d) infinite ease; }
   .done { animation: done var(--t) var(--d) infinite ease; }
   .done .check,
@@ -1323,28 +1235,18 @@
   .ring1 { animation: ring var(--t) var(--d) infinite ease-out; }
   .ring2 { animation: ring var(--t) calc(var(--d) + 0.18s) infinite ease-out both; }
   .ring3 { animation: ring var(--t) calc(var(--d) + 0.36s) infinite ease-out both; }
-  .says > .say1 { animation: say1 var(--t) var(--d) infinite ease; }
+  .says > .see0 { animation: see0 var(--m) var(--d) infinite ease; }
+  .says > .see1 { animation: see1 var(--m) var(--d) infinite ease; }
+  .says > .see2 { animation: see2 var(--m) var(--d) infinite ease; }
+  .on0 { animation: on0 var(--m) var(--d) infinite ease; }
+  .on1 { animation: on1 var(--m) var(--d) infinite ease; }
+  .on2 { animation: on2 var(--m) var(--d) infinite ease; }
   .says > .say2 { animation: say2 var(--t) var(--d) infinite ease; }
   .says > .say3 { animation: say3 var(--t) var(--d) infinite ease; }
   .says > .say4 { animation: say4 var(--t) var(--d) infinite ease; }
   .progress circle { animation: progress var(--t) var(--d) infinite linear; }
 }
 
-/* The feed: a short scroll to Ana's post, and after the buy one long one,
-   exactly a loop of posts (688 points), so the end is the start. */
-@keyframes scroll {
-  0%, 2% { transform: none; animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
-  8.67% { transform: translateY(calc(-86 * var(--u))); }
-  84% { transform: translateY(calc(-86 * var(--u))); animation-timing-function: cubic-bezier(0.25, 0.6, 0.2, 1); }
-  94.67%, 100% { transform: translateY(calc(-688 * var(--u))); }
-}
-@keyframes pressShare { 0%, 16% { transform: none; } 16.67% { transform: scale(0.84); } 17.67%, 100% { transform: none; } }
-@keyframes focusShare { 0%, 10% { opacity: 0; } 12%, 17.33% { opacity: 1; } 19.33%, 100% { opacity: 0; } }
-@keyframes tap1 {
-  0%, 15.67% { opacity: 0; transform: scale(0.4); }
-  16.33% { opacity: 0.9; transform: scale(0.75); }
-  19.33%, 100% { opacity: 0; transform: scale(1.6); }
-}
 @keyframes veil { 0%, 20% { opacity: 0; } 22.67%, 43.33% { opacity: 0.22; } 43.4%, 100% { opacity: 0; } }
 @keyframes sheet { 0%, 20% { transform: translateY(110%); } 23.33%, 43.33% { transform: none; } 43.4%, 100% { transform: translateY(110%); } }
 @keyframes focusSpot { 0%, 26.67% { opacity: 0; } 28.67%, 37.33% { opacity: 1; } 39.33%, 100% { opacity: 0; } }
@@ -1360,8 +1262,6 @@
   81.33% { transform: none; animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.2); }
   84.67%, 100% { transform: translateY(100%); }
 }
-@keyframes barDark { 0%, 42% { opacity: 1; } 42.67%, 82.67% { opacity: 0; } 83.33%, 100% { opacity: 1; } }
-@keyframes barLight { 0%, 42% { opacity: 0; } 42.67%, 82.67% { opacity: 1; } 83.33%, 100% { opacity: 0; } }
 @keyframes loading { 0%, 50.67% { opacity: 1; } 52%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
 @keyframes done { 0%, 50.67% { opacity: 0; } 52%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
 @keyframes tick {
@@ -1412,7 +1312,6 @@
   79.33%, 100% { opacity: 0; transform: scale(1.7); }
 }
 /* The words change on the step's mark, so an arrow lands on the new word. */
-@keyframes say1 { 0% { opacity: 0; } 2%, 20% { opacity: 1; } 22%, 100% { opacity: 0; } }
 @keyframes say2 { 0%, 20% { opacity: 0; } 22%, 40% { opacity: 1; } 42%, 100% { opacity: 0; } }
 @keyframes say3 { 0%, 40% { opacity: 0; } 42%, 81.33% { opacity: 1; } 83.33%, 100% { opacity: 0; } }
 @keyframes say4 { 0% { opacity: 1; } 2%, 81.33% { opacity: 0; } 83.33%, 100% { opacity: 1; } }
@@ -1427,3 +1326,69 @@
   81.34% { stroke-dashoffset: 1; }
   100% { stroke-dashoffset: 0; }
 }
+
+/* ---------- the apps' clock (--m: X, TikTok, Telegram, a third each) ---------- */
+/* In seconds of 45: a loop is 15, its steps start at +0, +3, +6, +12.2; the
+   status bar turns over Spot at +6.3 and back at +12.4; the next app swipes
+   in over the last 0.4 of a loop. */
+@keyframes app0 { 0%, 33.333% { opacity: 1; } 33.334%, 99.999% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes app1 { 0%, 33.333% { opacity: 0; } 33.334%, 66.667% { opacity: 1; } 66.668%, 100% { opacity: 0; } }
+@keyframes app2 { 0%, 66.667% { opacity: 0; } 66.668%, 99.999% { opacity: 1; } 100% { opacity: 0; } }
+/* Share, lit and pressed, in each app's own loop (+1.5 to +2.9). */
+@keyframes focusX { 0%, 3.333% { opacity: 0; } 4%, 5.778% { opacity: 1; } 6.444%, 100% { opacity: 0; } }
+@keyframes tapX {
+  0%, 5.222% { opacity: 0; transform: scale(0.4); }
+  5.444% { opacity: 0.9; transform: scale(0.75); }
+  6.444%, 100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes focusTikTok { 0%, 36.667% { opacity: 0; } 37.333%, 39.111% { opacity: 1; } 39.778%, 100% { opacity: 0; } }
+@keyframes tapTikTok {
+  0%, 38.556% { opacity: 0; transform: scale(0.4); }
+  38.778% { opacity: 0.9; transform: scale(0.75); }
+  39.778%, 100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes focusTelegram { 0%, 70% { opacity: 0; } 70.667%, 72.444% { opacity: 1; } 73.111%, 100% { opacity: 0; } }
+@keyframes tapTelegram {
+  0%, 71.889% { opacity: 0; transform: scale(0.4); }
+  72.111% { opacity: 0.9; transform: scale(0.75); }
+  73.111%, 100% { opacity: 0; transform: scale(1.6); }
+}
+/* The status bar: black over X and Telegram, white over TikTok and Spot. */
+@keyframes dark {
+  0%, 14% { opacity: 1; }
+  14.222%, 27.556% { opacity: 0; }
+  27.778%, 32.444% { opacity: 1; }
+  33.333%, 65.778% { opacity: 0; }
+  66.667%, 80.667% { opacity: 1; }
+  80.889%, 94.222% { opacity: 0; }
+  94.444%, 100% { opacity: 1; }
+}
+@keyframes light {
+  0%, 14% { opacity: 0; }
+  14.222%, 27.556% { opacity: 1; }
+  27.778%, 32.444% { opacity: 0; }
+  33.333%, 65.778% { opacity: 1; }
+  66.667%, 80.667% { opacity: 0; }
+  80.889%, 94.222% { opacity: 1; }
+  94.444%, 100% { opacity: 0; }
+}
+/* White with the time: over TikTok itself, not over Spot. */
+@keyframes lightApp {
+  0%, 32.444% { opacity: 0; }
+  33.333%, 47.333% { opacity: 1; }
+  47.556%, 60.889% { opacity: 0; }
+  61.111%, 65.778% { opacity: 1; }
+  66.667%, 100% { opacity: 0; }
+}
+/* White with the way back, over Spot, to the app of that loop. */
+@keyframes back0 { 0%, 14% { opacity: 0; } 14.222%, 27.556% { opacity: 1; } 27.778%, 100% { opacity: 0; } }
+@keyframes back1 { 0%, 47.333% { opacity: 0; } 47.556%, 60.889% { opacity: 1; } 61.111%, 100% { opacity: 0; } }
+@keyframes back2 { 0%, 80.667% { opacity: 0; } 80.889%, 94.222% { opacity: 1; } 94.444%, 100% { opacity: 0; } }
+/* "See it on …", the first step's words, in each app's own loop. */
+@keyframes see0 { 0% { opacity: 0; } 0.667%, 6.667% { opacity: 1; } 7.333%, 100% { opacity: 0; } }
+@keyframes see1 { 0%, 33.333% { opacity: 0; } 34%, 40% { opacity: 1; } 40.667%, 100% { opacity: 0; } }
+@keyframes see2 { 0%, 66.667% { opacity: 0; } 67.333%, 73.333% { opacity: 1; } 74%, 100% { opacity: 0; } }
+/* The lit app under the phone. */
+@keyframes on0 { 0%, 32.9% { opacity: 1; } 33.333%, 99.5% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes on1 { 0%, 32.9% { opacity: 0; } 33.333%, 66.2% { opacity: 1; } 66.667%, 100% { opacity: 0; } }
+@keyframes on2 { 0%, 66.2% { opacity: 0; } 66.667%, 99.5% { opacity: 1; } 100% { opacity: 0; } }

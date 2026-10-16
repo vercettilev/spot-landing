@@ -1,0 +1,420 @@
+/* TIKTOK, For You, dark. Sizes are iOS points (--u, see Iphone.module.css);
+   the clocks (--t a loop, --m the three apps) come from PhoneDemo.module.css.
+   It is on for the middle third of the apps' clock, X before it and
+   Telegram after, coming in from the right. */
+.app {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  transform: translateX(100%);
+}
+
+/* Two videos one above the other: a swipe up brings the second. */
+.pages {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(791 * var(--u));
+}
+
+.page {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: calc(791 * var(--u));
+  overflow: hidden;
+}
+
+.pageNico {
+  top: 0;
+  background: radial-gradient(120% 62% at 50% 28%, #22163a 0%, #0e0b18 55%, #050507 100%);
+}
+
+.pageDan {
+  top: calc(791 * var(--u));
+  background:
+    radial-gradient(42% 28% at 50% 58%, rgba(255, 236, 205, 0.38), rgba(255, 236, 205, 0) 72%),
+    radial-gradient(90% 62% at 45% 40%, #e9944a 0%, #a8471b 48%, #2e1307 100%);
+}
+
+.glow {
+  position: absolute;
+  left: calc(-60 * var(--u));
+  right: calc(-60 * var(--u));
+  top: calc(330 * var(--u));
+  height: calc(380 * var(--u));
+  background: radial-gradient(50% 50% at 64% 50%, rgba(255, 59, 92, 0.22), rgba(255, 59, 92, 0) 70%);
+}
+
+/* Steam over the bowl. */
+.steam {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(18% 12% at 42% 46%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(14% 10% at 58% 40%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 70%);
+}
+
+/* The words a creator lays over a video, on white. */
+.overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(176 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(5 * var(--u));
+}
+
+.overlay span {
+  display: block;
+  padding: calc(5 * var(--u)) calc(13 * var(--u)) calc(6 * var(--u));
+  border-radius: calc(8 * var(--u));
+  background: #fff;
+  color: #000;
+  font-weight: 700;
+  font-size: calc(27 * var(--u));
+  line-height: calc(32 * var(--u));
+  letter-spacing: calc(-0.2 * var(--u));
+}
+
+.chartWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(292 * var(--u));
+  height: calc(300 * var(--u));
+}
+
+.chart {
+  width: calc(402 * var(--u));
+  height: calc(300 * var(--u));
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ---------- over the video: tabs and search ---------- */
+.top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(54 * var(--u));
+  height: calc(44 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live {
+  position: absolute;
+  left: calc(14 * var(--u));
+  top: calc(9 * var(--u));
+  width: calc(30 * var(--u));
+  height: calc(26 * var(--u));
+}
+
+.live svg {
+  width: calc(30 * var(--u));
+  height: calc(26 * var(--u));
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: calc(22 * var(--u));
+}
+
+.tab {
+  position: relative;
+  font-weight: 600;
+  font-size: calc(17 * var(--u));
+  line-height: calc(22 * var(--u));
+  color: rgba(255, 255, 255, 0.66);
+  text-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(0, 0, 0, 0.3);
+}
+
+.tabOn {
+  font-weight: 700;
+  color: #fff;
+}
+
+.dot {
+  position: absolute;
+  right: calc(-9 * var(--u));
+  top: calc(2 * var(--u));
+  width: calc(6 * var(--u));
+  height: calc(6 * var(--u));
+  border-radius: 50%;
+  background: #fe2c55;
+}
+
+.underline {
+  position: absolute;
+  left: 50%;
+  bottom: calc(-8 * var(--u));
+  width: calc(26 * var(--u));
+  height: calc(3 * var(--u));
+  margin-left: calc(-13 * var(--u));
+  border-radius: calc(2 * var(--u));
+  background: #fff;
+}
+
+.search {
+  position: absolute;
+  right: calc(14 * var(--u));
+  top: calc(9 * var(--u));
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+}
+
+/* ---------- the rail ---------- */
+.rail {
+  position: absolute;
+  right: calc(7 * var(--u));
+  bottom: calc(17 * var(--u));
+  width: calc(58 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(15 * var(--u));
+}
+
+.avatar {
+  position: relative;
+  width: calc(50 * var(--u));
+  height: calc(50 * var(--u));
+  margin-bottom: calc(10 * var(--u));
+}
+
+.avatar i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 calc(1.5 * var(--u)) #fff;
+}
+
+.avatar b {
+  position: absolute;
+  left: 50%;
+  bottom: calc(-11 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  margin-left: calc(-11 * var(--u));
+  border-radius: 50%;
+  background: #fe2c55;
+  font-size: calc(19 * var(--u));
+  line-height: calc(21 * var(--u));
+  font-weight: 600;
+  text-align: center;
+}
+
+.faceNico {
+  background: radial-gradient(circle at 36% 30%, #ffd9b0 0 17%, #f08a5d 40%, #7a3cff 100%);
+}
+
+.faceDan {
+  background: linear-gradient(135deg, #43e97b, #38f9d7);
+}
+
+.act {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2 * var(--u));
+  font-weight: 600;
+  font-size: calc(13 * var(--u));
+  line-height: calc(16 * var(--u));
+  text-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(0, 0, 0, 0.45);
+}
+
+.icon {
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
+  filter: drop-shadow(0 calc(1 * var(--u)) calc(1.5 * var(--u)) rgba(0, 0, 0, 0.3));
+}
+
+.comment {
+  position: relative;
+  display: block;
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
+}
+
+/* The comment bubble's three dots. */
+.comment i {
+  position: absolute;
+  left: calc(17.75 * var(--u));
+  top: calc(17.75 * var(--u));
+  width: calc(4.5 * var(--u));
+  height: calc(4.5 * var(--u));
+  border-radius: 50%;
+  background: #20202a;
+  box-shadow: calc(-8.5 * var(--u)) 0 0 #20202a, calc(8.5 * var(--u)) 0 0 #20202a;
+}
+
+.save {
+  width: calc(36 * var(--u));
+  height: calc(36 * var(--u));
+  margin: calc(2 * var(--u)) 0;
+}
+
+.disc {
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
+  margin-top: calc(6 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2b2b33 0 58%, #18181d 59% 100%);
+  box-shadow: inset 0 0 0 calc(1 * var(--u)) rgba(255, 255, 255, 0.08);
+}
+
+.disc i {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+  border-radius: 50%;
+}
+
+/* ---------- the caption ---------- */
+.cap {
+  position: absolute;
+  left: calc(12 * var(--u));
+  right: calc(84 * var(--u));
+  bottom: calc(15 * var(--u));
+  text-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(0, 0, 0, 0.35);
+}
+
+.user {
+  font-weight: 700;
+  font-size: calc(17 * var(--u));
+  line-height: calc(22 * var(--u));
+}
+
+.text {
+  margin-top: calc(5 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+}
+
+.text b {
+  font-weight: 700;
+}
+
+.sound {
+  display: flex;
+  align-items: center;
+  gap: calc(6 * var(--u));
+  margin-top: calc(9 * var(--u));
+  font-size: calc(14 * var(--u));
+  line-height: calc(18 * var(--u));
+}
+
+.note {
+  flex: none;
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
+}
+
+/* ---------- the bar ---------- */
+.bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(83 * var(--u));
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding: calc(7 * var(--u)) calc(4 * var(--u)) 0;
+  border-top: calc(0.5 * var(--u)) solid rgba(255, 255, 255, 0.12);
+  background: #000;
+}
+
+.nav {
+  width: calc(64 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2 * var(--u));
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.navOn {
+  color: #fff;
+}
+
+.navIcon {
+  width: calc(27 * var(--u));
+  height: calc(27 * var(--u));
+}
+
+.nav b {
+  font-weight: 600;
+  font-size: calc(10 * var(--u));
+  line-height: calc(13 * var(--u));
+}
+
+.plus {
+  position: relative;
+  width: calc(46 * var(--u));
+  height: calc(30 * var(--u));
+  margin-top: calc(3 * var(--u));
+}
+
+.plus i {
+  position: absolute;
+  top: 0;
+  width: calc(38 * var(--u));
+  height: calc(30 * var(--u));
+  border-radius: calc(9 * var(--u));
+}
+
+.plusCyan {
+  left: 0;
+  background: #25f4ee;
+}
+
+.plusRed {
+  right: 0;
+  background: #fe2c55;
+}
+
+.plusWhite {
+  left: calc(4 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.plusWhite svg {
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+}
+
+/* ---------- the clock ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .app { animation: show var(--m) var(--d) infinite; }
+  .pages { animation: swipe var(--m) var(--d) infinite; }
+  .shareLead { animation: press var(--t) var(--d) infinite ease; }
+}
+
+/* In from the right for its third of the three apps, out to the left. */
+@keyframes show {
+  0%, 32.444% { transform: translateX(100%); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+  33.333%, 65.778% { transform: none; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+  66.667%, 100% { transform: translateX(-100%); }
+}
+/* Keep scrolling: once Spot has gone, a swipe up to Dan's ramen; back to
+   the top once the app is out of sight. */
+@keyframes swipe {
+  0%, 61.333% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
+  63.111%, 66.889% { transform: translateY(calc(-791 * var(--u))); }
+  66.9%, 100% { transform: none; }
+}
+@keyframes press { 0%, 16% { transform: none; } 16.67% { transform: scale(0.84); } 17.67%, 100% { transform: none; } }

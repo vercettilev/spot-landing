@@ -1,0 +1,283 @@
+/* TELEGRAM, a channel, light. Sizes are iOS points (--u, see
+   Iphone.module.css); the clocks (--t, --m) come from PhoneDemo.module.css.
+   It is on for the last third of the apps' clock, coming in from the right. Every post has a set place
+   and height, so the Share button sits where the tap lands on any font. */
+.app {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: #000;
+  transform: translateX(100%);
+  /* Telegram's wallpaper: a soft green-to-teal wash under a faint doodle. */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23224d33' stroke-opacity='.14' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6L1 21l6-1z'/%3E%3Ccircle cx='52' cy='16' r='6'/%3E%3Cpath d='M44 50c0-3 4-5 6-2 2-3 6-1 6 2 0 4-6 7-6 7s-6-3-6-7z'/%3E%3Cpath d='M12 52l14-6-5 14-3-5z'/%3E%3C/g%3E%3C/svg%3E") 0 0 / calc(72 * var(--u)) calc(72 * var(--u)),
+    linear-gradient(160deg, #d3e5b5 0%, #a9d0b0 38%, #8ebfc0 70%, #b7d6a6 100%);
+}
+
+/* ---------- the posts ---------- */
+.chat {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(874 * var(--u));
+}
+
+.day {
+  position: absolute;
+  left: 50%;
+  top: calc(345 * var(--u));
+  padding: calc(3 * var(--u)) calc(10 * var(--u));
+  border-radius: calc(11 * var(--u));
+  background: rgba(46, 82, 58, 0.42);
+  color: #fff;
+  font-weight: 600;
+  font-size: calc(13 * var(--u));
+  line-height: calc(16 * var(--u));
+  transform: translateX(-50%);
+}
+
+.post {
+  position: absolute;
+  left: calc(12 * var(--u));
+  padding: calc(7 * var(--u)) calc(12 * var(--u));
+  border-radius: calc(18 * var(--u));
+  background: #fff;
+  box-shadow: 0 calc(1 * var(--u)) calc(1.5 * var(--u)) rgba(0, 0, 0, 0.12);
+  font-size: calc(16 * var(--u));
+  line-height: calc(21 * var(--u));
+}
+
+.postA {
+  top: calc(379 * var(--u));
+  width: calc(262 * var(--u));
+}
+
+.postB {
+  top: calc(440 * var(--u));
+  width: calc(240 * var(--u));
+}
+
+/* The call: the chart edge to edge on top, the words under it. */
+.postCall {
+  top: calc(522 * var(--u));
+  width: calc(320 * var(--u));
+  padding: 0 0 calc(7 * var(--u));
+  border-bottom-left-radius: calc(6 * var(--u));
+}
+
+.postCall p,
+.postCall .seen {
+  padding: 0 calc(12 * var(--u));
+}
+
+.postCall p:first-of-type {
+  margin-top: calc(7 * var(--u));
+}
+
+.media {
+  display: block;
+  width: calc(320 * var(--u));
+  height: calc(180 * var(--u));
+  border-radius: calc(18 * var(--u)) calc(18 * var(--u)) calc(4 * var(--u)) calc(4 * var(--u));
+}
+
+.postNext {
+  top: calc(784 * var(--u));
+  width: calc(200 * var(--u));
+  border-bottom-left-radius: calc(6 * var(--u));
+}
+
+.seen {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: calc(3 * var(--u));
+  margin-top: calc(2 * var(--u));
+  font-size: calc(12 * var(--u));
+  line-height: calc(16 * var(--u));
+  color: rgba(60, 60, 67, 0.6);
+}
+
+.seen span {
+  margin-left: calc(6 * var(--u));
+}
+
+.eye {
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
+}
+
+/* Share, round, beside the call, the way Telegram puts it by a channel post. */
+.share {
+  position: absolute;
+  left: calc(340 * var(--u));
+  top: calc(742 * var(--u));
+  width: calc(34 * var(--u));
+  height: calc(34 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(46, 82, 58, 0.42);
+  color: #fff;
+}
+
+.shareIcon {
+  width: calc(19 * var(--u));
+  height: calc(19 * var(--u));
+}
+
+/* ---------- the header, the pin and the foot ---------- */
+.head {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(98 * var(--u));
+  border-bottom: calc(0.5 * var(--u)) solid rgba(0, 0, 0, 0.14);
+  background: rgba(247, 247, 247, 0.97);
+}
+
+.back {
+  position: absolute;
+  left: calc(6 * var(--u));
+  top: calc(60 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--u));
+  color: #2a8bd8;
+}
+
+.backIcon {
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+}
+
+.back b {
+  min-width: calc(22 * var(--u));
+  height: calc(20 * var(--u));
+  padding: 0 calc(6 * var(--u));
+  border-radius: calc(10 * var(--u));
+  background: #2a8bd8;
+  color: #fff;
+  font-weight: 600;
+  font-size: calc(13 * var(--u));
+  line-height: calc(20 * var(--u));
+  text-align: center;
+}
+
+.title {
+  position: absolute;
+  left: calc(80 * var(--u));
+  right: calc(80 * var(--u));
+  top: calc(56 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title b {
+  font-weight: 600;
+  font-size: calc(17 * var(--u));
+  line-height: calc(21 * var(--u));
+}
+
+.title span {
+  font-size: calc(13 * var(--u));
+  line-height: calc(17 * var(--u));
+  color: #8e8e93;
+}
+
+.avatar {
+  position: absolute;
+  right: calc(12 * var(--u));
+  top: calc(57 * var(--u));
+  width: calc(37 * var(--u));
+  height: calc(37 * var(--u));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+  color: #fff;
+  font-weight: 600;
+  font-size: calc(17 * var(--u));
+}
+
+.pinned {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(98 * var(--u));
+  height: calc(48 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  padding: 0 calc(14 * var(--u));
+  border-bottom: calc(0.5 * var(--u)) solid rgba(0, 0, 0, 0.12);
+  background: rgba(247, 247, 247, 0.97);
+}
+
+.pinned i {
+  flex: none;
+  width: calc(2 * var(--u));
+  height: calc(34 * var(--u));
+  border-radius: calc(1 * var(--u));
+  background: #2a8bd8;
+}
+
+.pinned > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: calc(14 * var(--u));
+  line-height: calc(18 * var(--u));
+}
+
+.pinned b {
+  font-weight: 600;
+  color: #2a8bd8;
+}
+
+.pinned > span > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(83 * var(--u));
+  display: flex;
+  justify-content: center;
+  padding-top: calc(13 * var(--u));
+  border-top: calc(0.5 * var(--u)) solid rgba(0, 0, 0, 0.14);
+  background: rgba(247, 247, 247, 0.97);
+  color: #2a8bd8;
+  font-size: calc(17 * var(--u));
+  line-height: calc(22 * var(--u));
+}
+
+/* ---------- the clock ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .app { animation: show var(--m) var(--d) infinite; }
+  .chat { animation: scroll var(--m) var(--d) infinite; }
+  .share { animation: press var(--t) var(--d) infinite ease; }
+}
+
+/* In from the right for the last third of the three apps, out to the left. */
+@keyframes show {
+  0%, 65.778% { transform: translateX(100%); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+  66.667%, 99.111% { transform: none; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+  100% { transform: translateX(-100%); }
+}
+/* Keep scrolling: once Spot has gone, the next post comes up from below. */
+@keyframes scroll {
+  0%, 94.667% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
+  96.444%, 100% { transform: translateY(calc(-61 * var(--u))); }
+}
+@keyframes press { 0%, 16% { transform: none; } 16.67% { transform: scale(0.84); } 17.67%, 100% { transform: none; } }
