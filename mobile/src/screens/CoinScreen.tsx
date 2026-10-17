@@ -434,33 +434,17 @@ export function CoinScreen({ navigation, route }: Props) {
               {/* A verified listing says the coin is the real one, not that it is safe: over GRRR or NOPE the tick read as a seal. */}
               {coin.verified && done?.level !== "warn" && done?.level !== "block" && <Verified />}
             </View>
-            <Text style={styles.name} numberOfLines={1}>
-              {coinLine(coin)}
-            </Text>
-          </View>
-          <View style={styles.priceCol}>
-            <Text style={styles.price}>{price(coin.priceUsd)}</Text>
-            <Text style={[styles.change, { color: up ? color.green : color.red }]}>{pct(coin.change24hPct)}</Text>
+            {/* The price rides under the name, so the symbol has the whole width. */}
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {coinLine(coin)}
+              </Text>
+              <Text style={styles.price}>{price(coin.priceUsd)}</Text>
+              <Text style={[styles.change, { color: up ? color.green : color.red }]}>{pct(coin.change24hPct)}</Text>
+            </View>
           </View>
         </View>
 
-        {/* The address is the one thing a lookalike cannot copy: shown, copied in a tap, and checked on Solscan. */}
-        <View style={styles.caRow}>
-          <Pressable onPress={() => void copyCa()} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
-            <Text style={styles.caLabel}>CA</Text>
-            <Text style={styles.caText}>{short(coin.mint)}</Text>
-            <Text style={styles.caLink}>Copy</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => void Linking.openURL(`https://solscan.io/token/${coin.mint}`).catch(() => {})}
-            accessibilityRole="link"
-            accessibilityLabel="See it on Solscan"
-            style={styles.ca}
-          >
-            <Text style={styles.caLink}>Solscan</Text>
-            <OutIcon tint={color.orange} />
-          </Pressable>
-        </View>
         {/* Said once: while the dock asks, or turns a US buyer away, it says it there. */}
         {coin.restrictions.includes("us-persons") && !askUs && !restricted && <Text style={styles.restricted}>Not sold to people in the US.</Text>}
         {others.length > 0 && (
@@ -485,6 +469,23 @@ export function CoinScreen({ navigation, route }: Props) {
         <View style={styles.report}>
           {/* One Sniff again on the screen: the key's when it says so, otherwise the receipt's own. */}
           <SniffReport state={sniff} onRetry={action.label === SNIFF_AGAIN ? undefined : () => void sniffNow()} />
+        </View>
+        {/* The address is the one thing a lookalike cannot copy: under the verdict, copied in a tap and checked on Solscan. */}
+        <View style={styles.caRow}>
+          <Pressable onPress={() => void copyCa()} accessibilityRole="button" accessibilityLabel="Copy the contract address" style={styles.ca}>
+            <Text style={styles.caLabel}>CA</Text>
+            <Text style={styles.caText}>{short(coin.mint)}</Text>
+            <Text style={styles.caLink}>Copy</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void Linking.openURL(`https://solscan.io/token/${coin.mint}`).catch(() => {})}
+            accessibilityRole="link"
+            accessibilityLabel="See it on Solscan"
+            style={styles.ca}
+          >
+            <Text style={styles.caLink}>Solscan</Text>
+            <OutIcon tint={color.orange} />
+          </Pressable>
         </View>
 
         {AUTO_SELL && buying && canPickAmount && (
@@ -585,7 +586,7 @@ export function CoinScreen({ navigation, route }: Props) {
               {askUs ? null : (
                 <>
                   <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
-                  <Text style={styles.note}>{note}</Text>
+                  {note ? <Text style={styles.note}>{note}</Text> : null}
                 </>
               )}
             </>
@@ -625,10 +626,10 @@ const styles = StyleSheet.create({
   coinText: { flex: 1, minWidth: 0 },
   symbolRow: { flexDirection: "row", alignItems: "center", gap: space.x2 },
   symbol: { flexShrink: 1, fontFamily: font.display, fontSize: type.display, lineHeight: leading.display, letterSpacing: tracking.display, color: color.white },
-  name: { marginTop: space.hair, fontFamily: font.body, fontSize: type.callout, color: color.dim },
-  priceCol: { alignItems: "flex-end" },
-  price: { fontFamily: font.displayBold, fontSize: type.lead, color: color.white },
-  change: { marginTop: space.hair, fontFamily: font.bodyBold, fontSize: type.caption },
+  nameRow: { flexDirection: "row", alignItems: "baseline", gap: space.x2, marginTop: space.hair },
+  name: { flexShrink: 1, fontFamily: font.body, fontSize: type.callout, color: color.dim },
+  price: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.white },
+  change: { fontFamily: font.bodyBold, fontSize: type.callout },
   caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space.x2 },
   ca: { flexDirection: "row", alignItems: "center", gap: space.x2, minHeight: size.tap },
   caLabel: { fontFamily: font.bodyBold, fontSize: type.footnote, color: color.faint },

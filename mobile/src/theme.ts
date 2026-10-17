@@ -107,8 +107,6 @@ export const tracking = {
   display: -0.8,
   headline: -0.4,
   key: -0.2,
-  /** The receipt's typewriter kicker, opened up. */
-  kicker: 0.8,
   /** The stamp's capitals. */
   stamp: 1.5,
 } as const;
