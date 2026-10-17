@@ -1,6 +1,6 @@
 # Spot for Android
 
-Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Three tabs around it: **Sniff** (paste a CA, what you sniffed lately), **Bag** (the wallet's coins and cash, what your apes made, every trade) and **Me** (stats, wallet, settings).
+Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Apps with a share menu of their own keep the phone's behind a button (X's Share via…, More in others), and Spot is in the phone's. Or select a CA and pick Spot from the menu over the selection. Three tabs around it: **Sniff** (paste a CA, what you sniffed lately), **Bag** (the wallet's coins and cash, what your apes made, every trade) and **Me** (stats, wallet, settings).
 
 It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/order`, `/api/execute`; see `../src/engine/README.md`) at `https://www.usespot.fun`. `EXPO_PUBLIC_SPOT_API` points a build at another deployment.
 
@@ -20,6 +20,7 @@ src/store.tsx              what the app remembers, on the phone only (settings, 
 src/holdings.ts            the bag, cached per wallet for 30 s
 src/wallet/                Mobile Wallet Adapter (loaded on first use), base58 for addresses
 src/share.ts               Share → Spot (expo-share-intent): text, links and screenshots (ocr.ts); share.web.ts reads ?url=&text=
+plugins/                   withSelectedText.js: Spot in the menu over selected text (Android's PROCESS_TEXT), arriving as a text share
 src/api.ts                 the calls, with timeouts and words for every failure
 src/logic.ts               what a share becomes, amount chips under a cap, numbers in CT, the button
 src/components/            the sniff report paper, "which one?", status screens, buttons, chips, toggles

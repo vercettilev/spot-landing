@@ -40,20 +40,16 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.5.2)
+## What's new (0.5.3)
+
+• Select a CA and pick Spot from the menu next to Copy (it may sit under ⋮).
+• Tapped Share and no Spot? It's under Share via… in X, or More in other apps. Hold Spot there and tap Pin to keep it up front.
+
+## What was new in 0.5.2
 
 • No crypto yet? Add cash shows how to buy USDC with a card, right in your wallet app.
 • Cash out to your bank: the Bag shows the way, through an exchange you use.
 • Back from your wallet app, Add cash shows your new cash by itself.
-
-## What was new in 0.5.1
-
-• Plain words where money moves: "Sell 50% for about $13", "Checking… 95s left", and where a sale's cash went.
-• Calm after an ape: the coin says what you hold, and Sniff shows your bag's worth.
-• Add cash says what you have and what it costs, and a phone without a wallet app gets Phantom from the sheet.
-• Shorter screens that say each thing once: the sniff shows the four questions and anything risky, the rest a tap away; your bag shows the latest trades.
-• A bad price asks first, with Cancel up front, and a coin that isn't sold in the US asks once whether you're in the US.
-• Big text fits, and with a screen reader on, nothing leaves before you've heard it.
 
 ## Release notes for the next version
 
