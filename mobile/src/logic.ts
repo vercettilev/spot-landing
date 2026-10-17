@@ -400,7 +400,7 @@ export function dockNote(s: DockState): string | null {
   /* The key already says who it isn't for; the line says why this user, and where to change it. */
   if (s.restricted) return "You said you're in the US. Change that in Settings.";
   /* What is held is over the key already; the line says the way out. */
-  if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell above.";
+  if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell below.";
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
   if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";
   return null;
@@ -437,8 +437,6 @@ export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: b
   return "";
 }
 
-/** What the wallet holds of a coin, over the dock. */
-export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`;
 
 /** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
 export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {

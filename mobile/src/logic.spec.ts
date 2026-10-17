@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -244,7 +244,7 @@ describe("the dock", () => {
     expect(needsCash({ ...base, cash: null })).toBe(false);
     /* Right after an ape the cash is spent and the coin is held: nothing to fix, so nothing shouts. */
     expect(dockKey({ ...base, cash: 0, held: 25.09 })).toEqual({ label: "Add cash to ape more", enabled: true, tone: "quiet" });
-    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("Sell it anytime: tap Sell above.");
+    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("Sell it anytime: tap Sell below.");
     expect(needsCash({ ...base, cash: 3, wallet: "watch" })).toBe(false);
     expect(needsCash({ ...base, cash: 3, sniff: "block" })).toBe(false);
   });
@@ -320,7 +320,6 @@ describe("the keypad", () => {
     expect(shareFor(5, 0)).toBe(0);
     expect(shareWord(50)).toBe("50%");
     expect(shareWord(100)).toBe("all");
-    expect(holding(31.2)).toBe("You hold $31.20");
     expect(approx(15.4)).toBe("about $15");
     expect(approx(0.42)).toBe("about $0.42");
   });

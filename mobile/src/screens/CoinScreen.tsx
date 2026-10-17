@@ -6,7 +6,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Segmented, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
+import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import {
   DEFAULT_AMOUNT,
@@ -17,8 +17,8 @@ import {
   coinLine,
   dockKey,
   dockNote,
-  holding,
   maxApe,
+  money,
   needsCash as shortOfCash,
   padHint,
   pct,
@@ -33,7 +33,7 @@ import {
 } from "../logic";
 import type { RootParams } from "../navigation";
 import { claim, hold, pendingFor, subscribe } from "../pending";
-import { books, saleGain, since, sinceAped } from "../pnl";
+import { books, saleGain, since, sinceLine } from "../pnl";
 import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font, layer, leading, radius, size, space, tracking, type } from "../theme";
@@ -45,12 +45,6 @@ import { signTransaction, walletError } from "../wallet/mwa";
 type Props = NativeStackScreenProps<RootParams, "Coin">;
 
 const SELL_SHARES = [25, 50, 100];
-
-const SIDES = [
-  { value: "buy", label: "Buy", tint: color.green, ink: color.ink },
-  /* Ink on the red thumb: white there is 3.3:1, too faint for a 15-point label. */
-  { value: "sell", label: "Sell", tint: color.red, ink: color.ink },
-] as const;
 
 /** A quote that pays much less than the price says, waiting for a yes. */
 interface Confirm {
@@ -74,10 +68,11 @@ const CONFIRM_FRESH_MS = 25_000;
  * A COIN, in the order a first-timer needs it: what it is, the stamp
  * (CLEAN, GRRR or NOPE) and the proof under it, then the dock at the
  * bottom: how much and the key, so a buy is one tap from the share. Any
- * amount can be typed on the keypad. When the wallet holds the coin the
- * dock gets Buy and Sell (opened from the bag, it starts on Sell), and
- * Sell stays open on a coin Spot blocks: Spot refuses the buy, never the
- * way out of a bag already held.
+ * amount can be typed on the keypad. When the wallet holds the coin, what
+ * it holds comes first, over the receipt, and the dock sells or apes more
+ * with the other one a quiet tap under the key (opened from Home, it starts
+ * on Sell); Sell stays open on a coin Spot blocks: Spot refuses the buy,
+ * never the way out of a bag already held.
  *
  * A trade goes through the wallet on the phone (Seed Vault, Phantom): Spot
  * asks the server for an order, the wallet asks its owner to approve it,
@@ -466,6 +461,22 @@ export function CoinScreen({ navigation, route }: Props) {
           </Pressable>
         )}
 
+        {/* On a coin you hold, the money comes first: what it is worth, and what it made since you aped. */}
+        {position ? (
+          <View style={styles.hold} accessible accessibilityLabel={`You hold ${money(position.usd)}${gained ? `, ${sinceLine(gained)} since you aped` : ""}`}>
+            <View>
+              <Text style={styles.holdLabel}>You hold</Text>
+              <Text style={styles.holdValue}>{money(position.usd)}</Text>
+            </View>
+            {gained ? (
+              <View style={styles.holdGain}>
+                <Text style={[styles.holdGainValue, { color: gained.usd >= 0 ? color.green : color.dim }]}>{sinceLine(gained)}</Text>
+                <Text style={styles.holdLabel}>since you aped</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.report}>
           {/* One Sniff again on the screen: the key's when it says so, otherwise the receipt's own. */}
           <SniffReport state={sniff} onRetry={action.label === SNIFF_AGAIN ? undefined : () => void sniffNow()} />
@@ -513,29 +524,6 @@ export function CoinScreen({ navigation, route }: Props) {
             </>
           ) : (
             <>
-              {position && (
-                <View style={styles.dockHead}>
-                  <Segmented
-                    label="Buy or sell"
-                    options={SIDES}
-                    value={side}
-                    onChange={(s) => {
-                      setSide(s);
-                      setConfirm(null);
-                    }}
-                  />
-                  <View style={styles.heldCol}>
-                    <Text style={styles.held} numberOfLines={1}>
-                      {holding(position.usd)}
-                    </Text>
-                    {gained ? (
-                      <Text style={[styles.gained, { color: gained.usd >= 0 ? color.green : color.dim }]} numberOfLines={1}>
-                        {sinceAped(gained)}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
-              )}
               {askUs ? (
                 <View accessibilityRole="none">
                   <Text style={styles.askTitle} accessibilityRole="header">
@@ -587,6 +575,20 @@ export function CoinScreen({ navigation, route }: Props) {
                 <>
                   <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
                   {note ? <Text style={styles.note}>{note}</Text> : null}
+                  {/* On a coin you hold, the other way is one quiet tap under the key: no switch to read first. */}
+                  {position ? (
+                    <Pressable
+                      onPress={() => {
+                        tap();
+                        setSide(buying ? "sell" : "buy");
+                        setConfirm(null);
+                      }}
+                      style={styles.other}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.otherText}>{buying ? "Sell" : "Ape more"}</Text>
+                    </Pressable>
+                  ) : null}
                 </>
               )}
             </>
@@ -653,10 +655,23 @@ const styles = StyleSheet.create({
   tpText: { flex: 1 },
   tpTitle: { fontFamily: font.bodyBold, fontSize: type.lead, color: color.white },
   tpNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.faint },
-  dockHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.x3, marginBottom: space.x3 },
-  heldCol: { flexShrink: 1, alignItems: "flex-end" },
-  held: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.white },
-  gained: { marginTop: space.hair, fontFamily: font.bodySemi, fontSize: type.footnote },
+  hold: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.x3,
+    marginTop: space.x4,
+    paddingVertical: space.x3,
+    paddingHorizontal: space.x4,
+    borderRadius: radius.card,
+    backgroundColor: color.ink2,
+  },
+  holdLabel: { fontFamily: font.bodySemi, fontSize: type.footnote, color: color.faint },
+  holdValue: { marginTop: space.hair, fontFamily: font.displayBold, fontSize: type.headline, lineHeight: leading.headline, color: color.white },
+  holdGain: { flexShrink: 1, alignItems: "flex-end" },
+  holdGainValue: { fontFamily: font.bodyBold, fontSize: type.callout },
+  other: { alignSelf: "center", minHeight: size.tap, justifyContent: "center", paddingHorizontal: space.x4, marginTop: space.x1 },
+  otherText: { fontFamily: font.bodyBold, fontSize: type.body, color: color.dim },
   askTitle: { textAlign: "center", fontFamily: font.bodyBold, fontSize: type.lead, color: color.white },
   askLine: { marginTop: space.x1, marginBottom: space.x3, textAlign: "center", fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   confirmLine: { marginBottom: space.x3, textAlign: "center", fontFamily: font.bodyBold, fontSize: type.body, lineHeight: leading.body, color: color.white },

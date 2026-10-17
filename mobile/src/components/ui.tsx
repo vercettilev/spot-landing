@@ -26,7 +26,6 @@ import {
   TextInput,
   View,
   useWindowDimensions,
-  type LayoutChangeEvent,
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
@@ -524,96 +523,6 @@ export const Field = forwardRef<TextInput, TextInputProps & { mono?: boolean }>(
       style={[styles.field, mono && styles.fieldMono, style]}
     />
   );
-});
-
-/* ---- a choice of two, with a thumb that slides between them ---- */
-
-export function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-  label,
-}: {
-  options: readonly { value: T; label: string; tint: string; ink: string }[];
-  value: T;
-  onChange: (v: T) => void;
-  label: string;
-}) {
-  const index = Math.max(0, options.findIndex((o) => o.value === value));
-  const at = useRef(new Animated.Value(index)).current;
-  const reduced = useReducedMotion();
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    if (reduced) at.setValue(index);
-    else Animated.spring(at, { toValue: index, ...motion.settle, useNativeDriver: native }).start();
-  }, [index, at, reduced]);
-  const segment = width / options.length;
-  return (
-    <View
-      style={seg.track}
-      onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width - 2 * SEG_PAD - 2 * size.hairline)}
-      accessibilityRole="tablist"
-      accessibilityLabel={label}
-    >
-      {width > 0 ? (
-        <Animated.View
-          style={[
-            seg.thumb,
-            {
-              width: segment,
-              transform: [{ translateX: at.interpolate({ inputRange: [0, Math.max(1, options.length - 1)], outputRange: [0, segment * Math.max(1, options.length - 1)] }) }],
-            },
-          ]}
-        >
-          {options.map((o, i) => (
-            <Animated.View
-              key={o.value}
-              style={[
-                StyleSheet.absoluteFill,
-                seg.thumbFace,
-                { backgroundColor: o.tint, opacity: at.interpolate({ inputRange: [i - 1, i, i + 1], outputRange: [0, 1, 0], extrapolate: "clamp" }) },
-              ]}
-            />
-          ))}
-        </Animated.View>
-      ) : null}
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <Pressable
-            key={o.value}
-            onPress={() => {
-              if (on) return;
-              tap();
-              onChange(o.value);
-            }}
-            hitSlop={{ top: space.x1, bottom: space.x1 }}
-            style={seg.item}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-          >
-            <Text style={[seg.text, { color: on ? o.ink : color.faint }]}>{o.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const SEG_PAD = 3;
-const seg = StyleSheet.create({
-  track: {
-    flexDirection: "row",
-    padding: SEG_PAD,
-    borderRadius: radius.pill,
-    borderWidth: size.hairline,
-    borderColor: color.line,
-    backgroundColor: color.ink2,
-  },
-  thumb: { position: "absolute", top: SEG_PAD, bottom: SEG_PAD, left: SEG_PAD },
-  thumbFace: { borderRadius: radius.pill },
-  item: { flex: 1, minWidth: size.segment, height: size.tap - 2 * SEG_PAD, alignItems: "center", justifyContent: "center", paddingHorizontal: space.x4 },
-  text: { fontFamily: font.bodyBold, fontSize: type.callout },
 });
 
 /* ---- the keypad, for typing an amount ---- */

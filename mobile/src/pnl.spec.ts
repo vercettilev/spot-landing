@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { books, gain, pnlOf, saleGain, since, sinceAped, sinceLine, tradeLine, type Trade } from "./pnl";
+import { books, gain, pnlOf, saleGain, since, sinceLine, tradeLine, type Trade } from "./pnl";
 
 const COIN = "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm";
 const trade = (side: Trade["side"], usdc: number, amount: number, at: string, extra: Partial<Trade> = {}): Trade => ({
@@ -96,9 +96,3 @@ describe("a trade's line", () => {
   });
 });
 
-describe("under a coin the bag holds", () => {
-  it("says what it made since the ape, signed", () => {
-    expect(sinceAped({ usd: 5.75, pct: 23.06 })).toBe("+$5.75 (+23.1%) since you aped");
-    expect(sinceAped({ usd: -0.4, pct: null })).toBe("−$0.40 since you aped");
-  });
-});
