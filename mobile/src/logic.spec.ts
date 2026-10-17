@@ -341,13 +341,12 @@ describe("adding cash", () => {
     expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 of SOL into cash", enabled: true });
   });
 
-  it("says what the wallet has, never leading with $0.00, then what cash is", () => {
-    const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
-    expect(cashLede(0, 90)).toBe(`You have about $90 in SOL. ${base}`);
-    expect(cashLede(3, 90)).toBe(`You have $3.00 in cash and about $90 in SOL. ${base}`);
-    expect(cashLede(3, 0.3)).toBe(`You have $3.00 in cash. ${base}`);
-    expect(cashLede(0, 0)).toBe(base);
-    expect(cashLede(null, null)).toBe(base);
+  it("says what the wallet has, never leading with $0.00, and nothing when it has nothing", () => {
+    expect(cashLede(0, 90)).toBe("You have about $90 in SOL.");
+    expect(cashLede(3, 90)).toBe("You have $3.00 in cash and about $90 in SOL.");
+    expect(cashLede(3, 0.3)).toBe("You have $3.00 in cash.");
+    expect(cashLede(0, 0)).toBeNull();
+    expect(cashLede(null, null)).toBeNull();
   });
 
   it("picks the swap that covers the ape", () => {

@@ -89,7 +89,8 @@ export function SettingsScreen({ navigation }: Props) {
           </Group>
         ) : (
           <Group>
-            <Row title="Connect wallet" tint={color.orange} chevron onPress={() => navigation.navigate("Connect", { track: true })} />
+            <Row title="Connect wallet" tint={color.orange} chevron onPress={() => navigation.navigate("Connect")} />
+            <Row title="Track a wallet" subtitle="See any wallet's bag, without trading." chevron onPress={() => navigation.navigate("Connect", { track: true })} />
           </Group>
         )}
 

@@ -22,7 +22,7 @@ type Props = NativeStackScreenProps<RootParams, "Deposit">;
 /* A card buy happens in the wallet app: Seed Vault, Phantom, Solflare and
    Backpack each sell USDC through a card partner of their own. Spot has
    none yet, so it says the way that works. */
-const BUY_STEPS = ["Open your wallet app and tap Buy.", "Pick USDC on Solana and pay with your card.", "Come back to Spot. Your cash shows up here once it lands."];
+const BUY_STEPS = ["Open your wallet app and tap Buy.", "Pick USDC (digital dollars) on Solana and pay with your card.", "Come back to Spot. Your cash shows up here once it lands."];
 const BUY_NOTE = "Your wallet app's card partner may ask for ID, and takes a fee.";
 
 const NOTES = [
@@ -151,6 +151,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   /* The wallet on this phone, which can buy and sign; a tracked one can only receive. */
   const mwa = wallet.kind === "mwa";
   const key = turnKey({ pending: pending ? { landed: pending.landed, seconds: secondsLeft(pending, now) } : null, busy, chosen });
+  const lede = cashLede(cashNow, canTurn ? null : (sol?.usd ?? null));
 
 
   async function turn() {
@@ -206,7 +207,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   return (
     <>
       {/* The SOL is said once: on the card, when it can be turned into cash. */}
-      <Text style={styles.lede}>{cashLede(cashNow, canTurn ? null : (sol?.usd ?? null))}</Text>
+      {lede ? <Text style={styles.lede}>{lede}</Text> : null}
       {wallet.kind === "watch" ? (
         <Card style={styles.watch}>
           <Text style={styles.watchText}>You're only tracking this wallet. Cash sent here lands in it, but you can't trade from it in Spot.</Text>
@@ -217,7 +218,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
         <Card style={styles.turn}>
           <Text style={styles.turnTitle}>Turn SOL into cash</Text>
           <Text style={styles.turnNote}>
-            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. One approval in your wallet; about $1 of SOL stays for fees.
+            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. About $1 of it stays for fees.
           </Text>
           <View style={styles.turnChips}>
             {choices.map((c) => (
@@ -244,7 +245,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
           <Group style={styles.more}>
             <Row
               title="Send from an exchange or wallet"
-              subtitle={showAddress ? "Your wallet's address, below" : "Your wallet's address and its code"}
+              subtitle={showAddress ? "Your wallet's address, below" : "Your wallet's address"}
               chevron
               onPress={() => setShowAddress((v) => !v)}
               label={showAddress ? "Hide your wallet's address" : "Show your wallet's address, to send from an exchange or another wallet"}
@@ -297,14 +298,14 @@ const styles = StyleSheet.create({
   cta: { marginTop: space.x6 },
   watch: { marginTop: space.x4, borderColor: color.orangeLine },
   watchText: { fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
-  turn: { marginTop: space.x5, backgroundColor: color.ink3 },
+  turn: { marginTop: space.x2, backgroundColor: color.ink3 },
   turnTitle: { fontFamily: font.displayBold, fontSize: type.key, color: color.white },
   turnNote: { marginTop: space.x2, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   turnChips: { flexDirection: "row", flexWrap: "wrap", gap: space.x2, marginTop: space.x4 },
   turnButton: { marginTop: space.x4 },
   paper: { alignItems: "center", paddingTop: space.x6, paddingBottom: space.x5, paddingHorizontal: space.x5, borderRadius: radius.block, backgroundColor: color.white },
   paperFirst: { marginTop: space.x4 },
-  more: { marginTop: space.x5 },
+  more: { marginTop: space.x3 },
   steps: { marginTop: space.x4, marginHorizontal: space.x1 },
   address: { marginTop: space.x5, textAlign: "center", fontFamily: font.mono, fontSize: type.body, lineHeight: leading.body, color: color.paperInk },
   network: { marginTop: space.x2, fontFamily: font.bodyBold, fontSize: type.footnote, color: color.paperDim },

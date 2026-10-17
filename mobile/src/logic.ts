@@ -447,20 +447,14 @@ export function turnKey(p: { pending: { landed: boolean; seconds: number } | nul
 
 /**
  * The line at the top of Add cash: what the wallet has, said as what it has
- * ("$0.00" first read as money gone), then what cash is and where it stays.
+ * ("$0.00" first read as money gone); nothing when it has nothing.
  */
-export function cashLede(cash: number | null, solUsd: number | null): string {
-  const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
+export function cashLede(cash: number | null, solUsd: number | null): string | null {
   const hasCash = cash !== null && cash >= 0.01;
   const hasSol = solUsd !== null && solUsd >= 1;
-  const have = hasCash && hasSol
-    ? `You have ${money(cash)} in cash and about ${usd(solUsd)} in SOL.`
-    : hasCash
-      ? `You have ${money(cash)} in cash.`
-      : hasSol
-        ? `You have about ${usd(solUsd)} in SOL.`
-        : "";
-  return have ? `${have} ${base}` : base;
+  if (hasCash && hasSol) return `You have ${money(cash)} in cash and about ${usd(solUsd)} in SOL.`;
+  if (hasCash) return `You have ${money(cash)} in cash.`;
+  return hasSol ? `You have about ${usd(solUsd)} in SOL.` : null;
 }
 
 /** The swap that covers an ape: the smallest choice that does, or the most there is. */

@@ -29,7 +29,7 @@ export type RootParams = {
   Choose: { title: string; line: string; candidates: Candidate[]; source: Source | null; share: Share | null; current?: Candidate; continues?: boolean };
   /** `need`: the ape it is for, so the swap that covers it is picked already. */
   Deposit: { need?: number } | undefined;
-  /** `ape`: connecting to ape this much, so a short wallet goes straight on to Add cash; `track`: offer to track an address too. */
+  /** `ape`: connecting to ape this much, so a short wallet goes straight on to Add cash; `track`: track an address instead, from Settings. */
   Connect: { ape?: number; track?: boolean } | undefined;
   /** How cash reaches a bank: through an exchange, from the wallet app. */
   CashOut: undefined;

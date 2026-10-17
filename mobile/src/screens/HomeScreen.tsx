@@ -165,7 +165,7 @@ export function HomeScreen({ navigation }: Props) {
               {b && b.usdc.usd >= 1 ? <ActionKey glyph="out" label="Cash out" onPress={() => navigation.navigate("CashOut")} /> : null}
             </>
           ) : (
-            <ActionKey glyph="wallet" label="Connect" onPress={() => navigation.navigate("Connect", { track: !wallet })} />
+            <ActionKey glyph="wallet" label="Connect" onPress={() => navigation.navigate("Connect")} />
           )}
         </View>
 
