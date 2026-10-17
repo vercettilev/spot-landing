@@ -17,6 +17,7 @@ import {
   Animated,
   BackHandler,
   Easing,
+  Keyboard,
   PanResponder,
   Platform,
   Pressable,
@@ -641,6 +642,26 @@ export const Sheet = forwardRef<
   const titleRef = useRef<Text>(null);
   const latest = useRef({ onDismiss, dismissable, reduced });
   latest.current = { onDismiss, dismissable, reduced };
+  /* How far the keyboard would cover the sheet: the sheet rises by that
+     much. Measured, not assumed: where the window already shrinks for the
+     keyboard, nothing is covered and nothing moves. */
+  const panelRef = useRef<View>(null);
+  const [lift, setLift] = useState(0);
+  const liftRef = useRef(0);
+  useEffect(() => {
+    const setTo = (n: number) => {
+      liftRef.current = n;
+      setLift(n);
+    };
+    const shown = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => {
+      panelRef.current?.measureInWindow((_x, top, _w, height) => setTo(Math.max(0, Math.round(top + height + liftRef.current - e.endCoordinates.screenY))));
+    });
+    const hidden = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setTo(0));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
 
   /* `turning`: opened again while leaving, so it starts from where it is on screen, not from the bottom. */
   function open(turning = false) {
@@ -763,6 +784,7 @@ export const Sheet = forwardRef<
         />
       </Animated.View>
       <Animated.View
+        ref={panelRef}
         accessibilityViewIsModal
         accessibilityLabel={label}
         onLayout={(e) => {
@@ -777,7 +799,7 @@ export const Sheet = forwardRef<
         style={[
           sheet.panel,
           /* A finger's width of the screen behind stays in view, to see what the sheet belongs to and to tap away. */
-          { maxHeight: screen - insets.top - size.tap, paddingBottom: insets.bottom + space.x4 },
+          { maxHeight: screen - insets.top - size.tap - lift, paddingBottom: (lift ? 0 : insets.bottom) + space.x4, marginBottom: lift },
           reduced ? { opacity: shown } : { transform: [{ translateY: y }] },
         ]}
       >
