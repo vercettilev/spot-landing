@@ -187,7 +187,7 @@ export function CoinScreen({ navigation, route }: Props) {
 
   const buying = side === "buy";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
-  /* The first coin the issuer won't sell in the US asks, once, instead of trusting a switch in Me nobody has seen. */
+  /* The first coin the issuer won't sell in the US asks, once, instead of trusting a switch in Settings nobody has seen. */
   const askUs = buying && coin.restrictions.includes("us-persons") && !store.settings.usAsked && !store.settings.usPerson && !checking;
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
   const chips = chipsFor(cap);
@@ -540,7 +540,7 @@ export function CoinScreen({ navigation, route }: Props) {
                   <Text style={styles.askTitle} accessibilityRole="header">
                     Are you in the US?
                   </Text>
-                  <Text style={styles.askLine}>Coins like this aren't sold to people in the US, so Spot asks once. You can change it in Me.</Text>
+                  <Text style={styles.askLine}>Coins like this aren't sold to people in the US, so Spot asks once. You can change it in Settings.</Text>
                   <View style={styles.pair}>
                     <Button label="No" kind="quiet" onPress={() => store.setSettings({ usPerson: false, usAsked: true })} style={styles.half} />
                     <Button label="Yes, I am" kind="quiet" onPress={() => store.setSettings({ usPerson: true, usAsked: true })} style={styles.half} />

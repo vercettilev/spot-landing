@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, proofOf, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -274,7 +274,7 @@ describe("the dock", () => {
   it("keeps a coin the issuer won't sell in the US away from US users", () => {
     expect(dockKey({ ...base, restricted: true })).toEqual({ label: "Not for US users", enabled: false, tone: "stop" });
     expect(dockKey({ ...base, restricted: true, cash: 3 }).enabled).toBe(false);
-    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US. Change that in Me.");
+    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US. Change that in Settings.");
   });
 
   it("waits for an amount while the keypad is empty, and still locks while a trade may land", () => {
@@ -385,15 +385,6 @@ describe("adding cash", () => {
 });
 
 describe("the bag", () => {
-  it("says what it is made of and what is ready to ape", () => {
-    expect(bagLine(2, 120)).toBe("2 coins and $120 ready to ape");
-    expect(bagLine(0, 3.4)).toBe("No coins yet and $3 ready to ape");
-    /* No cash to speak of: the line doesn't count it. */
-    expect(bagLine(1, 0)).toBe("1 coin");
-    expect(bagLine(0, 0.3)).toBe("No coins yet");
-    expect(bagLine(1, 0.6)).toBe("1 coin and $1 ready to ape");
-  });
-
   it("is empty under a dollar", () => {
     expect(emptyBag(0)).toBe(true);
     expect(emptyBag(0.62)).toBe(true);
@@ -433,14 +424,6 @@ describe("a bad quote's question", () => {
     expect(plainShortFill("Thin pool. Your $25 only buys about $12 of it.")).toBe("Bad price right now. Your $25 only buys about $12 of it.");
     expect(plainShortFill("Thin pool. You'd get $7 back, not $10.")).toBe("Bad price right now. You'd get $7 back, not $10.");
     expect(plainShortFill("Something else.")).toBe("Something else.");
-  });
-});
-
-describe("Me's proof", () => {
-  it("never opens on a zero that reads as failing", () => {
-    expect(proofOf({ sniffed: 0, dodged: 0, apes: 0 })).toEqual({ n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false });
-    expect(proofOf({ sniffed: 1, dodged: 0, apes: 1 })).toEqual({ n: 1, label: "coin sniffed", line: "No scams among them so far. 1 aped.", hot: false });
-    expect(proofOf({ sniffed: 3, dodged: 1, apes: 2 })).toEqual({ n: 1, label: "scam dodged", line: "Out of 3 coins sniffed. 2 aped.", hot: true });
   });
 });
 

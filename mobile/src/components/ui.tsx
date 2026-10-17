@@ -347,7 +347,6 @@ const styles = StyleSheet.create({
   toastText: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, lineHeight: leading.caption, color: color.ink },
   topBar: { flexDirection: "row", alignItems: "center", gap: space.x1, height: size.tap },
   topTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.dim },
-  title: { marginTop: space.x2, fontFamily: font.display, fontSize: type.title, lineHeight: leading.title, letterSpacing: tracking.title, color: color.white },
   section: { marginTop: space.section, marginBottom: space.x3, marginLeft: space.x1, fontFamily: font.bodySemi, fontSize: type.callout, color: color.faint },
   steps: { gap: space.x3 },
   step: { flexDirection: "row", gap: space.x3 },
@@ -378,6 +377,11 @@ const styles = StyleSheet.create({
   pillTextOn: { color: color.ink },
   iconButton: { width: size.tap, height: size.tap, borderRadius: size.tap / 2, alignItems: "center", justifyContent: "center" },
   iconButtonPressed: { backgroundColor: color.ink3 },
+  actionKey: { alignItems: "center", gap: space.x2, minWidth: size.action + space.x6 },
+  actionDisc: { width: size.action, height: size.action, borderRadius: size.action / 2, backgroundColor: color.ink2, alignItems: "center", justifyContent: "center" },
+  actionLoud: { backgroundColor: color.orange },
+  actionLoudPressed: { backgroundColor: color.orangeEdge },
+  actionLabel: { fontFamily: font.bodyBold, fontSize: type.footnote, color: color.dim },
   field: {
     height: size.field,
     paddingHorizontal: space.x4 + space.hair,
@@ -407,6 +411,32 @@ export function IconButton({ icon, label, onPress, style }: { icon: keyof typeof
   );
 }
 
+/** One of Home's round keys: a glyph in a disc, its word under it. The one loud key is orange. */
+export function ActionKey({ glyph, label, onPress, loud }: { glyph: keyof typeof GLYPHS; label: string; onPress: () => void; loud?: boolean }) {
+  return (
+    <Pressable
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={styles.actionKey}
+    >
+      {({ pressed }) => (
+        <>
+          <View style={[styles.actionDisc, loud && styles.actionLoud, pressed && (loud ? styles.actionLoudPressed : styles.iconButtonPressed)]}>
+            <Glyph d={GLYPHS[glyph]} size={size.icon} tint={loud ? color.ink : color.white} />
+          </View>
+          <Text style={styles.actionLabel} numberOfLines={1}>
+            {label}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
 /** A screen's top: back (when it has somewhere to go back to), a title, and whatever sits on the right. */
 export function TopBar({ title, onBack, right }: { title?: string; onBack?: () => void; right?: ReactNode }) {
   return (
@@ -418,15 +448,6 @@ export function TopBar({ title, onBack, right }: { title?: string; onBack?: () =
       </Text>
       {right}
     </View>
-  );
-}
-
-/** A tab's title, big, the way the landing sets a headline. */
-export function Title({ children }: { children: ReactNode }) {
-  return (
-    <Text style={styles.title} accessibilityRole="header">
-      {children}
-    </Text>
   );
 }
 
@@ -1020,6 +1041,9 @@ const GLYPHS = {
   out: "M8 16L16 8M9.5 8H16v6.5",
   check: "M5 12.5l4.5 4.5L19 7.5",
   copy: "M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zM5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5",
+  paste: "M9.5 3.5h5a1 1 0 0 1 1 1V6a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1zM8.5 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1.5",
+  plus: "M12 5v14M5 12h14",
+  wallet: "M19 8V6.5A1.5 1.5 0 0 0 17.5 5h-11A2.5 2.5 0 0 0 4 7.5v9A2.5 2.5 0 0 0 6.5 19h12a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 18.5 8H6.5A2.5 2.5 0 0 1 4 5.5M16 13.5h.01",
 } as const;
 
 function Glyph({ d, size: s = size.glyph, tint = color.faint, fill = "none" }: { d: string; size?: number; tint?: string; fill?: string }) {

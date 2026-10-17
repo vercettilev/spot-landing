@@ -1,21 +1,20 @@
-import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
-import { useIsFocused, type CompositeScreenProps } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
 import { useEffect, useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Button, Group, OutIcon, Pill, PuppyIcon, Row, Section, SettingRow, Title, Toggle, useToast } from "../components/ui";
+import { Linking, StyleSheet, Text, View } from "react-native";
+import { CoinFace, Group, OutIcon, Pill, Row, Section, SettingRow, Sheet, Toggle, useRouteSheet, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { CHIPS, money, proofOf } from "../logic";
-import type { RootParams, TabParams } from "../navigation";
+import { ago, CHIPS, money } from "../logic";
+import type { RootParams } from "../navigation";
+import { tradeLine } from "../pnl";
 import { AUTO_SELL } from "../soon";
 import { useStore } from "../store";
-import { color, font, leading, size, space, tracking, type } from "../theme";
+import { color, font, leading, size, space, type } from "../theme";
 import { checkForUpdate, type Update } from "../updates";
 import { short } from "../wallet/base58";
 
-type Props = CompositeScreenProps<BottomTabScreenProps<TabParams, "Me">, NativeStackScreenProps<RootParams>>;
+type Props = NativeStackScreenProps<RootParams, "Settings">;
 
 const LINKS = [
   { label: "Spot on X", note: "@usespotdotfun", url: "https://x.com/usespotdotfun" },
@@ -24,28 +23,27 @@ const LINKS = [
   { label: "Terms", note: "The deal, in plain words", url: "https://www.usespot.fun/terms" },
 ];
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function month(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "today" : `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-}
+/* How many trades show before "Show all". */
+const RECENT_TRADES = 5;
 
 /**
- * ME: what Spot has done for you, first. The loud number is the scams it
- * kept out of your bag; then the wallet this phone trades from, and the few
- * choices every buy starts with. No account: it all lives on this phone.
+ * SETTINGS, as a sheet behind Home's puppy: the wallet this phone trades
+ * from, every trade Spot made with it (each a tap from Solscan), the few
+ * choices every buy starts with, and the app's links. No account: it all
+ * lives on this phone.
  */
-export function MeScreen({ navigation }: Props) {
+export function SettingsScreen({ navigation }: Props) {
+  const { ref, onDismiss } = useRouteSheet(navigation);
   const store = useStore();
-  const { wallet, settings, stats } = store;
-  /* Under a sheet, a screen reader stays in the sheet. */
-  const focused = useIsFocused();
+  const { wallet, settings, trades } = store;
   const bag = useHoldings(wallet?.address ?? null);
   const [toastNode, toast] = useToast();
+  /* The latest trades, the rest a tap away. */
+  const [allTrades, setAllTrades] = useState(false);
   const version = Constants.expoConfig?.version ?? "0.1.0";
   const build = Constants.expoConfig?.android?.versionCode;
   const [update, setUpdate] = useState<Update | null>(null);
+  const mine = trades.filter((t) => t.owner === wallet?.address);
 
   /* The test channel, once a visit: a newer build out means one more row. */
   useEffect(() => {
@@ -68,43 +66,18 @@ export function MeScreen({ navigation }: Props) {
     toast(wallet?.kind === "watch" ? "Stopped tracking." : "Disconnected. Your coins stay in your wallet.");
   }
 
-  const total = bag.value ? money(bag.value.totalUsd) : "…";
-  const proof = proofOf(stats);
-
   return (
-    <View style={styles.fill} aria-hidden={!focused}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Title>Me</Title>
-
-        <View style={styles.profile}>
-          <PuppyIcon size={size.avatar} />
-          {/* Which wallet is the first row under Wallet, so it isn't said up here too. */}
-          <View style={styles.profileText}>
-            <Text style={styles.since}>Degen since {month(settings.since)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.score} accessible accessibilityLabel={`${proof.n === null ? "" : `${proof.n} `}${proof.label}. ${proof.line}`}>
-          {proof.n !== null ? <Text style={[styles.scoreN, proof.hot && styles.scoreHot]}>{proof.n}</Text> : null}
-          <View style={styles.scoreText}>
-            <Text style={styles.scoreLabel}>{proof.label}</Text>
-            <Text style={styles.scoreProof}>{proof.line}</Text>
-          </View>
-        </View>
-
+    <View style={styles.fill}>
+      <Sheet ref={ref} visible onDismiss={onDismiss} title="Settings" label="Settings">
         <Section>Wallet</Section>
         {wallet ? (
           <Group>
             <Row
               title={wallet.kind === "watch" ? "Tracking a wallet" : (wallet.label ?? "Your wallet")}
               subtitle={short(wallet.address)}
-              right={<Text style={styles.total}>{total}</Text>}
-              chevron
-              onPress={() => navigation.navigate("Bag")}
-              label="Open your bag"
+              right={<Text style={styles.total}>{bag.value ? money(bag.value.totalUsd) : "…"}</Text>}
             />
             <Row title="Copy address" onPress={() => void copy(wallet.address)} />
-            {/* Settings, not a second Bag: adding cash lives in the bag; leaving is a quiet row that says what it keeps. */}
             {wallet.kind === "watch" ? (
               <Row title="Connect your wallet" subtitle="You can see this bag but not trade from it." tint={color.orange} chevron onPress={() => navigation.navigate("Connect")} />
             ) : null}
@@ -116,19 +89,44 @@ export function MeScreen({ navigation }: Props) {
           </Group>
         ) : (
           <Group>
-            <View style={styles.connect}>
-              <Text style={styles.connectTitle}>Ape in two taps from any post</Text>
-              <Text style={styles.walletNote}>Your wallet app keeps your money and approves every trade. Spot never holds it.</Text>
-              <Button label="Connect wallet" onPress={() => navigation.navigate("Connect", { track: true })} style={styles.connectButton} />
-            </View>
+            <Row title="Connect wallet" tint={color.orange} chevron onPress={() => navigation.navigate("Connect", { track: true })} />
           </Group>
         )}
+
+        {mine.length > 0 ? (
+          <>
+            <Section>Trades</Section>
+            <Group>
+              {mine.slice(0, allTrades ? 50 : RECENT_TRADES).map((t) => {
+                const what = `${t.side === "buy" ? "Aped" : "Sold"} $${t.symbol}`;
+                return (
+                  <Row
+                    key={t.id}
+                    left={<CoinFace uri={t.icon} symbol={t.symbol} size={size.faceRow} />}
+                    title={what}
+                    subtitle={tradeLine(t)}
+                    right={
+                      <View style={styles.tradeRight}>
+                        <Text style={styles.ago}>{ago(t.at)}</Text>
+                        {t.signature ? <OutIcon /> : null}
+                      </View>
+                    }
+                    onPress={t.signature ? () => void Linking.openURL(`https://solscan.io/tx/${t.signature}`).catch(() => {}) : undefined}
+                    label={`${what}, ${tradeLine(t)}${t.signature ? ". Opens Solscan." : ""}`}
+                  />
+                );
+              })}
+              {!allTrades && mine.length > RECENT_TRADES ? (
+                <Row title={`Show all ${Math.min(mine.length, 50)} trades`} tint={color.orange} chevron onPress={() => setAllTrades(true)} />
+              ) : null}
+            </Group>
+          </>
+        ) : null}
 
         <Section>Buying</Section>
         <Group>
           <View style={styles.block}>
             <Text style={styles.blockTitle}>Starting amount</Text>
-            <Text style={styles.blockNote}>What every ape starts at. Change it on any coin.</Text>
             <View style={styles.pills}>
               {CHIPS.map((c) => (
                 <Pill key={c} label={`$${c}`} on={settings.defaultAmount === c} onPress={() => store.setSettings({ defaultAmount: c })} />
@@ -165,9 +163,9 @@ export function MeScreen({ navigation }: Props) {
 
         <Text style={styles.version}>
           Spot {version}
-          {build ? ` (${build})` : ""}. Sniffs are free. Spot never holds your coins.
+          {build ? ` (${build})` : ""}. Spot never holds your coins.
         </Text>
-      </ScrollView>
+      </Sheet>
       {toastNode}
     </View>
   );
@@ -175,24 +173,11 @@ export function MeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  scroll: { paddingHorizontal: space.gutter, paddingTop: space.x3, paddingBottom: space.x12 },
-  profile: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x4 },
-  profileText: { flex: 1, minWidth: 0 },
-  since: { fontFamily: font.displayBold, fontSize: type.key, lineHeight: leading.key, color: color.white },
-  score: { flexDirection: "row", alignItems: "center", gap: space.x4, marginTop: space.x7 },
-  scoreN: { fontFamily: font.display, fontSize: type.moment, lineHeight: leading.moment, letterSpacing: tracking.figure, color: color.white },
-  scoreHot: { color: color.orange },
-  scoreText: { flex: 1 },
-  scoreLabel: { fontFamily: font.display, fontSize: type.headline, lineHeight: leading.headline, color: color.white },
-  scoreProof: { marginTop: space.x1, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
   total: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
-  walletNote: { fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
-  connect: { padding: space.x4 },
-  connectTitle: { marginBottom: space.x2, fontFamily: font.displayBold, fontSize: type.key, color: color.white },
-  connectButton: { marginTop: space.x4 },
+  tradeRight: { flexDirection: "row", alignItems: "center", gap: space.x2 },
+  ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
   block: { paddingVertical: space.x4, paddingHorizontal: space.x4 },
   blockTitle: { fontFamily: font.bodyBold, fontSize: type.body, color: color.white },
-  blockNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   pills: { flexDirection: "row", gap: space.x2, marginTop: space.x3 },
-  version: { marginTop: space.x7, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
+  version: { marginTop: space.x7, marginBottom: space.x2, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
 });

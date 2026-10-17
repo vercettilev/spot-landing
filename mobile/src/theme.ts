@@ -153,9 +153,6 @@ export const size = {
   /** A chip: 44 tall, with 2 more above and below it to touch. */
   chip: 44,
   row: 64,
-  /* The tab bar: each item pads 5 and boxes its icon in 28, and the
-     grotesk's label needs its 16, so the bar inside its own padding is 56. */
-  tabBar: 64,
   icon: 24,
   glyph: 20,
   /** A mark after a title in a list (verified), a glyph inside a link (copy). */
@@ -166,10 +163,8 @@ export const size = {
   mark: 28,
   /** The puppy across from the wordmark. */
   markHeader: 40,
-  /** The puppy over an empty tab's words. */
-  markEmpty: 72,
-  /** The puppy as you, in Me. */
-  avatar: 56,
+  /** Home's round keys: Paste CA, Add cash, Cash out. */
+  action: 56,
   /** The wordmark across the top of Sniff. */
   wordmark: 84,
   /** The puppy over a status screen's words. */

@@ -449,7 +449,7 @@ export function dockNote(s: DockState): string {
   if (s.side === "sell") return s.wallet === "mwa" ? "Sells for cash (USDC). Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
   if (s.sniff === "block") return "Share another post to sniff something else.";
   /* The key already says who it isn't for; the line says why this user, and where to change it. */
-  if (s.restricted) return "You said you're in the US. Change that in Me.";
+  if (s.restricted) return "You said you're in the US. Change that in Settings.";
   /* What is held is over the key already; the line says the way out. */
   if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell above.";
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
@@ -529,18 +529,7 @@ export function coverWith(choices: number[], need: number | null, cash: number |
  * ME'S PROOF, the number first: the scams kept out once there are any, else
  * the coins sniffed, so the screen never opens on a 0 that reads as failing.
  */
-export function proofOf(s: { sniffed: number; dodged: number; apes: number }): { n: number | null; label: string; line: string; hot: boolean } {
-  const aped = s.apes === 0 ? "None aped yet." : `${s.apes} aped.`;
-  if (s.sniffed === 0) return { n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false };
-  if (s.dodged === 0) return { n: s.sniffed, label: s.sniffed === 1 ? "coin sniffed" : "coins sniffed", line: `No scams among them so far. ${aped}`, hot: false };
-  return { n: s.dodged, label: s.dodged === 1 ? "scam dodged" : "scams dodged", line: `Out of ${s.sniffed} coin${s.sniffed === 1 ? "" : "s"} sniffed. ${aped}`, hot: true };
-}
 
-/** Under the bag's worth: what it is made of, and what is ready to ape, when that comes to a dollar. */
-export function bagLine(coins: number, cashUsd: number): string {
-  const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
-  return Math.round(cashUsd) >= 1 ? `${held} and ${usd(cashUsd)} ready to ape` : held;
-}
 
 /** A bag with nothing in it to trade: under a dollar, all told. */
 export const emptyBag = (totalUsd: number): boolean => !(totalUsd >= 1);
