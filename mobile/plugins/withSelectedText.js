@@ -1,60 +1,90 @@
-const { AndroidConfig, withAndroidManifest, withMainActivity } = require("expo/config-plugins");
-const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode");
+const fs = require("fs");
+const path = require("path");
+const { AndroidConfig, withAndroidManifest, withDangerousMod } = require("expo/config-plugins");
 
 /**
  * SPOT IN THE MENU OVER SELECTED TEXT. Select a CA in an app that lets you
  * (a browser, a wallet's browser, most chats) and the menu that offers Copy
  * and Share offers Spot too, sometimes under ⋮: Android's PROCESS_TEXT.
  *
- * The selection then arrives the way a share does. The main activity turns
- * it into a text share before React Native or any module sees it, so
- * expo-share-intent and src/share.ts take it with nothing new. The share is
- * addressed to this activity: picked from another app's menu, Spot opens in
- * that app's task, and expo-share-intent moves it to its own by starting
- * the intent again, which has to come back here, not to a share chooser.
+ * The menu starts its app inside the app the text is in, so the main
+ * activity never takes it: a small activity with no screen of its own does,
+ * and hands the words to the main activity as a text share in Spot's own
+ * task, which is the road every share already takes (expo-share-intent,
+ * src/share.ts). Then it is gone; the app the text came from gets nothing
+ * back and changes nothing.
  */
 const PROCESS_TEXT = "android.intent.action.PROCESS_TEXT";
+const NAME = "ProcessTextActivity";
+
+/* Kotlin's hard keywords, which a package path writes in backticks (fun.usespot.app). */
+const KEYWORDS = new Set(["as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "interface", "is", "null", "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof", "val", "var", "when", "while"]);
+
+const source = (pkg) => `package ${pkg
+  .split(".")
+  .map((s) => (KEYWORDS.has(s) ? `\`${s}\`` : s))
+  .join(".")}
+
+import android.app.Activity
+import android.content.Intent
+import android.os.Bundle
+
+/* Spot picked from the menu over selected text: the words go to Spot as a text share, in Spot's own task. Written by plugins/withSelectedText.js. */
+class ${NAME} : Activity() {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    val text = intent?.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()?.trim()
+    if (!text.isNullOrEmpty()) {
+      startActivity(
+        Intent(this, MainActivity::class.java)
+          .setAction(Intent.ACTION_SEND)
+          .setType("text/plain")
+          .putExtra(Intent.EXTRA_TEXT, text)
+          .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+      )
+    }
+    finish()
+  }
+}
+`;
 
 const withMenuEntry = (config) =>
   withAndroidManifest(config, (c) => {
-    const main = AndroidConfig.Manifest.getMainActivityOrThrow(c.modResults);
-    const filters = (main["intent-filter"] ??= []);
-    if (!filters.some((f) => f.action?.some((a) => a.$["android:name"] === PROCESS_TEXT))) {
-      filters.push({
-        action: [{ $: { "android:name": PROCESS_TEXT } }],
-        category: [{ $: { "android:name": "android.intent.category.DEFAULT" } }],
-        data: [{ $: { "android:mimeType": "text/plain" } }],
+    const app = AndroidConfig.Manifest.getMainApplicationOrThrow(c.modResults);
+    const activities = (app.activity ??= []);
+    if (!activities.some((a) => a.$["android:name"] === `.${NAME}`)) {
+      activities.push({
+        $: {
+          "android:name": `.${NAME}`,
+          "android:exported": "true",
+          "android:label": "@string/app_name",
+          "android:theme": "@android:style/Theme.Translucent.NoTitleBar",
+          "android:excludeFromRecents": "true",
+          "android:noHistory": "true",
+        },
+        "intent-filter": [
+          {
+            action: [{ $: { "android:name": PROCESS_TEXT } }],
+            category: [{ $: { "android:name": "android.intent.category.DEFAULT" } }],
+            data: [{ $: { "android:mimeType": "text/plain" } }],
+          },
+        ],
       });
     }
     return c;
   });
 
-const AS_SHARE = `  /* Spot picked from the menu over selected text: the selection, as a text share. */
-  override fun onNewIntent(intent: Intent) {
-    super.onNewIntent(asShare(intent))
-  }
+const withActivitySource = (config) =>
+  withDangerousMod(config, [
+    "android",
+    async (c) => {
+      const pkg = c.android?.package;
+      if (!pkg) throw new Error("withSelectedText: android.package is not set");
+      const dir = path.join(c.modRequest.platformProjectRoot, "app", "src", "main", "java", ...pkg.split("."));
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, `${NAME}.kt`), source(pkg));
+      return c;
+    },
+  ]);
 
-  private fun asShare(intent: Intent): Intent {
-    if (intent.action != Intent.ACTION_PROCESS_TEXT) return intent
-    val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()?.trim()
-    if (text.isNullOrEmpty()) return Intent(this, MainActivity::class.java)
-    return Intent(this, MainActivity::class.java).setAction(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-  }
-`;
-
-/* Each piece goes in at a line of Expo's template; a template without that
-   line fails the build here rather than shipping without the menu. */
-const withSelectionAsShare = (config) =>
-  withMainActivity(config, (c) => {
-    if (c.modResults.language !== "kt") throw new Error("withSelectedText: MainActivity is not Kotlin");
-    let src = c.modResults.contents;
-    if (!/^import android\.content\.Intent$/m.test(src)) {
-      src = mergeContents({ src, newSrc: "import android.content.Intent", tag: "spot-selected-text-import", anchor: /^import android\.os\.Bundle$/, offset: 0, comment: "//" }).contents;
-    }
-    src = mergeContents({ src, newSrc: AS_SHARE, tag: "spot-selected-text", anchor: /override fun onCreate\(/, offset: 0, comment: "  //" }).contents;
-    src = mergeContents({ src, newSrc: "    intent?.let { setIntent(asShare(it)) }", tag: "spot-selected-text-launch", anchor: /super\.onCreate\(/, offset: 0, comment: "    //" }).contents;
-    c.modResults.contents = src;
-    return c;
-  });
-
-module.exports = (config) => withSelectionAsShare(withMenuEntry(config));
+module.exports = (config) => withActivitySource(withMenuEntry(config));
