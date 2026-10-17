@@ -116,9 +116,12 @@ export function SniffScreen({ navigation }: Props) {
         ) : (
           <>
             {paste}
-            <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot">
+            <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot. No Spot? Tap Share via, or More, first.">
               <PuppyIcon size={size.mark} />
-              <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
+              <View style={styles.hintWords}>
+                <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
+                <Text style={styles.hintMore}>{NOT_THERE}</Text>
+              </View>
             </View>
             <Section>Sniffed lately</Section>
             <Group>
@@ -159,6 +162,13 @@ const TILES = [
   { label: "More", d: "M6 12h.01M12 12h.01M18 12h.01" },
 ];
 
+/* Many apps open a menu of their own first, with the phone's share menu
+   behind one button: X's Share via…, More in others. Spot is in the phone's.
+   There, Android puts the apps used most up front, and a held app can be
+   pinned there; iPhone has no Pin. */
+const NOT_THERE = "No Spot? Tap Share via… or More first.";
+const PIN = Platform.OS === "ios" ? null : "Hold Spot and tap Pin to keep it up front.";
+
 /* The drawing's own geometry: a share menu's tiles, and the lede's measure. */
 const TILE = 56;
 const MEASURE = 340;
@@ -189,6 +199,7 @@ function ShareSheet() {
         </View>
       </View>
       <Text style={sheet.caption}>On any post: tap Share, then Spot.</Text>
+      <Text style={sheet.more}>{PIN ? `${NOT_THERE} ${PIN}` : NOT_THERE}</Text>
     </View>
   );
 }
@@ -205,6 +216,7 @@ const sheet = StyleSheet.create({
   label: { marginTop: space.x2, fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
   labelOn: { fontFamily: font.bodyBold, color: color.white },
   caption: { marginTop: space.x3, marginLeft: space.x1, fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
+  more: { marginTop: space.x1, marginLeft: space.x1, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
 });
 
 const styles = StyleSheet.create({
@@ -232,7 +244,9 @@ const styles = StyleSheet.create({
   go: { marginTop: space.x3 },
   foot: { marginTop: space.x3, textAlign: "center", fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
   hint: { flexDirection: "row", alignItems: "center", gap: space.x3, marginTop: space.x4, paddingHorizontal: space.x1 },
-  hintText: { flex: 1, fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
+  hintWords: { flex: 1 },
+  hintText: { fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },
+  hintMore: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   recentRight: { flexDirection: "row", alignItems: "center", gap: space.x2 },
   ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
   try: { alignSelf: "center", marginTop: space.x6, minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink2 },
