@@ -40,16 +40,18 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.5.3)
+## What's new (0.6.0)
+
+• One screen: your bag up top with Paste CA, Add cash and Cash out, then your coins and what you sniffed. Settings and your trades sit behind the puppy.
+• The sniff, verdict first: the stamp and one line. Only the risky checks show; the clean ones fold into one.
+• A coin you hold shows what it's worth and what it made. Sell is the big key, Ape more sits under it.
+• Connect, Add cash and Cash out each say it in a line.
+• First run: see how it works, then try it on $WIF.
+
+## What was new in 0.5.3
 
 • Select a CA and pick Spot from the menu next to Copy (it may sit under ⋮).
 • Tapped Share and no Spot? It's under Share via… in X, or More in other apps. Hold Spot there and tap Pin to keep it up front.
-
-## What was new in 0.5.2
-
-• No crypto yet? Add cash shows how to buy USDC with a card, right in your wallet app.
-• Cash out to your bank: the Bag shows the way, through an exchange you use.
-• Back from your wallet app, Add cash shows your new cash by itself.
 
 ## Release notes for the next version
 
