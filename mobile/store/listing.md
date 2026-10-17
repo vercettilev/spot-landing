@@ -40,7 +40,7 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.6.0)
+## What's new (0.6.1)
 
 • One screen: your bag up top with Paste CA, Add cash and Cash out, then your coins and what you sniffed. Settings and your trades sit behind the puppy.
 • The sniff, verdict first: the stamp and one line. Only the risky checks show; the clean ones fold into one.

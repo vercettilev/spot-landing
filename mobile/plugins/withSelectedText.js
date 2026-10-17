@@ -8,7 +8,10 @@ const { mergeContents } = require("@expo/config-plugins/build/utils/generateCode
  *
  * The selection then arrives the way a share does. The main activity turns
  * it into a text share before React Native or any module sees it, so
- * expo-share-intent and src/share.ts take it with nothing new.
+ * expo-share-intent and src/share.ts take it with nothing new. The share is
+ * addressed to this activity: picked from another app's menu, Spot opens in
+ * that app's task, and expo-share-intent moves it to its own by starting
+ * the intent again, which has to come back here, not to a share chooser.
  */
 const PROCESS_TEXT = "android.intent.action.PROCESS_TEXT";
 
@@ -34,8 +37,8 @@ const AS_SHARE = `  /* Spot picked from the menu over selected text: the selecti
   private fun asShare(intent: Intent): Intent {
     if (intent.action != Intent.ACTION_PROCESS_TEXT) return intent
     val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()?.trim()
-    if (text.isNullOrEmpty()) return Intent(Intent.ACTION_MAIN)
-    return Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+    if (text.isNullOrEmpty()) return Intent(this, MainActivity::class.java)
+    return Intent(this, MainActivity::class.java).setAction(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
   }
 `;
 
