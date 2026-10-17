@@ -1,12 +1,12 @@
 import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
-import { useState, type ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import type { ReactNode } from "react";
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
-import { ActionKey, Answer, Breathing, Button, CoinFace, Field, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
+import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
 import { ago, amount as fmtAmount, emptyBag, fromPaste, money, pct, usd, verdictWord } from "../logic";
 import type { RootParams } from "../navigation";
@@ -27,27 +27,22 @@ const TRY = "$WIF";
  * cash out), the coins you hold, each one tap from its page opened on Sell,
  * and the coins sniffed lately. Settings, the wallet and every trade sit
  * behind the puppy. The first time, before any of that exists, the screen
- * says what Spot does and shows how: a phone's share menu with Spot in it.
+ * is three things: what Spot does, how (a phone's share menu with Spot in
+ * it), and one key to try it on a coin; pasting a CA is a quiet key under.
  */
 export function HomeScreen({ navigation }: Props) {
   const store = useStore();
   const { wallet, trades } = store;
   const [toastNode, toast] = useToast();
-  const [input, setInput] = useState("");
   const insets = useSafeAreaInsets();
   /* Under a sheet, a screen reader stays in the sheet. */
   const focused = useIsFocused();
   const bag = useHoldings(wallet?.address ?? null);
   const recent = store.history.slice(0, 8);
   const first = recent.length === 0 && !wallet;
-  const share = fromPaste(input);
 
-  /* A typed CA goes as typed; otherwise the clipboard's, when it holds one. */
+  /* The clipboard's CA, link or $ticker, when it holds one. */
   async function paste() {
-    if (share) {
-      navigation.navigate("Resolve", { share });
-      return;
-    }
     const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
     const pasted = fromPaste(text);
     if (!pasted) {
@@ -77,40 +72,29 @@ export function HomeScreen({ navigation }: Props) {
 
   if (first) {
     return (
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined} aria-hidden={!focused}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: space.x10 + insets.bottom }]} keyboardShouldPersistTaps="handled">
+      <View style={styles.fill} aria-hidden={!focused}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: space.x10 + insets.bottom }]}>
           {header}
           <Text style={styles.hero} accessibilityRole="header">
             Ape from{"\n"}any app.
           </Text>
           <Text style={styles.lede}>Spot checks every coin for scams before you buy, so you can always sell it back.</Text>
           <ShareSheet />
-          <Field
-            value={input}
-            onChangeText={setInput}
-            placeholder="Or paste a link or $ticker"
-            returnKeyType="go"
-            onSubmitEditing={() => void paste()}
-            style={styles.inputFirst}
-            accessibilityLabel="CA, ticker or link"
-          />
-          <Button label={share ? "Sniff it" : "Paste & sniff"} kind="go" onPress={() => void paste()} style={styles.go} />
-          <Text style={styles.foot}>Free. No wallet needed.</Text>
+          <Button label={`Try it on ${TRY}`} kind="go" onPress={() => navigation.navigate("Resolve", { share: { text: TRY, from: "paste" } })} style={styles.tryKey} />
           <Pressable
             onPress={() => {
               tap();
-              navigation.navigate("Resolve", { share: { text: TRY, from: "paste" } });
+              void paste();
             }}
-            hitSlop={{ top: space.hair, bottom: space.hair }}
-            style={({ pressed }) => [styles.try, pressed && styles.tryPressed]}
+            style={({ pressed }) => [styles.pasteFirst, pressed && styles.pressed]}
             accessibilityRole="button"
-            accessibilityLabel={`Try it on ${TRY}`}
           >
-            <Text style={styles.tryText}>Try it on {TRY}</Text>
+            <Text style={styles.pasteFirstText}>Paste a CA</Text>
           </Pressable>
+          <Text style={styles.foot}>Free. No wallet needed.</Text>
         </ScrollView>
         {toastNode}
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
@@ -336,12 +320,10 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.72 },
   hero: { marginTop: space.x4, fontFamily: font.display, fontSize: type.hero, lineHeight: leading.hero, letterSpacing: tracking.hero, color: color.white },
   lede: { marginTop: space.x3, maxWidth: MEASURE, fontFamily: font.body, fontSize: type.lead, lineHeight: leading.lead, color: color.dim },
-  inputFirst: { marginTop: space.x7 },
-  go: { marginTop: space.x3 },
-  foot: { marginTop: space.x3, textAlign: "center", fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
-  try: { alignSelf: "center", marginTop: space.x6, minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink2 },
-  tryPressed: { backgroundColor: color.ink3 },
-  tryText: { fontFamily: font.displayBold, fontSize: type.body, color: color.white },
+  tryKey: { marginTop: space.x7 },
+  pasteFirst: { alignSelf: "center", minHeight: size.tap, justifyContent: "center", paddingHorizontal: space.x4, marginTop: space.x2 },
+  pasteFirstText: { fontFamily: font.bodyBold, fontSize: type.body, color: color.dim },
+  foot: { marginTop: space.x1, textAlign: "center", fontFamily: font.bodySemi, fontSize: type.caption, color: color.faint },
   total: { marginTop: space.x2, fontFamily: font.display, fontSize: type.figure, lineHeight: leading.figure, letterSpacing: tracking.figure, color: color.white },
   totalNote: { marginTop: space.x1, fontFamily: font.bodySemi, fontSize: type.body, color: color.dim },
   pnl: { marginTop: space.x1, fontFamily: font.bodyBold, fontSize: type.body },
