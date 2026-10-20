@@ -23,7 +23,7 @@ export function CashOutScreen({ navigation }: Props) {
   return (
     <View style={styles.fill}>
       <Sheet ref={ref} visible onDismiss={onDismiss} title="Cash out to your bank" label="Cash out to your bank">
-        <Text style={styles.lede}>Your cash is USDC in your own wallet. To get it to your bank, sell it on an exchange you use, like Coinbase or Kraken:</Text>
+        <Text style={styles.lede}>Sell your USDC on an exchange you use, like Coinbase or Kraken:</Text>
         <Steps steps={STEPS} note="Pick Solana in both apps. USDC sent on another network can be lost." caution style={styles.steps} />
       </Sheet>
     </View>

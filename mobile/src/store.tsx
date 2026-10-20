@@ -98,7 +98,6 @@ interface Store extends State {
   addActivity: (item: Omit<ActivityItem, "id" | "at">) => void;
   addTrade: (trade: Trade) => void;
   setWallet: (wallet: Wallet | null) => void;
-  stats: { sniffed: number; dodged: number; apes: number };
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -215,11 +214,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setWallet: (wallet) => {
         save("wallet", wallet);
         if (wallet) addActivity({ kind: "connect", mint: null, symbol: null, text: wallet.kind === "mwa" ? "Wallet connected" : "Tracking a wallet" });
-      },
-      stats: {
-        sniffed: s.history.length,
-        dodged: s.history.filter((h) => h.level === "block").length,
-        apes: s.trades.filter((t) => t.side === "buy").length,
       },
     };
   }, [state, ready, save, addActivity]);

@@ -85,7 +85,7 @@ export function walletError(e: unknown): string {
   const code = (e as { code?: string })?.code ?? "";
   const message = String((e as Error)?.message ?? "");
   if (code === "ERROR_WALLET_NOT_FOUND") return "No wallet app on this phone. Get Phantom or Solflare (a Seeker already has one).";
-  if (code === "SPOT_WRONG_ACCOUNT") return "Your wallet is on another account. Switch back, or reconnect in Me.";
+  if (code === "SPOT_WRONG_ACCOUNT") return "Your wallet is on another account. Switch back, or reconnect in Settings.";
   if (code === "ERROR_ASSOCIATION_CANCELLED" || /declin|reject|cancel/i.test(message)) return "You cancelled in your wallet.";
   if (/linked|TurboModuleRegistry|could not be found/i.test(message)) return "This version of Spot can't open wallets. Update the app.";
   return "Your wallet didn't answer. Try again.";

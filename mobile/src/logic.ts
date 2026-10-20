@@ -117,28 +117,23 @@ export function fitFigure(figure: string, width: number, max = 132, letterSpacin
   return Math.max(40, Math.min(max, Math.floor((width - letterSpacing * (figure.length - 1)) / ems)));
 }
 
-/** The questions every receipt shows: the landing's four. */
-const CORE: CheckId[] = ["honeypot", "freeze", "mint", "holders"];
-
 /**
- * THE RECEIPT, SHORTENED: the landing's four questions and anything that
- * isn't a clean "No" are always shown; the rest of what passed folds under
- * one line, there to open. A clean coin reads in four ticks; a risky one
- * shows its reasons, never hides them.
+ * THE RECEIPT, SHORTENED: only what isn't a clean "No" shows; everything
+ * that passed folds under one line, there to open. A clean coin reads as
+ * its stamp and one line; a risky one shows its reasons, never hides them.
  */
 export function foldChecks(checks: Check[]): { shown: Check[]; folded: Check[] } {
   const all = ordered(checks);
-  const keep = (c: Check) => CORE.includes(c.id) || c.status !== "good";
-  return { shown: all.filter(keep), folded: all.filter((c) => !keep(c)) };
+  return { shown: all.filter((c) => c.status !== "good"), folded: all.filter((c) => c.status === "good") };
 }
 
-/** The line a receipt's folded checks sit under. */
-export const moreChecks = (n: number): string => `${n} more check${n === 1 ? "" : "s"}, all clear`;
+/** The line a receipt's folded checks sit under: all of them, or the rest. */
+export const moreChecks = (n: number, all = false): string =>
+  all ? (n === 1 ? "1 check, clear" : `All ${n} checks clear`) : `${n} more check${n === 1 ? "" : "s"} clear`;
 
-/** Under a coin's symbol: its name, and its size when it has one (a stock coin says it is one instead). */
-export function coinLine(t: { name: string; kind: string; mcapUsd: number | null }): string {
-  if (t.kind === "stock") return `${t.name}, a stock coin`;
-  return t.mcapUsd !== null ? `${t.name}, ${usd(t.mcapUsd)} cap` : t.name;
+/** Under a coin's symbol: its name (a stock coin says it is one). */
+export function coinLine(t: { name: string; kind: string }): string {
+  return t.kind === "stock" ? `${t.name}, a stock coin` : t.name;
 }
 
 /** The landing's four questions first, in its order, then what else the sniff found. */
@@ -146,57 +141,6 @@ const ORDER: CheckId[] = ["route", "honeypot", "freeze", "mint", "holders", "del
 
 export function ordered(checks: Check[]): Check[] {
   return [...checks].sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
-}
-
-/* Why a coin growls, a few words a check. */
-const WHY: Partial<Record<CheckId, string>> = {
-  honeypot: "you'd lose some selling it back",
-  mint: "the dev can print more",
-  liquidity: "a small pool",
-  holders: "few holders",
-  age: "brand new",
-  tax: "a tax on trades",
-  hook: "code that could block sells",
-  flagged: "flagged as sus",
-};
-
-/* What a blocked coin would have done to the money, which is why Spot won't buy it. */
-const STUCK: Partial<Record<CheckId, string>> = {
-  route: "There's no way to buy it right now.",
-  honeypot: "You could buy it, but you'd never get out.",
-  freeze: "The dev could lock your coins the second you buy.",
-  delegate: "The dev could pull your coins right out of your wallet.",
-  tax: "Most of every buy and sell would go to the tax.",
-};
-
-/**
- * The line under the verdict on the receipt: what it means for the bag, in
- * one sentence, so the questions below are proof rather than homework.
- */
-export function verdictLine(sniff: Pick<Sniff, "level" | "checks" | "token"> & { roundTrip?: Sniff["roundTrip"] }): string {
-  switch (sniff.level) {
-    case "ok":
-      return sniff.token.kind === "stock"
-        ? "A stock coin: the issuer holds the keys, as it should. You can sell it back anytime."
-        : sniff.roundTrip === null
-          ? "Big, old and verified. You can sell it back anytime."
-          : "No rug tricks found. You can sell it back anytime.";
-    case "warn": {
-      const why = ordered(sniff.checks)
-        .filter((c) => c.status === "warn")
-        .map((c) => WHY[c.id])
-        .filter((w): w is string => Boolean(w));
-      if (!why.length) return "Some checks didn't answer, so Spot keeps your buy small.";
-      const list = why.length === 1 ? why[0]! : `${why.slice(0, -1).join(", ")} and ${why[why.length - 1]}`;
-      return `${list[0]!.toUpperCase()}${list.slice(1)}.`;
-    }
-    case "block": {
-      const blocker = sniff.checks.find((c) => c.blocks && c.status === "bad");
-      return (blocker && STUCK[blocker.id]) ?? blocker?.note ?? "This coin can take your bag.";
-    }
-    default:
-      return "Some checks didn't answer. Sniff again in a moment.";
-  }
 }
 
 const SUB = "₀₁₂₃₄₅₆₇₈₉";
@@ -444,18 +388,22 @@ export function dockKey(s: DockState): Action {
 }
 
 /** The line under the key: what happens next, or what to do instead. */
-export function dockNote(s: DockState): string {
+/**
+ * THE LINE UNDER THE KEY, only when there is something to know or to do
+ * first: a trade still landing, a wallet only tracked, the US, short of
+ * cash. Otherwise the key says it all, and there is no line.
+ */
+export function dockNote(s: DockState): string | null {
   if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it went through. You can leave, Spot will tell you.";
-  if (s.side === "sell") return s.wallet === "mwa" ? "Sells for cash (USDC). Your wallet approves every trade." : "You're only tracking this wallet. Connect yours to sell.";
-  if (s.sniff === "block") return "Share another post to sniff something else.";
+  if (s.side === "sell") return s.wallet === "mwa" ? null : "You're only tracking this wallet. Connect yours to sell.";
+  if (s.sniff === "block") return null;
   /* The key already says who it isn't for; the line says why this user, and where to change it. */
-  if (s.restricted) return "You said you're in the US. Change that in Me.";
+  if (s.restricted) return "You said you're in the US. Change that in Settings.";
   /* What is held is over the key already; the line says the way out. */
-  if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell above.";
+  if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell below.";
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
-  if (s.wallet === "mwa") return s.cash === null ? "Your wallet approves every trade." : `${money(s.cash)} ready to ape. Your wallet approves every trade.`;
   if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";
-  return "Free sniff. Connect a wallet to ape.";
+  return null;
 }
 
 /**
@@ -489,8 +437,6 @@ export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: b
   return "";
 }
 
-/** What the wallet holds of a coin, over the dock. */
-export const holding = (usdHeld: number): string => `You hold ${money(usdHeld)}`;
 
 /** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
 export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {
@@ -501,20 +447,14 @@ export function turnKey(p: { pending: { landed: boolean; seconds: number } | nul
 
 /**
  * The line at the top of Add cash: what the wallet has, said as what it has
- * ("$0.00" first read as money gone), then what cash is and where it stays.
+ * ("$0.00" first read as money gone); nothing when it has nothing.
  */
-export function cashLede(cash: number | null, solUsd: number | null): string {
-  const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
+export function cashLede(cash: number | null, solUsd: number | null): string | null {
   const hasCash = cash !== null && cash >= 0.01;
   const hasSol = solUsd !== null && solUsd >= 1;
-  const have = hasCash && hasSol
-    ? `You have ${money(cash)} in cash and about ${usd(solUsd)} in SOL.`
-    : hasCash
-      ? `You have ${money(cash)} in cash.`
-      : hasSol
-        ? `You have about ${usd(solUsd)} in SOL.`
-        : "";
-  return have ? `${have} ${base}` : base;
+  if (hasCash && hasSol) return `You have ${money(cash)} in cash and about ${usd(solUsd)} in SOL.`;
+  if (hasCash) return `You have ${money(cash)} in cash.`;
+  return hasSol ? `You have about ${usd(solUsd)} in SOL.` : null;
 }
 
 /** The swap that covers an ape: the smallest choice that does, or the most there is. */
@@ -529,18 +469,7 @@ export function coverWith(choices: number[], need: number | null, cash: number |
  * ME'S PROOF, the number first: the scams kept out once there are any, else
  * the coins sniffed, so the screen never opens on a 0 that reads as failing.
  */
-export function proofOf(s: { sniffed: number; dodged: number; apes: number }): { n: number | null; label: string; line: string; hot: boolean } {
-  const aped = s.apes === 0 ? "None aped yet." : `${s.apes} aped.`;
-  if (s.sniffed === 0) return { n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false };
-  if (s.dodged === 0) return { n: s.sniffed, label: s.sniffed === 1 ? "coin sniffed" : "coins sniffed", line: `No scams among them so far. ${aped}`, hot: false };
-  return { n: s.dodged, label: s.dodged === 1 ? "scam dodged" : "scams dodged", line: `Out of ${s.sniffed} coin${s.sniffed === 1 ? "" : "s"} sniffed. ${aped}`, hot: true };
-}
 
-/** Under the bag's worth: what it is made of, and what is ready to ape, when that comes to a dollar. */
-export function bagLine(coins: number, cashUsd: number): string {
-  const held = coins === 0 ? "No coins yet" : `${coins} coin${coins === 1 ? "" : "s"}`;
-  return Math.round(cashUsd) >= 1 ? `${held} and ${usd(cashUsd)} ready to ape` : held;
-}
 
 /** A bag with nothing in it to trade: under a dollar, all told. */
 export const emptyBag = (totalUsd: number): boolean => !(totalUsd >= 1);

@@ -1,6 +1,6 @@
 # Spot for Android
 
-Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Three tabs around it: **Sniff** (paste a CA, what you sniffed lately), **Bag** (the wallet's coins and cash, what your apes made, every trade) and **Me** (stats, wallet, settings).
+Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Apps with a share menu of their own keep the phone's behind a button (X's Share via…, More in others), and Spot is in the phone's. Or select a CA and pick Spot from the menu over the selection. Around it, one screen, **Home**: the bag's worth, three round keys (Paste CA, Add cash, Cash out), your coins and what you sniffed lately; the wallet, every trade and the settings rise from its puppy.
 
 It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/order`, `/api/execute`; see `../src/engine/README.md`) at `https://www.usespot.fun`. `EXPO_PUBLIC_SPOT_API` points a build at another deployment.
 
@@ -8,18 +8,19 @@ It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/or
 
 - **Works:** a share or a paste finds the coin from a CA, a link, a `$cashtag`, a bare ticker (`WIF`, offered, never auto-picked) or a screenshot (read on the phone with ML Kit; the image never leaves). The sniff, "which one?", history, the bag of any address with what your apes made, settings, Add cash (the deposit QR, and SOL turned into USDC), and connecting the wallet on the phone through Mobile Wallet Adapter (Seed Vault, Phantom, Solflare).
 - **Waits on the server:** buying and selling. The app asks `/api/order` for a transaction, the wallet signs it, `/api/execute` lands it; both answer 403 until `SPOT_TRADING=1` is set on Vercel, and the app says "Buying opens soon". Try it with a real wallet and a few dollars before opening it to anyone.
-- **Not built yet:** the alert pings (a watcher on the server plus push notifications; the coins you ape are kept as the watch list for them, and the Alerts tab comes back when they are real), Spot paying the gas, and iPhone (Mobile Wallet Adapter is Android only; on iOS the app can watch an address).
+- **Not built yet:** the alert pings (a watcher on the server plus push notifications; the coins you ape are kept as the watch list for them, and alerts come back on Home when they are real), Spot paying the gas, and iPhone (Mobile Wallet Adapter is Android only; on iOS the app can watch an address).
 
 ## What is here
 
 ```
 App.tsx                    fonts, splash until the phone's memory is read, safe area
-src/navigation.tsx         four tabs and what opens over them; a share opens over any tab
-src/screens/               one file per screen: Sniff, Resolve, Coin, Choose, Bag, Me, and the Connect and Add cash sheets
+src/navigation.tsx         Home and what opens over it; a share opens over whatever is showing
+src/screens/               one file per screen: Home, Resolve, Coin, Choose, and the Connect, Add cash, Cash out and Settings sheets
 src/store.tsx              what the app remembers, on the phone only (settings, history, watch list, activity, wallet address)
 src/holdings.ts            the bag, cached per wallet for 30 s
 src/wallet/                Mobile Wallet Adapter (loaded on first use), base58 for addresses
 src/share.ts               Share → Spot (expo-share-intent): text, links and screenshots (ocr.ts); share.web.ts reads ?url=&text=
+plugins/                   withSelectedText.js: Spot in the menu over selected text (Android's PROCESS_TEXT), arriving as a text share
 src/api.ts                 the calls, with timeouts and words for every failure
 src/logic.ts               what a share becomes, amount chips under a cap, numbers in CT, the button
 src/components/            the sniff report paper, "which one?", status screens, buttons, chips, toggles
@@ -35,7 +36,7 @@ That APK is signed with Expo's debug key: fine for testing, refused by stores.
 
 ## The test channel
 
-Every push to `main` also publishes the debug-key build as the `test` release: the newest APK is always at `https://github.com/vercettilev/spot-landing/releases/download/test/spot.apk` (open it in the phone's browser, then open the file), and `version.json` next to it is what Me reads to show "Update to x.y.z" when a newer build is out (`src/updates.ts`). A test build installs over the previous test build; it cannot install over a store build, which has another signature. After the store launch, point `updates.ts` at the store.
+Every push to `main` also publishes the debug-key build as the `test` release: the newest APK is always at `https://github.com/vercettilev/spot-landing/releases/download/test/spot.apk` (open it in the phone's browser, then open the file), and `version.json` next to it is what Settings reads to show "Update to x.y.z" when a newer build is out (`src/updates.ts`). A test build installs over the previous test build; it cannot install over a store build, which has another signature. After the store launch, point `updates.ts` at the store.
 
 ## The Solana dApp Store
 

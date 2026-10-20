@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, proofOf, actionFor, bagLine, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, holding, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictLine, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, type DockState } from "./logic";
 import type { Check } from "./types";
 
 describe("a share", () => {
@@ -144,28 +144,6 @@ describe("a shared screenshot", () => {
   });
 });
 
-describe("the line under the verdict", () => {
-  const card = { kind: "coin" } as never;
-  const c = (id: string, status: string, extra: Record<string, unknown> = {}) => ({ id, status, blocks: false, note: null, ...extra }) as never;
-
-  it("says what a clean coin means for the bag", () => {
-    expect(verdictLine({ level: "ok", checks: [], token: card })).toBe("No rug tricks found. You can sell it back anytime.");
-  });
-
-  it("lists why a coin growls, in plain words and the report's order", () => {
-    const checks = [c("age", "warn"), c("holders", "warn"), c("honeypot", "good"), c("liquidity", "warn")];
-    expect(verdictLine({ level: "warn", checks, token: card })).toBe("Few holders, a small pool and brand new.");
-    expect(verdictLine({ level: "warn", checks: [c("mint", "warn")], token: card })).toBe("The dev can print more.");
-  });
-
-  it("gives the reason Spot won't buy", () => {
-    const checks = [c("honeypot", "bad", { blocks: true, note: "There's no way to sell it." })];
-    expect(verdictLine({ level: "block", checks, token: card })).toBe("You could buy it, but you'd never get out.");
-    const odd = [c("hook", "bad", { blocks: true, note: "Something odd." })];
-    expect(verdictLine({ level: "block", checks: odd, token: card })).toBe("Something odd.");
-  });
-});
-
 describe("the moment after a trade", () => {
   it("says what happened in three lines, loudest where the money is", () => {
     expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Sniffed for rugs first.", backdrop: "orange" });
@@ -266,7 +244,7 @@ describe("the dock", () => {
     expect(needsCash({ ...base, cash: null })).toBe(false);
     /* Right after an ape the cash is spent and the coin is held: nothing to fix, so nothing shouts. */
     expect(dockKey({ ...base, cash: 0, held: 25.09 })).toEqual({ label: "Add cash to ape more", enabled: true, tone: "quiet" });
-    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("Sell it anytime: tap Sell above.");
+    expect(dockNote({ ...base, cash: 0, held: 25.09 })).toBe("Sell it anytime: tap Sell below.");
     expect(needsCash({ ...base, cash: 3, wallet: "watch" })).toBe(false);
     expect(needsCash({ ...base, cash: 3, sniff: "block" })).toBe(false);
   });
@@ -274,7 +252,7 @@ describe("the dock", () => {
   it("keeps a coin the issuer won't sell in the US away from US users", () => {
     expect(dockKey({ ...base, restricted: true })).toEqual({ label: "Not for US users", enabled: false, tone: "stop" });
     expect(dockKey({ ...base, restricted: true, cash: 3 }).enabled).toBe(false);
-    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US. Change that in Me.");
+    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US. Change that in Settings.");
   });
 
   it("waits for an amount while the keypad is empty, and still locks while a trade may land", () => {
@@ -291,19 +269,17 @@ describe("the dock", () => {
     expect(dockKey({ ...sell, held: 0.84, sellPct: 50 }).label).toBe("Sell 50% for about $0.42");
     expect(dockKey({ ...sell, held: null })).toMatchObject({ enabled: false });
     expect(dockKey({ ...sell, busy: true })).toMatchObject({ label: "Selling…", enabled: false });
-    expect(dockNote(sell)).toBe("Sells for cash (USDC). Your wallet approves every trade.");
+    expect(dockNote(sell)).toBeNull();
     expect(dockNote({ ...sell, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to sell.");
   });
 
-  it("says what the cash is, or what to do first", () => {
-    expect(dockNote(base)).toBe("$120.00 ready to ape. Your wallet approves every trade.");
-    expect(dockNote({ ...base, cash: null })).toBe("Your wallet approves every trade.");
+  it("says nothing when the key says it all, and what to do first when there is something", () => {
+    expect(dockNote(base)).toBeNull();
+    expect(dockNote({ ...base, cash: null })).toBeNull();
+    expect(dockNote({ ...base, wallet: "none", cash: null })).toBeNull();
+    expect(dockNote({ ...base, sniff: "loading" })).toBeNull();
+    expect(dockNote({ ...base, sniff: "block" })).toBeNull();
     expect(dockNote({ ...base, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to ape.");
-    expect(dockNote({ ...base, wallet: "none", cash: null })).toBe("Free sniff. Connect a wallet to ape.");
-    /* While it sniffs, the receipt says so; the line keeps to the wallet. */
-    expect(dockNote({ ...base, sniff: "loading" })).toBe("$120.00 ready to ape. Your wallet approves every trade.");
-    expect(dockNote({ ...base, sniff: "loading", wallet: "none", cash: null })).toBe("Free sniff. Connect a wallet to ape.");
-    expect(dockNote({ ...base, sniff: "block" })).toBe("Share another post to sniff something else.");
   });
 });
 
@@ -344,7 +320,6 @@ describe("the keypad", () => {
     expect(shareFor(5, 0)).toBe(0);
     expect(shareWord(50)).toBe("50%");
     expect(shareWord(100)).toBe("all");
-    expect(holding(31.2)).toBe("You hold $31.20");
     expect(approx(15.4)).toBe("about $15");
     expect(approx(0.42)).toBe("about $0.42");
   });
@@ -366,13 +341,12 @@ describe("adding cash", () => {
     expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 of SOL into cash", enabled: true });
   });
 
-  it("says what the wallet has, never leading with $0.00, then what cash is", () => {
-    const base = "Spot apes with cash: USDC, digital dollars that stay in your own wallet, not with Spot.";
-    expect(cashLede(0, 90)).toBe(`You have about $90 in SOL. ${base}`);
-    expect(cashLede(3, 90)).toBe(`You have $3.00 in cash and about $90 in SOL. ${base}`);
-    expect(cashLede(3, 0.3)).toBe(`You have $3.00 in cash. ${base}`);
-    expect(cashLede(0, 0)).toBe(base);
-    expect(cashLede(null, null)).toBe(base);
+  it("says what the wallet has, never leading with $0.00, and nothing when it has nothing", () => {
+    expect(cashLede(0, 90)).toBe("You have about $90 in SOL.");
+    expect(cashLede(3, 90)).toBe("You have $3.00 in cash and about $90 in SOL.");
+    expect(cashLede(3, 0.3)).toBe("You have $3.00 in cash.");
+    expect(cashLede(0, 0)).toBeNull();
+    expect(cashLede(null, null)).toBeNull();
   });
 
   it("picks the swap that covers the ape", () => {
@@ -385,15 +359,6 @@ describe("adding cash", () => {
 });
 
 describe("the bag", () => {
-  it("says what it is made of and what is ready to ape", () => {
-    expect(bagLine(2, 120)).toBe("2 coins and $120 ready to ape");
-    expect(bagLine(0, 3.4)).toBe("No coins yet and $3 ready to ape");
-    /* No cash to speak of: the line doesn't count it. */
-    expect(bagLine(1, 0)).toBe("1 coin");
-    expect(bagLine(0, 0.3)).toBe("No coins yet");
-    expect(bagLine(1, 0.6)).toBe("1 coin and $1 ready to ape");
-  });
-
   it("is empty under a dollar", () => {
     expect(emptyBag(0)).toBe(true);
     expect(emptyBag(0.62)).toBe(true);
@@ -436,30 +401,26 @@ describe("a bad quote's question", () => {
   });
 });
 
-describe("Me's proof", () => {
-  it("never opens on a zero that reads as failing", () => {
-    expect(proofOf({ sniffed: 0, dodged: 0, apes: 0 })).toEqual({ n: null, label: "Nothing sniffed yet", line: "Share a post with a coin and Spot checks it for scams first.", hot: false });
-    expect(proofOf({ sniffed: 1, dodged: 0, apes: 1 })).toEqual({ n: 1, label: "coin sniffed", line: "No scams among them so far. 1 aped.", hot: false });
-    expect(proofOf({ sniffed: 3, dodged: 1, apes: 2 })).toEqual({ n: 1, label: "scam dodged", line: "Out of 3 coins sniffed. 2 aped.", hot: true });
-  });
-});
-
 describe("the receipt, shortened", () => {
   const ck = (id: Check["id"], status: Check["status"] = "good"): Check => ({ id, label: id, answer: "", status, blocks: false, note: null, observed: null, threshold: null });
-  it("shows the four questions and every check that isn't clean, folds the rest", () => {
+  it("shows every check that isn't clean, in the report's order, and folds the clean ones", () => {
     const clean = foldChecks([ck("age"), ck("liquidity"), ck("holders"), ck("mint"), ck("freeze"), ck("honeypot")]);
-    expect(clean.shown.map((c) => c.id)).toEqual(["honeypot", "freeze", "mint", "holders"]);
-    expect(clean.folded.map((c) => c.id)).toEqual(["liquidity", "age"]);
-    const risky = foldChecks([ck("age", "warn"), ck("liquidity"), ck("holders"), ck("mint", "warn"), ck("freeze"), ck("honeypot")]);
-    expect(risky.shown.map((c) => c.id)).toEqual(["honeypot", "freeze", "mint", "holders", "age"]);
-    expect(risky.folded.map((c) => c.id)).toEqual(["liquidity"]);
-    expect(moreChecks(2)).toBe("2 more checks, all clear");
-    expect(moreChecks(1)).toBe("1 more check, all clear");
+    expect(clean.shown).toEqual([]);
+    expect(clean.folded.map((c) => c.id)).toEqual(["honeypot", "freeze", "mint", "holders", "liquidity", "age"]);
+    const risky = foldChecks([ck("age", "warn"), ck("liquidity"), ck("holders"), ck("mint", "warn"), ck("freeze"), ck("honeypot", "unknown")]);
+    expect(risky.shown.map((c) => c.id)).toEqual(["honeypot", "mint", "age"]);
+    expect(risky.folded.map((c) => c.id)).toEqual(["freeze", "holders", "liquidity"]);
   });
 
-  it("puts a coin's size beside its name", () => {
-    expect(coinLine({ name: "dogwifhat", kind: "coin", mcapUsd: 207_100_000 })).toBe("dogwifhat, $207.1M cap");
-    expect(coinLine({ name: "New coin", kind: "coin", mcapUsd: null })).toBe("New coin");
-    expect(coinLine({ name: "Tesla xStock", kind: "stock", mcapUsd: 48_000_000 })).toBe("Tesla xStock, a stock coin");
+  it("says how many checks the fold holds: all of them, or the rest", () => {
+    expect(moreChecks(8, true)).toBe("All 8 checks clear");
+    expect(moreChecks(1, true)).toBe("1 check, clear");
+    expect(moreChecks(2)).toBe("2 more checks clear");
+    expect(moreChecks(1)).toBe("1 more check clear");
+  });
+
+  it("names the coin, and says when it is a stock coin", () => {
+    expect(coinLine({ name: "dogwifhat", kind: "coin" })).toBe("dogwifhat");
+    expect(coinLine({ name: "Tesla xStock", kind: "stock" })).toBe("Tesla xStock, a stock coin");
   });
 });

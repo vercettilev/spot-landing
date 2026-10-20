@@ -8,5 +8,5 @@
 export const AUTO_SELL = false;
 
 /** Barks that reach the phone: the dev dumps, the pool gets pulled, a coin hits 2x. Needs the watcher and push.
-    The coins aped are kept as a watch list (store.tsx) for then; the Alerts tab comes back with this flag. */
+    The coins aped are kept as a watch list (store.tsx) for then; alerts come back on Home with this flag. */
 export const PINGS = false;

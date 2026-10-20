@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { errorLine, type ApiError } from "../api";
-import { foldChecks, moreChecks, ordered, verdictHead, verdictLine } from "../logic";
+import { foldChecks, moreChecks, ordered, verdictHead } from "../logic";
 import { color, font, leading, motion, radius, shadow, size, space, stamp, tracking, type } from "../theme";
 import type { Sniff } from "../types";
 import { Answer, Breathing, Chevron, feel, tap, useReducedMotion } from "./ui";
@@ -21,8 +22,9 @@ const native = Platform.OS !== "web";
 /**
  * THE RECEIPT, as on the landing: a white report turned a hair off square.
  * The stamp comes first, where the eye lands: CLEAN, GRRR or NOPE, then one
- * line on what it means for the bag, and the questions under it are the
- * proof. While the sniff runs, the stamp's place waits empty, so nothing
+ * line on what it means for the bag, then only the questions that didn't
+ * come back clean; the clean ones fold under one line, there to open.
+ * While the sniff runs, the stamp's place waits empty, so nothing
  * jumps when the answer lands; before there is even a coin, it shows what
  * is being read (a post, a screenshot) the same way. This is the app's one
  * orchestrated moment:
@@ -35,7 +37,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry?: (
   const reduced = useReducedMotion();
   const done = state.status === "done" ? state.sniff : null;
   const key = done ? `${done.mint}:${done.checkedAt}` : null;
-  /* The clean checks past the landing's four, folded until asked for. */
+  /* The clean checks, folded until asked for. */
   const [open, setOpen] = useState(false);
   const fold = done ? foldChecks(done.checks) : null;
 
@@ -68,16 +70,9 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry?: (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const time = done ? new Date(done.checkedAt) : null;
   const verdict = done && done.level !== "unknown" ? done.level : null;
   return (
     <View style={styles.paper} accessibilityLabel="Sniff report">
-      <View style={styles.head}>
-        <Text style={styles.kicker}>Sniff report</Text>
-        <Text style={styles.kicker}>
-          {time ? `${String(time.getHours()).padStart(2, "0")}:${String(time.getMinutes()).padStart(2, "0")}` : state.status === "error" ? "" : "live"}
-        </Text>
-      </View>
 
       {state.status === "reading" && (
         <View accessible accessibilityLabel={state.title}>
@@ -115,7 +110,7 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry?: (
 
       {state.status === "error" && (
         <>
-          <Text style={[styles.headline, styles.errorHead]}>Couldn't sniff it.</Text>
+          <Text style={styles.headline}>Couldn't sniff it.</Text>
           <Text style={styles.errorText}>{errorLine(state.error)}</Text>
           {onRetry ? (
             <Pressable onPress={onRetry} style={styles.retry} hitSlop={{ top: space.hair, bottom: space.hair }} accessibilityRole="button">
@@ -145,7 +140,6 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry?: (
           ) : null}
           <View style={[styles.verdict, !verdict && styles.verdictBare]}>
             <Text style={styles.headline}>{verdictHead(done.level, done.headline)}</Text>
-            <Text style={styles.line}>{verdictLine(done)}</Text>
           </View>
           {(open ? ordered(done.checks) : (fold?.shown ?? [])).map((c, i) => {
             const v = rows[Math.min(i, MAX_ROWS - 1)]!;
@@ -172,9 +166,16 @@ export function SniffReport({ state, onRetry }: { state: SniffState; onRetry?: (
               }}
               style={styles.more}
               accessibilityRole="button"
-              accessibilityLabel={`${moreChecks(fold.folded.length)}. Show them`}
+              accessibilityLabel={`${moreChecks(fold.folded.length, fold.shown.length === 0)}. Show them`}
             >
-              <Text style={styles.moreText}>{moreChecks(fold.folded.length)}</Text>
+              <View style={styles.moreLine}>
+                <View style={styles.clear}>
+                  <Svg width={space.x3} height={space.x3} viewBox="0 0 24 24" fill="none" stroke={color.white} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M5 12.5l4.5 4.5L19 7.5" />
+                  </Svg>
+                </View>
+                <Text style={styles.moreText}>{moreChecks(fold.folded.length, fold.shown.length === 0)}</Text>
+              </View>
               <View style={styles.moreShow}>
                 <Text style={styles.moreShowText}>Show</Text>
                 <View style={styles.down}>
@@ -212,9 +213,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-0.8deg" }],
     boxShadow: shadow.paper,
   },
-  head: { flexDirection: "row", justifyContent: "space-between" },
-  kicker: { fontFamily: font.mono, fontSize: type.micro, letterSpacing: tracking.kicker, textTransform: "uppercase", color: color.paperDim },
-  slot: { height: SLOT.height, marginTop: space.x4, justifyContent: "center", alignItems: "flex-start" },
+  slot: { height: SLOT.height, justifyContent: "center", alignItems: "flex-start" },
   slotEmpty: {
     width: SLOT.width,
     height: SLOT.height,
@@ -256,12 +255,13 @@ const styles = StyleSheet.create({
   note: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.paperDim },
   pending: { width: space.x14, height: space.x7, borderRadius: radius.pill, backgroundColor: color.paperWell },
   more: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: size.tap, borderBottomWidth: size.hairline, borderColor: color.paperHair },
-  moreText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.paperDim },
+  moreLine: { flexDirection: "row", alignItems: "center", gap: space.x2 },
+  clear: { width: space.x5, height: space.x5, borderRadius: space.x5 / 2, backgroundColor: stamp.ok, alignItems: "center", justifyContent: "center" },
+  moreText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.paperInk },
   moreShow: { flexDirection: "row", alignItems: "center", gap: space.x1 },
   moreShowText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.paperInk },
   down: { transform: [{ rotate: "90deg" }] },
   trip: { marginTop: space.x4, fontFamily: font.mono, fontSize: type.footnote, color: color.paperDim },
-  errorHead: { marginTop: space.x3 },
   errorText: { marginTop: space.x3, fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.paperDim },
   retry: { alignSelf: "flex-start", marginTop: space.x4, minHeight: size.chip, justifyContent: "center", paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.ink },
   retryText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.white },

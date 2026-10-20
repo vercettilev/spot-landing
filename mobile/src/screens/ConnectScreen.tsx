@@ -1,14 +1,14 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { fetchHoldings } from "../api";
 import { onCelebrate } from "../components/Moment";
-import { Button, Field, Section, Sheet, tap, useRouteSheet, useToast } from "../components/ui";
+import { Button, Field, Section, Sheet, useRouteSheet, useToast } from "../components/ui";
 import { primeHoldings } from "../holdings";
 import type { RootParams } from "../navigation";
 import { useStore } from "../store";
-import { color, font, leading, size, space, type } from "../theme";
+import { color, font, leading, space, type } from "../theme";
 import { isAddressLike } from "../wallet/base58";
 import { MWA_AVAILABLE, connectWallet, walletError } from "../wallet/mwa";
 import { CashPanel } from "./DepositScreen";
@@ -24,9 +24,9 @@ const GET_PHANTOM = "https://play.google.com/store/apps/details?id=app.phantom";
  * Spot's name and usespot.fun, the user approves there, and Spot gets the
  * public address and a token to ask again later. Connecting to ape (from a
  * coin), the bag is read at once: short of USDC, the same sheet becomes
- * Add cash, so the next thing on screen is the next thing to do. From the
- * bag or Me, any address can be tracked instead: the bag shows, nothing
- * can trade.
+ * Add cash, so the next thing on screen is the next thing to do. Opened
+ * from Settings' Track a wallet, it takes any address instead: the bag
+ * shows, nothing can trade. One sheet, one job.
  */
 export function ConnectScreen({ navigation, route }: Props) {
   const store = useStore();
@@ -41,8 +41,8 @@ export function ConnectScreen({ navigation, route }: Props) {
   /* No wallet app on the phone: not an error to show in red, a thing to get. */
   const [missing, setMissing] = useState(false);
   const [input, setInput] = useState("");
-  /* Tracking an address is the side road: folded behind one line unless it is the only road (no wallet adapter here). */
-  const [tracking, setTracking] = useState(!MWA_AVAILABLE);
+  /* Tracking an address is its own errand, from Settings; here it is only the road where no wallet adapter is. */
+  const tracking = track || !MWA_AVAILABLE;
   const address = input.trim();
   const valid = isAddressLike(address);
 
@@ -100,15 +100,17 @@ export function ConnectScreen({ navigation, route }: Props) {
         visible
         onDismiss={onDismiss}
         dismissable={!busy && !cashBusy}
-        title={step === "cash" && ape !== null ? `Add cash to ape $${ape}` : "Connect your wallet"}
-        label={step === "cash" ? "Add cash" : "Connect your wallet"}
+        title={step === "cash" && ape !== null ? `Add cash to ape $${ape}` : track ? "Track a wallet" : "Connect your wallet"}
+        label={step === "cash" ? "Add cash" : track ? "Track a wallet" : "Connect your wallet"}
       >
         {step === "cash" ? (
           <CashPanel need={ape} toast={toast} onBusy={setCashBusy} />
         ) : (
           <>
-            <Text style={styles.lede}>Your wallet app keeps your money and approves every trade. Spot never holds it.</Text>
-            {MWA_AVAILABLE && missing ? (
+            {track ? null : (
+              <Text style={styles.lede}>Your wallet app (Phantom, Solflare, Backpack or Seed Vault) keeps your money and approves every trade.</Text>
+            )}
+            {track ? null : MWA_AVAILABLE && missing ? (
               <>
                 <Text style={styles.missing} accessibilityLiveRegion="polite">
                   There's no wallet app on this phone yet. Phantom is free and takes a minute to set up; then come back and connect.
@@ -117,16 +119,13 @@ export function ConnectScreen({ navigation, route }: Props) {
                 <Button label="I have one now. Connect" kind="quiet" disabled={busy} onPress={() => void connect()} style={styles.again} />
               </>
             ) : MWA_AVAILABLE ? (
-              <>
-                <Button
-                  label={step === "counting" ? "Counting your cash…" : busy ? "Waiting for your wallet…" : "Connect wallet"}
-                  kind={busy ? "wait" : "go"}
-                  disabled={busy}
-                  onPress={() => void connect()}
-                  style={styles.cta}
-                />
-                <Text style={styles.note}>Works with Seed Vault, Phantom, Solflare and Backpack.</Text>
-              </>
+              <Button
+                label={step === "counting" ? "Counting your cash…" : busy ? "Waiting for your wallet…" : "Connect wallet"}
+                kind={busy ? "wait" : "go"}
+                disabled={busy}
+                onPress={() => void connect()}
+                style={styles.cta}
+              />
             ) : (
               <Text style={styles.soon}>{Platform.OS === "ios" ? "On iPhone you can only track a wallet for now." : "Wallets connect in the Android app."}</Text>
             )}
@@ -136,21 +135,9 @@ export function ConnectScreen({ navigation, route }: Props) {
               </Text>
             ) : null}
 
-            {(track || !MWA_AVAILABLE) && !tracking ? (
-              <Pressable
-                onPress={() => {
-                  tap();
-                  setTracking(true);
-                }}
-                style={styles.trackLink}
-                accessibilityRole="button"
-              >
-                <Text style={styles.trackLinkText}>Just track a wallet instead</Text>
-              </Pressable>
-            ) : null}
-            {(track || !MWA_AVAILABLE) && tracking ? (
+            {tracking ? (
               <>
-                <Section>Track a wallet</Section>
+                {track ? null : <Section>Track a wallet</Section>}
                 <Text style={styles.line}>See any wallet's bag. You can't trade from it.</Text>
                 <Field
                   mono
@@ -183,13 +170,10 @@ const styles = StyleSheet.create({
   cta: { marginTop: space.x6 },
   again: { marginTop: space.x3 },
   missing: { marginTop: space.x5, fontFamily: font.bodySemi, fontSize: type.body, lineHeight: leading.body, color: color.white },
-  note: { marginTop: space.x3, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   soon: { marginTop: space.x5, fontFamily: font.bodySemi, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   error: { marginTop: space.x3, fontFamily: font.bodySemi, fontSize: type.caption, lineHeight: leading.caption, color: color.red },
   line: { fontFamily: font.body, fontSize: type.callout, lineHeight: leading.callout, color: color.dim },
   input: { marginTop: space.x3 },
   row: { flexDirection: "row", gap: space.x2, marginTop: space.x3 },
-  trackLink: { alignSelf: "center", minHeight: size.tap, justifyContent: "center", marginTop: space.x3, paddingHorizontal: space.x4 },
-  trackLinkText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.orange },
   half: { flex: 1 },
 });
