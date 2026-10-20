@@ -27,6 +27,21 @@ describe("an address", () => {
   it("is not found inside a longer base58 run, like a transaction signature", () => {
     const sig = "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW";
     expect(findAddresses(`tx ${sig}`)).toEqual([]);
+    expect(findAddresses(`tx ${sig.slice(0, 30)}\n${sig.slice(30)}`)).toEqual([]);
+  });
+
+  it("is found where a screenshot wrapped it over two lines, or three", () => {
+    expect(findAddresses(`gm. aping a little\nCA: ${WIF.slice(0, 37)}\n${WIF.slice(37)} lfg`)).toEqual([WIF]);
+    expect(findAddresses(`CA: ${COIN_A.slice(0, 15)}\n${COIN_A.slice(15, 30)}\n${COIN_A.slice(30)}`)).toEqual([COIN_A]);
+  });
+
+  it("is read back where the reader took a 1 for an l or an I, an o for an O or a 0", () => {
+    expect(findAddresses(`CA ${COIN_B.replace("1", "l").replace(/o/g, "0")}`)).toEqual([COIN_B]);
+    expect(findAddresses(`${COIN_B.replace("1", "I").slice(0, 20)}\n${COIN_B.replace(/o/g, "O").slice(20)}`)).toEqual([COIN_B]);
+  });
+
+  it("is not made up from words that end and start lines", () => {
+    expect(findAddresses("this one looks\nearly, aping\nsome more\nwagmi")).toEqual([]);
   });
 });
 

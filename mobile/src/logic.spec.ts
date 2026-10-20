@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import type { Candidate, Check } from "./types";
 
 describe("a share", () => {
@@ -97,6 +97,17 @@ describe("where it came from", () => {
 
   it("says Try it's coin is Spot's pick, not a paste", () => {
     expect(sourceLine({ platform: "text", url: null, author: null, text: "$WIF" }, { from: "try" })).toBe("from Spot");
+  });
+});
+
+describe("a row's worth", () => {
+  it("is whole dollars, and cents under a dollar, never a $0 for something", () => {
+    expect(worth(374.2)).toBe("$374");
+    expect(worth(1.4)).toBe("$1");
+    expect(worth(0.27)).toBe("$0.27");
+    expect(worth(0.004)).toBe("<$0.01");
+    expect(worth(0)).toBe("$0");
+    expect(worth(null)).toBe("—");
   });
 });
 

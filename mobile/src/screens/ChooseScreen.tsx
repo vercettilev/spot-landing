@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Chooser } from "../components/Chooser";
+import { sameName } from "../logic";
 import type { RootParams } from "../navigation";
 
 type Props = NativeStackScreenProps<RootParams, "Choose">;
@@ -13,6 +14,7 @@ export function ChooseScreen({ navigation, route }: Props) {
       title={title}
       line={line}
       candidates={candidates}
+      namesakes={sameName(all)}
       onBack={() => navigation.goBack()}
       onPick={(pick) =>
         navigation.replace("Coin", { candidate: pick, source, share, others: all.filter((c) => c.token.mint !== pick.token.mint) })

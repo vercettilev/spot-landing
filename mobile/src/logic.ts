@@ -154,6 +154,13 @@ export function usd(n: number | null): string {
   return `$${Math.round(Math.max(n, 0))}`;
 }
 
+/** A row's worth: whole dollars, and the cents under a dollar, so a coin worth $0.27 doesn't read $0. */
+export function worth(n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return "—";
+  if (n > 0 && n < 1) return n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`;
+  return usd(n);
+}
+
 /** A bag's worth, to the cent, the way a wallet shows it: $1,077.10. Past a million it reads like usd(). */
 export function money(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";

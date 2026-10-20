@@ -8,7 +8,7 @@ import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
 import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, amount as fmtAmount, emptyBag, fromPaste, money, pct, usd, verdictWord } from "../logic";
+import { ago, amount as fmtAmount, emptyBag, fromPaste, money, pct, verdictWord, worth } from "../logic";
 import type { RootParams } from "../navigation";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
 import { useStore } from "../store";
@@ -157,7 +157,8 @@ export function HomeScreen({ navigation }: Props) {
           <>
             <Section>Your coins</Section>
             <Group>
-              <Row left={<Cash glyph="$" />} title="Cash" subtitle="Ready to ape" right={<Value value={usd(b.usdc.usd)} />} />
+              {/* A tracked wallet's cash can't be aped with here, so it is only named. */}
+              <Row left={<Cash glyph="$" />} title="Cash" subtitle={trading ? "Ready to ape" : "USDC"} right={<Value value={worth(b.usdc.usd)} />} />
               {b.positions.map((p) => {
                 /* Your own gain where Spot bought it; the coin's day where it did not. */
                 const book = ledger.get(p.token.mint);
@@ -170,9 +171,9 @@ export function HomeScreen({ navigation }: Props) {
                     left={<CoinFace uri={p.token.icon} symbol={p.token.symbol} size={size.faceRow} />}
                     title={`$${p.token.symbol}`}
                     subtitle={`${fmtAmount(p.amount)} ${p.token.symbol}`}
-                    right={<Value value={usd(p.usd)} under={under} tint={down ? color.dim : color.green} />}
+                    right={<Value value={worth(p.usd)} under={under} tint={down ? color.dim : color.green} />}
                     onPress={() => navigation.navigate("Coin", { candidate: { token: p.token, via: "link" }, source: null, share: null, others: [], side: "sell" })}
-                    label={`$${p.token.symbol}, ${usd(p.usd)}, ${under}. Opens on Sell.`}
+                    label={`$${p.token.symbol}, ${worth(p.usd)}, ${under}. Opens on Sell.`}
                   />
                 );
               })}
@@ -182,7 +183,7 @@ export function HomeScreen({ navigation }: Props) {
                   left={<Cash glyph="◎" />}
                   title="SOL"
                   subtitle="For network fees"
-                  right={<Value value={b.sol.usd === null ? "—" : usd(b.sol.usd)} under={`${fmtAmount(b.sol.amount)} SOL`} />}
+                  right={<Value value={worth(b.sol.usd)} under={`${fmtAmount(b.sol.amount)} SOL`} />}
                 />
               ) : null}
             </Group>

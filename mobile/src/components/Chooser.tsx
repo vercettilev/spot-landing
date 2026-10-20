@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { candidateLine, sameName } from "../logic";
+import { candidateLine } from "../logic";
 import { color, font, leading, size, space, tracking, type } from "../theme";
 import type { Candidate } from "../types";
 import { CoinFace, Group, Row, TopBar, Verified } from "./ui";
@@ -15,12 +15,15 @@ export function Chooser({
   title,
   line,
   candidates,
+  namesakes,
   onPick,
   onBack,
 }: {
   title: string;
   line: string;
   candidates: Candidate[];
+  /** The coins share one name (with the one on screen, for "Not this one?"): the note under the list says so. */
+  namesakes: boolean;
   onPick: (c: Candidate) => void;
   onBack: () => void;
 }) {
@@ -48,7 +51,7 @@ export function Chooser({
         ))}
       </Group>
       {/* Only for namesakes: two different coins in one share are not the same name. */}
-      {sameName(candidates) && (
+      {namesakes && (
         <Text style={styles.foot}>Same name, different coins. If the post shows the coin's address (CA), pick the one that matches it.</Text>
       )}
     </ScrollView>

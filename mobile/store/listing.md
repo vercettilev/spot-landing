@@ -43,7 +43,7 @@ Not financial advice. Coins can go to zero with or without a trick, and the snif
 ## What's new (0.6.2)
 
 • Share to Spot works every time, even when your phone had closed Spot in the background.
-• Screenshots read right away, on any phone, the first time you share one.
+• Screenshots read right away, on any phone, even when the CA wraps over two lines.
 
 ## What was new in 0.6.1
 
