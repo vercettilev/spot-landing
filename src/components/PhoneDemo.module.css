@@ -1,13 +1,15 @@
 /* THE CLOCK. Every moving part runs for --t on the same loop, from the feed,
    in four steps: 0–20% see it (the post, its Share lit and pressed), 20–40%
-   share (the sheet comes up, Spot lit and pressed), 40–81.33% ape (Spot
+   share (on X, X's own menu first and its Share via…; then the sheet comes
+   up, Spot lit and pressed), 40–81.33% ape (Spot
    opens, sniffs, stamps CLEAN, Ape $25 lit and pressed, the orange moment),
    81.33–100% keep scrolling (Spot goes, the feed scrolls on to where it
    began, so the loop has no seam). The caption's arrows jump to those same
    marks (STEP_STARTS in DemoLoop.tsx).
    THE APPS' CLOCK. --m is four loops: X, TikTok, Telegram, then a coin's
    page in Safari. What changes with the app (which app shows, where its
-   Share is lit, the share sheet's title, Spot's "from … on …",
+   Share is lit, X's own menu and when the sheet comes up, the share
+   sheet's title, Spot's "from … on …",
    the status bar's tone and its way back, the first step's words and the
    lit app under the phone) runs on --m and changes at the seams, where one
    app swipes in over the last, or while Spot covers the screen.
@@ -102,7 +104,7 @@
 /* Held by the reader (a tap on the phone), or scrolled away: every clock in
    the phone and in the caption holds its frame. The puppy is left out, so a press still barks.
    Important, because each animation is set with the shorthand, which says
-   "running" too, and some of those rules (.says > .say2, .done .check) are
+   "running" too, and some of those rules (.says > .say2, .done .fold) are
    as specific as this one and come later: without it the words and the
    receipt's rows went on while the phone stood still. */
 .paused .stage *,
@@ -111,6 +113,97 @@
 .paused .caption *,
 .paused .caption *::after {
   animation-play-state: paused !important;
+}
+
+/* ---------- X's own share menu (light, like the feed under it) ---------- */
+/* Up on X's Share, before the phone's sheet: people to send it to, then
+   Share via…, which opens the phone's sheet with Spot in it. */
+.xMenu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: calc(10 * var(--u)) 0 calc(46 * var(--u));
+  border-radius: calc(28 * var(--u)) calc(28 * var(--u)) 0 0;
+  background: #fff;
+  color: #0f1419;
+  box-shadow: 0 calc(-8 * var(--u)) calc(40 * var(--u)) rgba(0, 0, 0, 0.18);
+  transform: translateY(110%);
+}
+
+.xGrab {
+  display: block;
+  width: calc(36 * var(--u));
+  height: calc(5 * var(--u));
+  margin: 0 auto;
+  border-radius: 999px;
+  background: #cfd9de;
+}
+
+.xPeople,
+.xActions {
+  display: flex;
+  gap: calc(20 * var(--u));
+  padding: calc(20 * var(--u)) calc(22 * var(--u)) calc(18 * var(--u));
+}
+
+.xPerson,
+.xAction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  width: calc(64 * var(--u));
+  font-size: calc(12 * var(--u));
+  line-height: calc(16 * var(--u));
+  white-space: nowrap;
+}
+
+.xFace {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: calc(18 * var(--u));
+  color: #fff;
+}
+
+.xName {
+  color: #536471;
+}
+
+.xRule {
+  display: block;
+  height: calc(1 * var(--u));
+  margin: 0 calc(22 * var(--u));
+  background: #eff3f4;
+}
+
+.xActions {
+  padding-bottom: 0;
+}
+
+.xAction {
+  font-weight: 500;
+}
+
+.xIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(56 * var(--u));
+  height: calc(56 * var(--u));
+  border-radius: 50%;
+  background: #eff3f4;
+}
+
+.xIcon svg {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
 }
 
 /* ---------- the share sheet (iOS 26) ---------- */
@@ -429,22 +522,16 @@
   color: rgba(255, 255, 255, 0.72);
 }
 
-.priceCol {
-  text-align: right;
-}
-
+/* The price rides under the name, so the symbol has the whole width. */
 .price {
-  font-family: var(--font-display-stack);
-  font-weight: 800;
-  font-size: calc(18 * var(--u));
-  line-height: calc(22 * var(--u));
+  margin-left: calc(4 * var(--u));
+  font-weight: 700;
+  color: #fff;
 }
 
 .change {
-  margin-top: calc(2 * var(--u));
+  margin-left: calc(4 * var(--u));
   font-weight: 700;
-  font-size: calc(14 * var(--u));
-  line-height: calc(18 * var(--u));
   color: #ff4d3d;
 }
 
@@ -453,7 +540,7 @@
   align-items: center;
   justify-content: space-between;
   height: calc(48 * var(--u));
-  margin-top: calc(4 * var(--u));
+  margin-top: calc(10 * var(--u));
 }
 
 .ca {
@@ -489,7 +576,7 @@
 }
 
 /* The receipt (SniffReport.tsx): white paper a hair off square, the stamp
-   first, the verdict, then the checks that prove it. */
+   first, the verdict, then the clean checks folded under one line. */
 .paper {
   position: relative;
   margin-top: calc(12 * var(--u));
@@ -501,39 +588,9 @@
   box-shadow: 0 calc(22 * var(--u)) calc(44 * var(--u)) rgba(0, 0, 0, 0.6);
 }
 
-.kicker {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-mono-stack);
-  font-weight: 500;
-  font-size: calc(12 * var(--u));
-  line-height: calc(16 * var(--u));
-  letter-spacing: calc(0.8 * var(--u));
-  text-transform: uppercase;
-  color: #5a554c;
-}
-
-.clock {
-  position: relative;
-  display: block;
-  width: calc(52 * var(--u));
-  height: calc(16 * var(--u));
-}
-
-.clock span {
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.live {
-  opacity: 0;
-}
-
 .slot {
   position: relative;
   height: calc(46 * var(--u));
-  margin-top: calc(16 * var(--u));
 }
 
 .slotEmpty {
@@ -601,39 +658,6 @@
   color: #5a554c;
 }
 
-.check {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(12 * var(--u));
-  padding: calc(12 * var(--u)) 0;
-  border-bottom: calc(1 * var(--u)) solid #eee9df;
-}
-
-.check > span:first-child {
-  font-weight: 600;
-  font-size: calc(16 * var(--u));
-  line-height: calc(22 * var(--u));
-  color: #1a1a1a;
-}
-
-.answer {
-  padding: calc(4 * var(--u)) calc(12 * var(--u));
-  border-radius: 999px;
-  background: #e3f1e8;
-  color: #1f6b45;
-  font-weight: 700;
-  font-size: calc(15 * var(--u));
-  line-height: calc(20 * var(--u));
-}
-
-.pending {
-  width: calc(56 * var(--u));
-  height: calc(28 * var(--u));
-  border-radius: 999px;
-  background: #ecebe7;
-}
-
 .fold {
   display: flex;
   align-items: center;
@@ -642,6 +666,30 @@
   font-weight: 600;
   font-size: calc(15 * var(--u));
   color: #5a554c;
+}
+
+/* All clear, with the clean mark the app sets beside it. */
+.clear {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  color: #1a1a1a;
+}
+
+.clear i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+  border-radius: 50%;
+  background: #1f8a4c;
+  color: #fff;
+}
+
+.clear svg {
+  width: calc(12 * var(--u));
+  height: calc(12 * var(--u));
 }
 
 .show {
@@ -658,13 +706,14 @@
   color: #5a554c;
 }
 
-/* The dock: the amounts, the key and the line under it. */
+/* The dock: the amounts and the key. The app says no more under it unless
+   there is something to do first. */
 .dock {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(200 * var(--u));
+  height: calc(180 * var(--u));
   background: #000;
 }
 
@@ -742,30 +791,6 @@
 .keyApe {
   background: #3ecf7a;
   box-shadow: 0 calc(4 * var(--u)) 0 #1f8a4c;
-  opacity: 1;
-}
-
-.note {
-  position: absolute;
-  left: calc(20 * var(--u));
-  right: calc(20 * var(--u));
-  top: calc(136 * var(--u));
-  height: calc(18 * var(--u));
-}
-
-.note span {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  text-align: center;
-  font-size: calc(13 * var(--u));
-  line-height: calc(18 * var(--u));
-  color: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-}
-
-.note .noteReady {
   opacity: 1;
 }
 
@@ -902,7 +927,7 @@
   opacity: 0;
 }
 
-/* ---------- the three taps: lit, then pressed ---------- */
+/* ---------- the taps: lit, then pressed ---------- */
 /* The screen dims around the one thing to press (a ring with a hole in a
    dark that reaches every edge), then a finger lands on it. */
 .focus {
@@ -964,10 +989,19 @@
     0 0 0 calc(2400 * var(--u)) rgba(0, 0, 0, 0.12);
 }
 
+/* Share via… in X's own menu. */
+.focusVia {
+  left: calc(22 * var(--u));
+  top: calc(744 * var(--u));
+  width: calc(64 * var(--u));
+  height: calc(64 * var(--u));
+  border-radius: 50%;
+}
+
 /* The Ape key. */
 .focusKey {
   left: calc(13 * var(--u));
-  top: calc(731 * var(--u));
+  top: calc(749 * var(--u));
   width: calc(376 * var(--u));
   height: calc(78 * var(--u));
   border-radius: calc(22 * var(--u));
@@ -1014,7 +1048,12 @@
 
 .tap3 {
   left: calc(201 * var(--u));
-  top: calc(770 * var(--u));
+  top: calc(788 * var(--u));
+}
+
+.tapVia {
+  left: calc(54 * var(--u));
+  top: calc(776 * var(--u));
 }
 
 /* ---------- the caption: the step in words, between its arrows ---------- */
@@ -1246,7 +1285,11 @@
   .app2 { animation: app2 var(--m) var(--d) infinite; }
   .app3 { animation: app3 var(--m) var(--d) infinite; }
   .veil { animation: veil var(--t) var(--d) infinite ease; }
-  .sheet { animation: sheet var(--t) var(--d) infinite var(--ease-out); }
+  .xMenu { animation: xMenu var(--m) var(--d) infinite; }
+  .focusVia { animation: focusVia var(--m) var(--d) infinite ease; }
+  .tapVia { animation: tapVia var(--m) var(--d) infinite ease-out; }
+  .xVia .xIcon { animation: pressVia var(--m) var(--d) infinite ease; }
+  .sheet { animation: sheet var(--m) var(--d) infinite var(--ease-out); }
   .focusSpot { animation: focusSpot var(--t) var(--d) infinite ease; }
   .tap2 { animation: tap2 var(--t) var(--d) infinite ease-out; }
   .spotTile { animation: pressSpot var(--t) var(--d) infinite ease; }
@@ -1261,10 +1304,7 @@
   .back3 { animation: back3 var(--m) var(--d) infinite ease; }
   .loading { animation: loading var(--t) var(--d) infinite ease; }
   .done { animation: done var(--t) var(--d) infinite ease; }
-  .done .check,
   .done .fold { animation: tick var(--t) calc(var(--d) + var(--i) * 0.12s) infinite var(--ease-out) both; }
-  .live { animation: live var(--t) var(--d) infinite ease; }
-  .at { animation: at var(--t) var(--d) infinite ease; }
   .slotEmpty { animation: slotEmpty var(--t) var(--d) infinite ease; }
   .stamp { animation: stamp var(--t) var(--d) infinite; }
   .chips { animation: chips var(--t) var(--d) infinite ease; }
@@ -1272,8 +1312,6 @@
   .keyApe { animation: keyApe var(--t) var(--d) infinite ease; }
   .keyAping { animation: keyAping var(--t) var(--d) infinite ease; }
   .key { animation: pressKey var(--t) var(--d) infinite ease; }
-  .note .noteSniff { animation: noteSniff var(--t) var(--d) infinite ease; }
-  .note .noteReady { animation: noteReady var(--t) var(--d) infinite ease; }
   .focusKey { animation: focusKey var(--t) var(--d) infinite ease; }
   .tap3 { animation: tap3 var(--t) var(--d) infinite ease-out; }
   .burst { animation: burst var(--t) var(--d) infinite; }
@@ -1295,9 +1333,8 @@
   .says > .say4 { animation: say4 var(--t) var(--d) infinite ease; }
 }
 
-@keyframes veil { 0%, 20% { opacity: 0; } 22.67%, 43.33% { opacity: 0.22; } 43.4%, 100% { opacity: 0; } }
-@keyframes sheet { 0%, 20% { transform: translateY(110%); } 23.33%, 43.33% { transform: none; } 43.4%, 100% { transform: translateY(110%); } }
-@keyframes focusSpot { 0%, 26.67% { opacity: 0; } 28.67%, 37.33% { opacity: 1; } 39.33%, 100% { opacity: 0; } }
+@keyframes veil { 0%, 17.33% { opacity: 0; } 20%, 43.33% { opacity: 0.22; } 43.4%, 100% { opacity: 0; } }
+@keyframes focusSpot { 0%, 30% { opacity: 0; } 32%, 37.33% { opacity: 1; } 39.33%, 100% { opacity: 0; } }
 @keyframes tap2 {
   0%, 35.33% { opacity: 0; transform: scale(0.4); }
   36% { opacity: 0.9; transform: scale(0.75); }
@@ -1317,8 +1354,6 @@
   53%, 86.67% { opacity: 1; transform: none; }
   86.8%, 100% { opacity: 0; transform: translateY(calc(8 * var(--u))); }
 }
-@keyframes live { 0%, 56.33% { opacity: 1; } 56.67%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
-@keyframes at { 0%, 56.33% { opacity: 0; } 56.67%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
 @keyframes slotEmpty { 0%, 56.33% { opacity: 1; } 56.67%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
 /* The stamp comes down hard, a hair past its size, and settles. */
 @keyframes stamp {
@@ -1332,8 +1367,6 @@
 @keyframes keyApe { 0%, 56.67% { opacity: 0; } 57.33%, 68% { opacity: 1; } 68.33%, 100% { opacity: 0; } }
 @keyframes keyAping { 0%, 68% { opacity: 0; } 68.33%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
 @keyframes pressKey { 0%, 65.33% { transform: none; } 65.67% { transform: translateY(calc(3 * var(--u))); } 66.67%, 100% { transform: none; } }
-@keyframes noteSniff { 0%, 56.67% { opacity: 1; } 57.33%, 86.67% { opacity: 0; } 86.8%, 100% { opacity: 1; } }
-@keyframes noteReady { 0%, 56.67% { opacity: 0; } 57.33%, 86.67% { opacity: 1; } 86.8%, 100% { opacity: 0; } }
 @keyframes focusKey { 0%, 60% { opacity: 0; } 62%, 66.67% { opacity: 1; } 68%, 100% { opacity: 0; } }
 @keyframes tap3 {
   0%, 65% { opacity: 0; transform: scale(0.4); }
@@ -1365,6 +1398,32 @@
 @keyframes say4 { 0% { opacity: 1; } 2%, 81.33% { opacity: 0; } 83.33%, 100% { opacity: 1; } }
 
 /* ---------- the apps' clock (--m: X, TikTok, Telegram, Safari, a quarter each) ---------- */
+/* X's own menu, in X's loop only: up at 2.6 s, Share via… lit at 3.2 and
+   pressed at 3.75, gone by 4.25 as the phone's sheet comes up (4.0 to 4.5);
+   in the other loops the phone's sheet comes straight up at 3.0. */
+@keyframes xMenu {
+  0%, 4.333% { transform: translateY(110%); animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  5%, 6.583% { transform: none; animation-timing-function: cubic-bezier(0.55, 0, 0.8, 0.2); }
+  7.083%, 100% { transform: translateY(110%); }
+}
+@keyframes focusVia { 0%, 5.333% { opacity: 0; } 5.667%, 6.333% { opacity: 1; } 6.667%, 100% { opacity: 0; } }
+@keyframes tapVia {
+  0%, 6.083% { opacity: 0; transform: scale(0.4); }
+  6.25% { opacity: 0.9; transform: scale(0.75); }
+  6.833%, 100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes pressVia { 0%, 6.167% { transform: none; } 6.333% { transform: scale(0.88); } 6.5%, 100% { transform: none; } }
+@keyframes sheet {
+  0%, 6.667% { transform: translateY(110%); }
+  7.5%, 10.833% { transform: none; }
+  10.85%, 30% { transform: translateY(110%); }
+  30.833%, 35.833% { transform: none; }
+  35.85%, 55% { transform: translateY(110%); }
+  55.833%, 60.833% { transform: none; }
+  60.85%, 80% { transform: translateY(110%); }
+  80.833%, 85.833% { transform: none; }
+  85.85%, 100% { transform: translateY(110%); }
+}
 /* In seconds of 60: a loop is 15, its steps start at +0, +3, +6, +12.2; the
    status bar turns over Spot at +6.3 and back at +12.4; the next app swipes
    in over the last 0.4 of a loop. */

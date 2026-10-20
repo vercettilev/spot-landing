@@ -13,7 +13,7 @@ export type InviteMail = { subject: string; html: string; text: string; headers:
  * gets the app for your phone, how Spot works in a line, and who holds the
  * money. Plain light paper and the orange key, so it reads the same in every
  * inbox, dark mode included; the puppy is the PNG icon, since mail clients do
- * not show SVG. The words are the page's: three taps, sniffed for rugs, your
+ * not show SVG. The words are the page's: four taps, sniffed for rugs, your
  * wallet approves every trade.
  *
  * Every invite carries its unsubscribe link in the footer and in the
@@ -38,7 +38,7 @@ export function inviteMail({
   const lead = `Spot is ready for ${phone}.${place ? ` You were #${place} in line, and this is your invite.` : " This is your invite."}`;
   const key = `Get Spot for ${KEY_NAME[platform]}`;
   const how =
-    "On a post on X, TikTok, Telegram or YouTube, or a coin's page, tap Share, then Spot. Spot sniffs the coin for rugs first. If nothing smells off, you ape in three taps.";
+    "On a post on X, TikTok, Telegram or YouTube, or a coin's page, tap Share, then Spot (on X, it's under Share\u00a0via…). Spot sniffs the coin for rugs first. If nothing smells off, you ape in four taps.";
   const money = "Your wallet keeps your coins and approves every trade. Spot never holds them.";
   const why = "You're getting this because you joined the early-access list at usespot.fun.";
   const from = [OPERATOR, postalAddress].filter(Boolean).join(", ");
@@ -53,7 +53,7 @@ export function inviteMail({
 <title>${escape(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background:#f7f5f0;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Share a post to Spot, ape in three taps.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Share a post to Spot, ape in four taps.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f5f0;">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background:#ffffff;border-radius:20px;">

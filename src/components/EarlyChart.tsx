@@ -57,7 +57,7 @@ const Face = () => (
 
 /**
  * EARLY, NOT EXIT LIQUIDITY, as a coin's chart: the CA drops, you are in
- * three taps later near the bottom of the run, and the people still copying
+ * four taps later near the bottom of the run, and the people still copying
  * the CA buy the top. Drawn as the chart a trader would see (one-minute
  * candles, volume under them) in a card that sits in the page's light. The
  * candles are SVG; the dots and labels are HTML on top of it so the type
@@ -68,7 +68,7 @@ export function EarlyChart() {
     <figure
       className={styles.chart}
       role="img"
-      aria-label="Example chart. The CA drops, you buy three taps later near the start of the run, and the people still copying the CA buy near the top."
+      aria-label="Example chart. The CA drops, you buy four taps later near the start of the run, and the people still copying the CA buy near the top."
     >
       <div className={styles.glow} aria-hidden="true" />
       <div className={styles.card} aria-hidden="true">
@@ -95,7 +95,7 @@ export function EarlyChart() {
             The CA drops
           </span>
           <span className={`${styles.dot} ${styles.you}`} style={at(YOU)}>
-            <span className={styles.label}>You, three taps later</span>
+            <span className={styles.label}>You, four taps later</span>
           </span>
           <span className={`${styles.dot} ${styles.them}`} style={at(THEM)}>
             <span className={styles.label}>Still copying the CA</span>
