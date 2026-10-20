@@ -5,6 +5,11 @@
 .page {
   --section: clamp(104px, 13vw, 184px);
   min-height: 100dvh;
+  /* The light behind the phone, the chart and the lock screen reaches past
+     the screen's edges. Clipped here, it never makes the page wider than the
+     screen: body's clip stopped a finger, not a script or the browser
+     bringing something into view, which could still slide the page over. */
+  overflow-x: clip;
 }
 
 .wrap {
