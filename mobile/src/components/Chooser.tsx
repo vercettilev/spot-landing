@@ -15,12 +15,15 @@ export function Chooser({
   title,
   line,
   candidates,
+  namesakes,
   onPick,
   onBack,
 }: {
   title: string;
   line: string;
   candidates: Candidate[];
+  /** The coins share one name (with the one on screen, for "Not this one?"): the note under the list says so. */
+  namesakes: boolean;
   onPick: (c: Candidate) => void;
   onBack: () => void;
 }) {
@@ -47,7 +50,10 @@ export function Chooser({
           />
         ))}
       </Group>
-      <Text style={styles.foot}>Same name, different coins. If the post shows the coin's address (CA), pick the one that matches it.</Text>
+      {/* Only for namesakes: two different coins in one share are not the same name. */}
+      {namesakes && (
+        <Text style={styles.foot}>Same name, different coins. If the post shows the coin's address (CA), pick the one that matches it.</Text>
+      )}
     </ScrollView>
   );
 }

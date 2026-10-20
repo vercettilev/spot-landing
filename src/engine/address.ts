@@ -67,13 +67,46 @@ export function isAddress(s: string): boolean {
   return s.length >= 32 && s.length <= 44 && decodedLength(s) === 32;
 }
 
-/** Every address in a piece of text, first seen first, coins only. */
+/* What a phone's text reader makes of a CA in a screenshot. One that wraps
+   comes back as lines, and a 1 can come back as an l or an I, an o as an O
+   or a 0, none of them base58. So the runs that end a line and start the
+   next ones are tried as one, and a run with those letters is tried with
+   them read back. Only what decodes to an address is kept, and only a real
+   coin survives the lookup after it. */
+const TAIL = /[1-9A-HJ-NP-Za-km-z0OIl]{4,43}$/;
+const HEAD = /^[1-9A-HJ-NP-Za-km-z0OIl]{1,43}/;
+const LOOKALIKE = /(?<![0-9A-Za-z])[0-9A-Za-z]{32,44}(?![0-9A-Za-z])/g;
+const READ_BACK: Record<string, string> = { l: "1", I: "1", O: "o", "0": "o" };
+const readBack = (s: string) => s.replace(/[lIO0]/g, (c) => READ_BACK[c]!);
+const MAX_WRAP = 4;
+
+function readerGuesses(text: string): string[] {
+  const out: string[] = [];
+  for (const m of text.matchAll(LOOKALIKE)) out.push(readBack(m[0]));
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  lines.forEach((line, i) => {
+    let joined = line.match(TAIL)?.[0];
+    if (!joined) return;
+    for (let j = i + 1; j < Math.min(lines.length, i + MAX_WRAP); j++) {
+      const head = lines[j]!.match(HEAD)?.[0];
+      if (!head) break;
+      joined += head;
+      if (joined.length > 44) break;
+      if (joined.length >= 32) out.push(readBack(joined));
+      if (head.length < lines[j]!.length) break;
+    }
+  });
+  return out;
+}
+
+/** Every address in a piece of text, first seen first, coins only; then what a screenshot's reader garbled. */
 export function findAddresses(text: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(RUN)) {
-    const a = m[0];
+  const keep = (a: string) => {
     if (!NOT_COINS.has(a) && isAddress(a) && !out.includes(a)) out.push(a);
-  }
+  };
+  for (const m of text.matchAll(RUN)) keep(m[0]);
+  readerGuesses(text).forEach(keep);
   return out;
 }
 

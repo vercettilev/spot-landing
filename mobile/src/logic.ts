@@ -1,4 +1,4 @@
-import type { Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
+import type { Candidate, Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
 
 /**
  * The decisions behind the screen, kept free of React Native so they can be
@@ -154,6 +154,13 @@ export function usd(n: number | null): string {
   return `$${Math.round(Math.max(n, 0))}`;
 }
 
+/** A row's worth: whole dollars, and the cents under a dollar, so a coin worth $0.27 doesn't read $0. */
+export function worth(n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return "—";
+  if (n > 0 && n < 1) return n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`;
+  return usd(n);
+}
+
 /** A bag's worth, to the cent, the way a wallet shows it: $1,077.10. Past a million it reads like usd(). */
 export function money(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
@@ -222,7 +229,13 @@ export function sourceLine(source: Source, share: Share): string {
       /* fall through */
     }
   }
+  if (share.from === "try") return "from Spot";
   return share.from === "paste" ? "from your paste" : share.from === "screenshot" ? "from your screenshot" : "from your share";
+}
+
+/** One name for every coin offered: a cashtag that several launches share, not a share that names several coins. */
+export function sameName(candidates: Candidate[]): boolean {
+  return candidates.length > 1 && new Set(candidates.map((c) => c.token.symbol.toLowerCase())).size === 1;
 }
 
 export interface Action {

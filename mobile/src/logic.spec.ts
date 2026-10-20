@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, type DockState } from "./logic";
-import type { Check } from "./types";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import type { Candidate, Check } from "./types";
 
 describe("a share", () => {
   it("keeps the link and the words around it, once", () => {
@@ -93,6 +93,30 @@ describe("where it came from", () => {
     expect(sourceLine({ platform: "x", url: "https://x.com/a/status/1", author: "@ana_trades", text: null }, share)).toBe("from @ana_trades on X");
     expect(sourceLine({ platform: "web", url: "https://pump.fun/coin/abc", author: null, text: null }, share)).toBe("from pump.fun");
     expect(sourceLine({ platform: "text", url: null, author: null, text: "$WIF" }, { from: "paste" })).toBe("from your paste");
+  });
+
+  it("says Try it's coin is Spot's pick, not a paste", () => {
+    expect(sourceLine({ platform: "text", url: null, author: null, text: "$WIF" }, { from: "try" })).toBe("from Spot");
+  });
+});
+
+describe("a row's worth", () => {
+  it("is whole dollars, and cents under a dollar, never a $0 for something", () => {
+    expect(worth(374.2)).toBe("$374");
+    expect(worth(1.4)).toBe("$1");
+    expect(worth(0.27)).toBe("$0.27");
+    expect(worth(0.004)).toBe("<$0.01");
+    expect(worth(0)).toBe("$0");
+    expect(worth(null)).toBe("—");
+  });
+});
+
+describe("which one?", () => {
+  const coin = (mint: string, symbol: string) => ({ token: { mint, symbol } }) as unknown as Candidate;
+  it("calls coins namesakes only when they share the name", () => {
+    expect(sameName([coin("a", "WIF"), coin("b", "wif")])).toBe(true);
+    expect(sameName([coin("a", "WIF"), coin("b", "Bonk")])).toBe(false);
+    expect(sameName([coin("a", "WIF")])).toBe(false);
   });
 });
 

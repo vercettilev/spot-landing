@@ -1,0 +1,160 @@
+diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
+index ff5b100..12939cf 100644
+--- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
++++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
+@@ -46,17 +46,20 @@ class ExpoShareIntentModule : Module() {
+ 
+         private fun notifyShareIntent(value: Any) {
+             notifyState("pending")
+-            instance!!.sendEvent("onChange", mapOf("value" to value))
++            instance?.sendEvent("onChange", mapOf("value" to value))
+         }
+         private fun notifyState(state: String) {
+-            instance!!.sendEvent("onStateChange", mapOf("value" to state))
++            instance?.sendEvent("onStateChange", mapOf("value" to state))
+         }
+         private fun notifyError(message: String) {
+-            instance!!.sendEvent("onError", mapOf("value" to message))
++            instance?.sendEvent("onError", mapOf("value" to message))
+         }
+ 
++        /* Patched for Spot: a provider that answers with no row, no column or
++           no type is a share that can't be read, not a crash. Every lookup is
++           guarded, and the type falls back to the one the intent carries. */
+         @SuppressLint("Range")
+-        private fun getFileInfo(uri: Uri): Map<String, String?> {
++        private fun getFileInfo(uri: Uri, intentType: String? = null): Map<String, String?> {
+             val resolver: ContentResolver? = instance?.currentActivity?.contentResolver
+                     ?: instance?.context?.contentResolver
+             if (resolver == null) {
+@@ -66,22 +69,32 @@ class ExpoShareIntentModule : Module() {
+                     "filePath" to instance?.getAbsolutePath(uri),
+                 )
+             }
+-            val queryResult: Cursor = resolver.query(uri, null, null, null, null)!!
+-            queryResult.moveToFirst()
+-            val fileName = queryResult.getString(queryResult.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+-            val fileSize = queryResult.getString(queryResult.getColumnIndex(OpenableColumns.SIZE))
+-            queryResult.close()
++            var fileName: String? = null
++            var fileSize: String? = null
++            try {
++                resolver.query(uri, null, null, null, null)?.use { cursor ->
++                    if (cursor.moveToFirst()) {
++                        val name = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
++                        val size = cursor.getColumnIndex(OpenableColumns.SIZE)
++                        if (name >= 0) fileName = cursor.getString(name)
++                        if (size >= 0) fileSize = cursor.getString(size)
++                    }
++                }
++            } catch (e: Exception) {
++                notifyError("cannot query $uri: ${e.message}")
++            }
+ 
+-            val mimeType = resolver.getType(uri)!!
++            val mimeType = (try { resolver.getType(uri) } catch (e: Exception) { null }) ?: intentType ?: "application/octet-stream"
+ 
+             var mediaWidth: String? = null;
+             var mediaHeight: String? = null;
+             var mediaDuration: String? = null;
++            try {
+             if (mimeType.startsWith("image/")) {
+                 val options = BitmapFactory.Options().apply {
+                     inJustDecodeBounds = true
+                 }
+-                BitmapFactory.decodeStream(resolver.openInputStream(uri), null, options)
++                resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+                 mediaHeight = options.outHeight.toString()
+                 mediaWidth = options.outWidth.toString()
+             }
+@@ -98,6 +111,9 @@ class ExpoShareIntentModule : Module() {
+                 }
+                 mediaDuration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toInt().toString() ?: null
+             }
++            } catch (e: Exception) {
++                notifyError("cannot read $uri: ${e.message}")
++            }
+ 
+             return mapOf(
+                     "contentUri" to uri.toString(),
+@@ -142,14 +158,14 @@ class ExpoShareIntentModule : Module() {
+                 if (intent.action == Intent.ACTION_SEND) {
+                     val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM);
+                     if (uri != null) {
+-                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri), "type" to "file")))
++                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri, intent.type), "type" to "file")))
+                     } else {
+                         notifyError("empty uri for file sharing: " + intent.action)
+                     }
+                 } else if (intent.action == Intent.ACTION_SEND_MULTIPLE) {
+                     val uris = intent.parcelableArrayList<Uri>(Intent.EXTRA_STREAM)
+                     if (uris != null) {
+-                        notifyShareIntent(mapOf( "files" to uris.map { getFileInfo(it) }, "type" to "file"))
++                        notifyShareIntent(mapOf( "files" to uris.map { getFileInfo(it, intent.type) }, "type" to "file"))
+                     } else {
+                         notifyError("empty uris array for file sharing: " + intent.action)
+                     }
+@@ -196,12 +212,30 @@ class ExpoShareIntentModule : Module() {
+             ExpoShareIntentSingleton.isPending
+         }
+ 
++        /* Patched for Spot: a share that arrives before the app listens (Android
++           killed Spot in the background, so its task starts the app again and
++           the share comes in as a new intent ahead of the JavaScript) is kept
++           for getShareIntent instead of sent to nobody. */
++        OnStartObserving("onChange") {
++            ExpoShareIntentSingleton.listening = true
++        }
++
++        OnStopObserving("onChange") {
++            ExpoShareIntentSingleton.listening = false
++        }
++
+         OnNewIntent {
+-            handleShareIntent(it)
++            if (ExpoShareIntentSingleton.listening) {
++                handleShareIntent(it)
++            } else if (it.type != null) {
++                ExpoShareIntentSingleton.intent = it
++                ExpoShareIntentSingleton.isPending = true
++            }
+         }
+ 
+         OnCreate {
+             instance = this@ExpoShareIntentModule
++            ExpoShareIntentSingleton.listening = false
+         }
+ 
+         OnDestroy {
+diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentReactActivityLifecycleListener.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentReactActivityLifecycleListener.kt
+index db573ec..50f83e1 100644
+--- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentReactActivityLifecycleListener.kt
++++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentReactActivityLifecycleListener.kt
+@@ -19,4 +19,14 @@ class ExpoShareIntentReactActivityLifecycleListener(activityContext: Context) :
+             ExpoShareIntentSingleton.isPending = true
+         }
+     }
++
++    // Patched for Spot: a share delivered as a new intent before the app listens
++    // (a cold start into an existing task) waits here for getShareIntent.
++    override fun onNewIntent(intent: Intent?): Boolean {
++        if (intent?.type != null && !ExpoShareIntentSingleton.listening) {
++            ExpoShareIntentSingleton.intent = intent
++            ExpoShareIntentSingleton.isPending = true
++        }
++        return false
++    }
+ }
+\ No newline at end of file
+diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt
+index 7f93abe..3a3b425 100644
+--- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt
++++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt
+@@ -12,4 +12,6 @@ object ExpoShareIntentSingleton : SingletonModule {
+   // members to store the initial launch intent
+   var intent: Intent? = null
+   var isPending: Boolean = false
++  // Patched for Spot: true while the app listens for shares (see the module's OnNewIntent).
++  var listening: Boolean = false
+ }
+\ No newline at end of file
