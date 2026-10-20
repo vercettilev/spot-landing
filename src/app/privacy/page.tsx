@@ -27,7 +27,7 @@ export default function Privacy() {
         <Link href="/">← Spot</Link>
       </p>
       <h1>Privacy</h1>
-      <p className={styles.updated}>Last updated 12 October 2026</p>
+      <p className={styles.updated}>Last updated 16 October 2026</p>
 
       <h2>Who we are</h2>
       <p>Spot, the app and this site, is run by {OPERATOR}.</p>
@@ -84,8 +84,9 @@ export default function Privacy() {
         forget.
       </p>
       <p>
-        We use the list to tell you when Spot is ready for your phone and to let people in in order. We do not
-        sell addresses or share them for anyone&rsquo;s marketing. Addresses are kept in private storage at Vercel;
+        We use the list to tell you when Spot is ready for your phone and to let people in in order. That email
+        goes out through Resend, which sees your address to deliver it, and every one has a link to stop any more.
+        We do not sell addresses or share them for anyone&rsquo;s marketing. Addresses are kept in private storage at Vercel;
         places and codes in a database at Upstash that holds only a one-way hash of each address. We keep them until
         Spot has reached your phone and we have told you, or until you ask us to remove yours.
       </p>

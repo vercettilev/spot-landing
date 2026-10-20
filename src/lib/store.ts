@@ -1,4 +1,4 @@
-import { get, head, put, BlobNotFoundError } from "@vercel/blob";
+import { get, head, list, put, BlobNotFoundError } from "@vercel/blob";
 import { createHash } from "node:crypto";
 
 /**
@@ -103,4 +103,30 @@ export async function recordSignup(
     return { stored: false, reason: err instanceof Error ? err.message : String(err) };
   }
   return { stored: true, isNew };
+}
+
+/**
+ * EVERY RECORD, in arrival order: the export script's and the invites' read
+ * of the whole list. One operation per person (addresses are inside the
+ * files, not in their names), so it is for an owner's tools, never a page.
+ */
+export async function allSignups(): Promise<SignupRecord[]> {
+  const paths: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix: PREFIX, cursor, limit: 1000 });
+    paths.push(...page.blobs.map((b) => b.pathname));
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+  /* Sixteen reads at a time: one by one, a list of thousands would outlast
+     the minute a function gets. */
+  const rows: SignupRecord[] = [];
+  for (let i = 0; i < paths.length; i += 16) {
+    const chunk = paths.slice(i, i + 16);
+    (await Promise.all(chunk.map(readRecord))).forEach((record, j) => {
+      if (record) rows.push(record);
+      else console.error(`unreadable: ${chunk[j]}`);
+    });
+  }
+  return rows.sort((a, b) => a.created_at.localeCompare(b.created_at));
 }

@@ -1,0 +1,66 @@
+/* As plain as the email it came from: one line, one sentence, one key. */
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(480px, 100%);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.page h1 {
+  font-family: var(--font-display-stack);
+  font-weight: 900;
+  font-size: clamp(32px, 8vw, 44px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.page p {
+  margin-top: 14px;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--stone-light);
+}
+
+.key {
+  --ring: var(--white);
+  height: 56px;
+  margin-top: 28px;
+  padding: 0 32px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--orange);
+  color: var(--ink);
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--orange-shadow);
+  transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
+}
+
+/* The site's key: it sits on its own shadow and goes down when pressed. */
+.key:hover {
+  background: var(--orange-hover);
+}
+
+.key:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--orange-shadow);
+}
+
+.page .back {
+  margin-top: 40px;
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.back a {
+  color: var(--stone);
+  text-decoration: none;
+}
