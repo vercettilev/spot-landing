@@ -286,15 +286,56 @@ function ShareSheet({ id }: { id: string }) {
   );
 }
 
-/* ---------- Spot: the coin screen, in the app's own words ---------- */
-/* SOL as /api/resolve and /api/sniff answered on 2026-10-13: the four checks
-   every receipt shows, the two clean ones folded under them. */
-const CHECKS = [
-  ["Honeypot?", "No"],
-  ["Dev can freeze it?", "No"],
-  ["Dev can print more?", "No"],
-  ["Enough holders?", "3.8M"],
+/* ---------- X's own share menu, before the phone's ---------- */
+/* Share on a post in X opens X's menu first: people to send it to by DM,
+   then a row of actions. The phone's share sheet, with Spot in it, is
+   behind Share via…, so from X it is one tap more than from the others. */
+const X_PEOPLE = [
+  ["NC", "Nico", "#7856ff"],
+  ["MK", "Mika", "#00ba7c"],
+  ["SL", "Sara L.", "#f91880"],
+  ["TR", "Tom R.", "#ffad1f"],
 ] as const;
+
+const X_ACTIONS = [
+  ["M12 3.5v11M8 7.5l4-4 4 4M5.5 12.5v6a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6", "Share via…"],
+  ["M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1", "Copy link"],
+  ["M7 3.5h10v17l-5-3.5-5 3.5z", "Bookmark"],
+] as const;
+
+function XShareMenu() {
+  return (
+    <div className={styles.xMenu}>
+      <i className={styles.xGrab} />
+      <div className={styles.xPeople}>
+        {X_PEOPLE.map(([initials, name, tint]) => (
+          <span key={name} className={styles.xPerson}>
+            <span className={styles.xFace} style={{ background: tint }}>
+              {initials}
+            </span>
+            <span className={styles.xName}>{name}</span>
+          </span>
+        ))}
+      </div>
+      <i className={styles.xRule} />
+      <div className={styles.xActions}>
+        {X_ACTIONS.map(([d, label], i) => (
+          <span key={label} className={`${styles.xAction}${i === 0 ? ` ${styles.xVia}` : ""}`}>
+            <span className={styles.xIcon}>
+              <Line d={d} w={1.9} />
+            </span>
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Spot: the coin screen, in the app's own words ---------- */
+/* SOL as /api/resolve and /api/sniff answered on 2026-10-13, as the app
+   (0.6.1) shows it: the stamp, the verdict, and its six clean checks folded
+   under one line. */
 
 const SolFace = () => (
   <svg viewBox="0 0 56 56" className={styles.face}>
@@ -336,33 +377,13 @@ function SpotScreen() {
                 <Line d={TICK} w={3.4} />
               </span>
             </p>
-            <p className={styles.coinName}>Wrapped SOL, $62.8B cap</p>
+            <p className={styles.coinName}>
+              Wrapped SOL <b className={styles.price}>$106.64</b> <span className={styles.change}>−4.0%</span>
+            </p>
           </div>
-          <div className={styles.priceCol}>
-            <p className={styles.price}>$106.64</p>
-            <p className={styles.change}>−4.0%</p>
-          </div>
-        </div>
-        <div className={styles.caRow}>
-          <span className={styles.ca}>
-            <b>CA</b>
-            <code>So11…1112</code>
-            <em>Copy</em>
-          </span>
-          <span className={styles.ca}>
-            <em>Solscan</em>
-            <Line d={OUT} className={styles.out} />
-          </span>
         </div>
 
         <div className={styles.paper}>
-          <p className={styles.kicker}>
-            <span>Sniff report</span>
-            <span className={styles.clock}>
-              <span className={styles.live}>live</span>
-              <span className={styles.at}>09:41</span>
-            </span>
-          </p>
           <div className={styles.slot}>
             <i className={styles.slotEmpty} />
             <p className={styles.stamp}>CLEAN</p>
@@ -373,26 +394,18 @@ function SpotScreen() {
                 <p className={styles.headline}>Sniffing for scams…</p>
                 <p className={styles.verdictLine}>Can you sell it? Can the dev freeze it? A few seconds.</p>
               </div>
-              {CHECKS.map(([q]) => (
-                <p key={q} className={styles.check}>
-                  <span>{q}</span>
-                  <i className={styles.pending} />
-                </p>
-              ))}
             </div>
             <div className={styles.done}>
               <div className={styles.verdict}>
                 <p className={styles.headline}>Blue chip. Nothing smells off.</p>
-                <p className={styles.verdictLine}>Big, old and verified. You can sell it back anytime.</p>
               </div>
-              {CHECKS.map(([q, a], i) => (
-                <p key={q} className={styles.check} style={{ "--i": i } as React.CSSProperties}>
-                  <span>{q}</span>
-                  <span className={styles.answer}>{a}</span>
-                </p>
-              ))}
-              <p className={styles.fold} style={{ "--i": CHECKS.length } as React.CSSProperties}>
-                <span>2 more checks, all clear</span>
+              <p className={styles.fold} style={{ "--i": 0 } as React.CSSProperties}>
+                <span className={styles.clear}>
+                  <i>
+                    <Line d={TICK} w={4} />
+                  </i>
+                  All 6 checks clear
+                </span>
                 <span className={styles.show}>
                   Show
                   <Line d={DOWN} className={styles.chev} w={2.4} />
@@ -400,6 +413,18 @@ function SpotScreen() {
               </p>
             </div>
           </div>
+        </div>
+        {/* The address, under the verdict: the one thing a lookalike cannot copy. */}
+        <div className={styles.caRow}>
+          <span className={styles.ca}>
+            <b>CA</b>
+            <code>So11…1112</code>
+            <em>Copy</em>
+          </span>
+          <span className={styles.ca}>
+            <em>Solscan</em>
+            <Line d={OUT} className={styles.out} />
+          </span>
         </div>
       </div>
 
@@ -415,10 +440,6 @@ function SpotScreen() {
           <span className={`${styles.keyFace} ${styles.keyApe}`}>Ape $25</span>
           <span className={`${styles.keyFace} ${styles.keyAping}`}>Aping…</span>
         </div>
-        <p className={styles.note}>
-          <span className={styles.noteSniff}>Checking it for scams…</span>
-          <span className={styles.noteReady}>$412.50 ready to ape. Your wallet approves every trade.</span>
-        </p>
       </div>
 
       {/* The moment a buy lands (mobile/src/components/Moment.tsx): the
@@ -451,13 +472,14 @@ function SpotScreen() {
 /**
  * SPOT, DOING ITS ONE THING, on a real phone, from four apps in turn: a
  * post on X, a TikTok, a Telegram channel, and SOL's page on DEX Screener in
- * Safari; each time Share, Spot in the share sheet, Spot's sniff report
- * stamped CLEAN, Ape $25, the orange moment, and back to the app. Three
- * taps, each one lit before it lands, so a first-time reader sees where to
- * press. Spot reads each of these on its own: the posts (src/engine/posts.ts)
- * and a link with the coin in it (src/engine/links.ts). A Reddit post or a
- * news page would need a screenshot, so they are not here. The coin is SOL,
- * the post and the sniff in the app's own words (example data).
+ * Safari; each time Share (on X, then Share via… in X's own menu), Spot in
+ * the share sheet, Spot's sniff report stamped CLEAN, Ape $25, the orange
+ * moment, and back to the app. Every tap is lit before it lands, so a
+ * first-time reader sees where to press. Spot reads each of these on its
+ * own: the posts (src/engine/posts.ts) and a link with the coin in it
+ * (src/engine/links.ts). A Reddit post or a news page would need a
+ * screenshot, so they are not here. The coin is SOL, the post and the sniff
+ * in the app's own words (example data).
  *
  * Pure CSS: every moving part runs on a 15-second clock per loop and a
  * 60-second one across the apps (see the module). With reduced motion, or
@@ -478,6 +500,7 @@ export function PhoneDemo() {
           </div>
         ))}
         <i className={styles.veil} />
+        <XShareMenu />
         <ShareSheet id="pd" />
         <SpotScreen />
         {/* Each tap is lit before it lands: the screen dims around the
@@ -491,6 +514,8 @@ export function PhoneDemo() {
         <i className={`${styles.tap} ${styles.tapTelegram}`} />
         <i className={`${styles.focus} ${styles.focusSafari}`} />
         <i className={`${styles.tap} ${styles.tapSafari}`} />
+        <i className={`${styles.focus} ${styles.focusVia}`} />
+        <i className={`${styles.tap} ${styles.tapVia}`} />
         <i className={`${styles.focus} ${styles.focusSpot}`} />
         <i className={`${styles.tap} ${styles.tap2}`} />
         <i className={`${styles.focus} ${styles.focusKey}`} />

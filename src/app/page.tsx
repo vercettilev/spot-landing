@@ -96,7 +96,7 @@ export default async function Home() {
               <span className={`${styles.line} ${styles.accent}`}>Buy&nbsp;it.</span>
             </h1>
             <p className={styles.lede}>
-              <span className={styles.line}>From your feed to your bag in three&nbsp;taps.</span>{" "}
+              <span className={styles.line}>From your feed to your bag in four&nbsp;taps.</span>{" "}
               <span className={styles.line}>Spot sniffs out the rugs on the&nbsp;way.</span>
             </p>
             <div className={styles.join} id="join">
@@ -114,7 +114,7 @@ export default async function Home() {
               </h2>
               <p className={styles.body}>
                 Copy the CA, open a bot, buy SOL, paste, swap: by then the chart already ran. Spot buys straight from
-                the post, in three&nbsp;taps.
+                the post, in four&nbsp;taps.
               </p>
               <p className={styles.sources}>
                 <Sources className={styles.marks} />
