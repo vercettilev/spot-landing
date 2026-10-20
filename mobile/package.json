@@ -1,6 +1,6 @@
 {
   "name": "spot-mobile",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "patch-package": "8.0.0",
     "typescript": "~6.0.3",
     "vitest": "^3.2.7"
   },
@@ -46,7 +47,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "patch-package"
   },
   "private": true
 }

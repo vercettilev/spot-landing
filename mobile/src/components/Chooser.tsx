@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { candidateLine } from "../logic";
+import { candidateLine, sameName } from "../logic";
 import { color, font, leading, size, space, tracking, type } from "../theme";
 import type { Candidate } from "../types";
 import { CoinFace, Group, Row, TopBar, Verified } from "./ui";
@@ -47,7 +47,10 @@ export function Chooser({
           />
         ))}
       </Group>
-      <Text style={styles.foot}>Same name, different coins. If the post shows the coin's address (CA), pick the one that matches it.</Text>
+      {/* Only for namesakes: two different coins in one share are not the same name. */}
+      {sameName(candidates) && (
+        <Text style={styles.foot}>Same name, different coins. If the post shows the coin's address (CA), pick the one that matches it.</Text>
+      )}
     </ScrollView>
   );
 }

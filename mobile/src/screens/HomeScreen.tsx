@@ -80,7 +80,7 @@ export function HomeScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.lede}>Spot checks every coin for scams before you buy, so you can always sell it back.</Text>
           <ShareSheet />
-          <Button label={`Try it on ${TRY}`} kind="go" onPress={() => navigation.navigate("Resolve", { share: { text: TRY, from: "paste" } })} style={styles.tryKey} />
+          <Button label={`Try it on ${TRY}`} kind="go" onPress={() => navigation.navigate("Resolve", { share: { text: TRY, from: "try" } })} style={styles.tryKey} />
           <Pressable
             onPress={() => {
               tap();

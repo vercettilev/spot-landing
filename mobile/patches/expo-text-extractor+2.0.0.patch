@@ -1,0 +1,14 @@
+diff --git a/node_modules/expo-text-extractor/android/build.gradle b/node_modules/expo-text-extractor/android/build.gradle
+index 7f1375c..66d7a2d 100644
+--- a/node_modules/expo-text-extractor/android/build.gradle
++++ b/node_modules/expo-text-extractor/android/build.gradle
+@@ -41,6 +41,8 @@ android {
+     abortOnError false
+   }
+   dependencies {
+-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.1'
++    // Patched for Spot: the bundled recognizer, so a screenshot reads the first time
++    // and on a phone without Google Play services (the unbundled one waits for a download).
++    implementation 'com.google.mlkit:text-recognition:16.0.1'
+   }
+ }

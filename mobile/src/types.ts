@@ -86,8 +86,8 @@ export interface Sniff {
 export interface Share {
   url?: string;
   text?: string;
-  /** How it arrived, for the line under the coin. */
-  from: "share" | "paste" | "screenshot";
+  /** How it arrived, for the line under the coin. "try" is Home's Try it. */
+  from: "share" | "paste" | "screenshot" | "try";
 }
 
 /** /api/holdings */

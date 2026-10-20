@@ -1,4 +1,4 @@
-import type { Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
+import type { Candidate, Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
 
 /**
  * The decisions behind the screen, kept free of React Native so they can be
@@ -222,7 +222,13 @@ export function sourceLine(source: Source, share: Share): string {
       /* fall through */
     }
   }
+  if (share.from === "try") return "from Spot";
   return share.from === "paste" ? "from your paste" : share.from === "screenshot" ? "from your screenshot" : "from your share";
+}
+
+/** One name for every coin offered: a cashtag that several launches share, not a share that names several coins. */
+export function sameName(candidates: Candidate[]): boolean {
+  return candidates.length > 1 && new Set(candidates.map((c) => c.token.symbol.toLowerCase())).size === 1;
 }
 
 export interface Action {
