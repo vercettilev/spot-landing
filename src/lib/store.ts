@@ -51,12 +51,25 @@ async function readRecord(pathname: string): Promise<SignupRecord | null> {
   }
 }
 
+/* Who a preview deployment has seen, so pressing twice still reads as "already in". */
+const previewSeen = new Set<string>();
+
 export async function recordSignup(
   email: string,
   platform: string | null,
   line: { code?: string; referredBy?: string } = {},
 ): Promise<RecordResult> {
   const pathname = pathFor(email);
+
+  /* A PREVIEW DEPLOYMENT KEEPS NO ADDRESSES. It runs the form for real
+     (BotID, the limiter, the pass) and answers as the store would, but writes
+     nothing, so trying a preview never puts anyone on the live list. The
+     site itself runs with VERCEL_ENV "production". */
+  if (process.env.VERCEL_ENV === "preview") {
+    const isNew = !previewSeen.has(pathname);
+    previewSeen.add(pathname);
+    return { stored: true, isNew };
+  }
 
   /* Asked before writing so the notice can say "someone new". Not atomic with
      the write, and harmless: a race writes the same pathname twice. Anything

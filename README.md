@@ -45,7 +45,7 @@ npm test        # the form's rules and the endpoint
 npm run dev
 ```
 
-Locally the form cannot store anything without the Blob credentials described under *Reading the list*, and BotID needs to reach Vercel, so the full signup path is best tried on a preview deployment.
+Locally the form cannot store anything without the Blob credentials described under *Reading the list*, and BotID needs to reach Vercel, so the full signup path is best tried on a preview deployment. A preview keeps nothing: its line lives in memory and no address reaches the store, so trying it never touches the live list.
 
 ## Put it live on Vercel
 

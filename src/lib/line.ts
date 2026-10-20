@@ -1,5 +1,6 @@
 import { createHash, randomInt } from "node:crypto";
 import { Redis } from "@upstash/redis";
+import { memoryKv } from "./memoryKv";
 import { CODE_ALPHABET, CODE_LENGTH, REF_BONUS, parseCode, type Spot } from "./referral";
 
 /**
@@ -206,9 +207,12 @@ let cached: Kv | null | undefined;
  * The line, when a Redis database is connected: Vercel's Upstash integration
  * sets KV_REST_API_URL and KV_REST_API_TOKEN, Upstash's own names work too.
  * Without one the list still takes signups; it just has no places to show.
+ * A preview deployment keeps its line to itself, in memory: places and codes
+ * work for trying the page, and the live line never hears of it.
  */
 export function getKv(): Kv | null {
   if (cached !== undefined) return cached;
+  if (process.env.VERCEL_ENV === "preview") return (cached = memoryKv());
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   cached = url && token ? upstashKv(url, token) : null;
