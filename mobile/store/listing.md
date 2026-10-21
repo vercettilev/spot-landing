@@ -44,7 +44,8 @@ Not financial advice. Coins can go to zero with or without a trick, and the snif
 
 • SOL is a coin like any other: ape it, see what it made, sell it.
 • It says Solana now, not Wrapped SOL.
-• Big, verified coins like $SKR don't get GRRR just because their team can still print more.
+• Seeker's $SKR sniffs CLEAN, and your first try is on it.
+• Big, verified coins don't get GRRR just because their team can still print more.
 
 ## What was new in 0.6.2
 

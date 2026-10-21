@@ -17,8 +17,8 @@ import { short } from "../wallet/base58";
 
 type Props = NativeStackScreenProps<RootParams, "Home">;
 
-/* A coin from spot-core's hand-probed catalog: always found, always sniffable. One, not a choice of three. */
-const TRY = "$WIF";
+/* Seeker's own coin, from spot-core's hand-probed catalog: always found, always sniffable, always clean. One, not a choice of three. */
+const TRY = "$SKR";
 
 /**
  * HOME, the one screen: what you have, what you can do, what you sniffed.

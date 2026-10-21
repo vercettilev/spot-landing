@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, coinsOf, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, coinsOf, saleOf, sellShare, spareSol, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import { pnlOf } from "./pnl";
 import type { Candidate, Check, Holding } from "./types";
 
@@ -103,21 +103,47 @@ describe("where it came from", () => {
 
 describe("SOL in the bag", () => {
   const bag = (sol: { amount: number; usd: number | null; token?: never }) => ({ ok: true as const, owner: "w", totalUsd: 0, usdc: { amount: 0, raw: "0", usd: 0 }, sol, positions: [], hidden: 0 });
-  it("is a coin, Solana, worth all of it, with a dollar kept back from what a sell can take", () => {
+  it("is a coin, Solana, worth all of it", () => {
     const h = solHolding({ amount: 0.9, usd: 90 })!;
     expect(h.token).toMatchObject({ mint: SOL_MINT, symbol: "SOL", name: "Solana", decimals: 9 });
     expect(h.usd).toBe(90);
     expect(h.amount).toBe(0.9);
-    expect(Number(h.raw)).toBe(900_000_000 - 10_000_000);
+    expect(h.raw).toBe("900000000");
+  });
+  it("sells as Jupiter's own swap does: a share of all of it, and all of it but 0.01 SOL", () => {
+    const h = solHolding({ amount: 1.2, usd: 120 })!;
+    expect(saleOf(h, 50)).toBe(h);
+    expect(shareOf(saleOf(h, 50).raw, 50)).toBe("600000000");
+    const all = saleOf(h, 100);
+    expect(all.raw).toBe("1190000000");
+    expect(all.usd).toBe(119);
+    expect(all.amount).toBeCloseTo(1.19, 9);
+    expect(sellShare(h, 60)).toBe(50);
+    expect(sellShare(h, 119.5)).toBe(100);
+    expect(sellShare(h, 500)).toBe(100);
+    expect(sellShare(h, 0)).toBe(0);
+    /* A share that would take the last 0.01 SOL is all of it, and all of it keeps the 0.01 SOL. */
+    expect(sellShare(h, 118.99)).toBe(100);
+    const wif = { token: { mint: "wif", symbol: "WIF", decimals: 6 }, amount: 100, raw: "100000000", usd: 120 } as unknown as Holding;
+    expect(saleOf(wif, 100)).toBe(wif);
+    expect(sellShare(wif, 120)).toBe(100);
+    expect(sellShare(wif, 60)).toBe(50);
+  });
+  it("can be spent down to its last 0.01 SOL, turned into cash too", () => {
+    expect(spareSol({ amount: 1.2, usd: 120 })).toBeCloseTo(119, 9);
+    expect(spareSol({ amount: 0.01, usd: 1.07 })).toBe(0);
+    expect(spareSol({ amount: 0.5, usd: null })).toBe(0);
   });
   it("is the server's card when it sent one", () => {
     const token = { mint: SOL_MINT, symbol: "SOL", name: "Solana", icon: "i", decimals: 9, kind: "coin" as const, priceUsd: 100, mcapUsd: 1, liquidityUsd: 1, holders: 1, change24hPct: 2.5, verified: true, issuer: null, restrictions: [] };
     expect(solHolding({ amount: 1, usd: 100, token })!.token.change24hPct).toBe(2.5);
   });
-  it("is nothing when there is none, and nothing to trade under a dollar", () => {
+  it("is nothing when there is none, and nothing to trade at 0.01 SOL or under", () => {
     expect(solHolding({ amount: 0, usd: 0 })).toBeNull();
     expect(solHolding({ amount: 0.5, usd: null })).toBeNull();
     expect(solPosition(SOL_MINT, bag({ amount: 0.008, usd: 0.8 }))).toBeNull();
+    expect(solPosition(SOL_MINT, bag({ amount: 0.01, usd: 1.07 }))).toBeNull();
+    expect(solPosition(SOL_MINT, bag({ amount: 0.02, usd: 2.14 }))).not.toBeNull();
     expect(solPosition(SOL_MINT, bag({ amount: 0.9, usd: 90 }))?.token.name).toBe("Solana");
     expect(solPosition("EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm", bag({ amount: 0.9, usd: 90 }))).toBeNull();
   });
@@ -371,6 +397,8 @@ describe("the keypad", () => {
     expect(padHint({ ...sell, typed: 15 })).toBe("48.1% of your $31.20.");
     expect(padHint({ ...sell, typed: 31 })).toBe("99.4% of your $31.20.");
     expect(padHint({ ...sell, typed: 40, over: true })).toBe("You hold $31.20.");
+    /* SOL typed past what all of it brings sells all of it, and says so. */
+    expect(padHint({ ...sell, typed: 31, share: 100 })).toBe("All of your $31.20.");
     expect(shareFor(31.2, 31.2)).toBe(100);
     expect(shareFor(0.01, 31.2)).toBe(0.1);
     expect(shareFor(5, 0)).toBe(0);
