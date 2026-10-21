@@ -8,9 +8,8 @@ import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
 import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, amount as fmtAmount, emptyBag, fromPaste, money, pct, solHolding, verdictWord, worth } from "../logic";
+import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, verdictWord, worth } from "../logic";
 import type { RootParams } from "../navigation";
-import type { Holding, Holdings } from "../types";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
 import { useStore } from "../store";
 import { color, font, leading, radius, size, space, tracking, type } from "../theme";
@@ -102,7 +101,8 @@ export function HomeScreen({ navigation }: Props) {
   const b = bag.value;
   const mine = wallet ? trades.filter((t) => t.owner === wallet.address) : [];
   const ledger = books(mine);
-  const pnl = b ? pnlOf(mine, b.positions) : null;
+  const held = b ? coinsOf(b) : [];
+  const pnl = b ? pnlOf(mine, held) : null;
   const nothing = b ? emptyBag(b.totalUsd) : false;
   const trading = wallet?.kind === "mwa";
 
@@ -161,7 +161,7 @@ export function HomeScreen({ navigation }: Props) {
               {/* A tracked wallet's cash can't be aped with here, so it is only named. */}
               <Row left={<Cash glyph="$" />} title="Cash" subtitle={trading ? "Ready to ape" : "USDC"} right={<Value value={worth(b.usdc.usd)} />} />
               {/* SOL is a coin like the rest: in the list by its worth, so the rows still add up to the number over them. */}
-              {withSol(b).map((p) => {
+              {held.map((p) => {
                 /* Your own gain where Spot bought it; the coin's day where it did not. */
                 const book = ledger.get(p.token.mint);
                 const s = book ? since(book, p) : null;
@@ -222,12 +222,6 @@ export function HomeScreen({ navigation }: Props) {
       {toastNode}
     </View>
   );
-}
-
-/* The coins and SOL among them, the biggest first. */
-function withSol(b: Holdings): Holding[] {
-  const sol = solHolding(b.sol);
-  return sol ? [...b.positions, sol].sort((x, y) => y.usd - x.usd) : b.positions;
 }
 
 function Cash({ glyph }: { glyph: ReactNode }) {

@@ -266,6 +266,12 @@ export function solHolding(sol: Holdings["sol"]): Holding | null {
   return { token, amount: sol.amount, raw: String(Math.max(0, lamports - kept)), usd: sol.usd };
 }
 
+/** A bag's coins with SOL among them, the biggest first: what Home lists, and what its all-time figure counts. */
+export function coinsOf(bag: Holdings): Holding[] {
+  const sol = solHolding(bag.sol);
+  return sol ? [...bag.positions, sol].sort((x, y) => y.usd - x.usd) : bag.positions;
+}
+
 /** SOL held, as the coin screen trades it: only while there is more than the dollar a trade keeps back. */
 export function solPosition(mint: string, bag: Holdings | null | undefined): Holding | null {
   if (mint !== SOL_MINT || !bag) return null;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
-import type { Candidate, Check } from "./types";
+import { MAX_TRADE, coinLine, coinsOf, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { pnlOf } from "./pnl";
+import type { Candidate, Check, Holding } from "./types";
 
 describe("a share", () => {
   it("keeps the link and the words around it, once", () => {
@@ -119,6 +120,15 @@ describe("SOL in the bag", () => {
     expect(solPosition(SOL_MINT, bag({ amount: 0.008, usd: 0.8 }))).toBeNull();
     expect(solPosition(SOL_MINT, bag({ amount: 0.9, usd: 90 }))?.token.name).toBe("Solana");
     expect(solPosition("EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm", bag({ amount: 0.9, usd: 90 }))).toBeNull();
+  });
+  it("sits among the coins by its worth, and what Spot bought of it counts in the all-time figure", () => {
+    const wif = { token: { mint: "wif", symbol: "WIF" }, amount: 100, raw: "100000000", usd: 120 } as unknown as Holding;
+    const bonk = { token: { mint: "bonk", symbol: "BONK" }, amount: 1e6, raw: "100000000000", usd: 20 } as unknown as Holding;
+    const coins = coinsOf({ ...bag({ amount: 1, usd: 110 }), positions: [wif, bonk] });
+    expect(coins.map((c) => c.token.symbol)).toEqual(["WIF", "SOL", "BONK"]);
+    const bought = { id: "b", at: "2026-10-21T10:00:00Z", owner: "w", mint: SOL_MINT, symbol: "SOL", icon: null, side: "buy" as const, usdc: 100, amount: 1, exact: false, signature: null };
+    expect(pnlOf([bought], coins).open).toBeCloseTo(10, 6);
+    expect(coinsOf(bag({ amount: 0, usd: 0 }))).toEqual([]);
   });
 });
 
