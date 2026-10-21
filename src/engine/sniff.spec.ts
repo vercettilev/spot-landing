@@ -272,6 +272,23 @@ describe("a blue chip", () => {
     expect(s.level).toBe("block");
     expect(s.headline).toBe("Dev can freeze it. Spot won't buy it.");
   });
+
+  it("keeps its mint key without a growl, whatever its numbers say today", () => {
+    /* Seeker's SKR is on Spot's list, its key kept to mint on a schedule: clean on a slow day too. */
+    const slow = token(COIN_A, { liquidity: 90_000, holderCount: 4_000, isVerified: true, organicScoreLabel: "low" });
+    const s = judge(facts(slow, { blueChip: true, buy: null, sell: null, mint: { mintAuthority: "Issuer111" } }));
+    expect(s.level).toBe("ok");
+    expect(s.headline).toBe("Blue chip. Nothing smells off.");
+    expect(check(s, "mint")).toMatchObject({ answer: "Yes", status: "info", note: "Normal for a big, verified coin." });
+  });
+
+  it("isn't growled at for a figure Jupiter didn't send", () => {
+    const gaps = token(COIN_A, { liquidity: undefined, holderCount: undefined, firstPool: undefined });
+    const s = judge(facts(gaps, { blueChip: true, buy: null, sell: null }));
+    expect(s.level).toBe("ok");
+    expect(answers(s)).toMatchObject({ liquidity: "? (info)", holders: "? (info)", age: "? (info)" });
+    expect(judge(facts(gaps)).level).toBe("warn");
+  });
 });
 
 describe("ages", () => {

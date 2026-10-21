@@ -134,7 +134,9 @@ const BLOCK_HEADLINE: Partial<Record<CheckId, string>> = {
   tax: "The tax eats your bag. Spot won't buy it.",
 };
 
-/* A dev's mint key is forgiven on a coin that has outgrown printing and
+/* A dev's mint key is forgiven on a blue chip, whatever its numbers say
+   today (a coin on Spot's own list, Seeker's SKR among them, keeps its key
+   to mint on a schedule), and on a coin that has outgrown printing and
    dumping: verified, a pool of $250k or more, 5,000 holders or more, and
    trading Jupiter scores as organic, medium or high. All four at once.
    Looser than core's established bar, which also makes a coin a blue chip
@@ -223,7 +225,7 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
     add({ id: "mint", label: "Dev can print more?", answer, status, blocks: false, note, observed: mintKey });
   if (!mintKey) mint("No", "good", null);
   else if (issued) mint("Issuer", "info", "Normal for stock coins.");
-  else if (outgrown) mint("Yes", "info", "Normal for a big, verified coin.");
+  else if (f.blueChip || outgrown) mint("Yes", "info", "Normal for a big, verified coin.");
   else mint("Yes", "warn", "New coins can be printed and dumped on you.");
 
   if (chain?.transferFeeBps) {
@@ -247,14 +249,16 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   /* ---- size: only ever a growl ----
      The floors are spot-core's, which were calibrated to tell established
      from fresh. Here they decide how loud the warning is, never whether
-     the coin can be bought. An issued asset is thin by nature. */
+     the coin can be bought. An issued asset is thin by nature, and on it
+     or a blue chip a figure Jupiter didn't send is a gap, not a risk. */
   const small = issued ? "info" : "warn";
+  const gap = issued || f.blueChip ? "info" : "unknown";
   const liq = num(info.liquidity);
   add({
     id: "liquidity",
     label: "Big enough pool?",
     ...(liq === undefined
-      ? { answer: "?", status: issued ? "info" : "unknown", note: null }
+      ? { answer: "?", status: gap, note: null }
       : liq >= t.minLiquidityUsd
         ? { answer: usd(liq), status: "good", note: null }
         : { answer: `Only ${usd(liq)}`, status: small, note: "Small pool: your buy moves the price." }),
@@ -268,7 +272,7 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
     id: "holders",
     label: "Enough holders?",
     ...(holders === undefined
-      ? { answer: "?", status: issued ? "info" : "unknown", note: null }
+      ? { answer: "?", status: gap, note: null }
       : holders >= t.minHolderCount
         ? { answer: count(holders), status: "good", note: null }
         : { answer: `Only ${count(holders)}`, status: small, note: null }),
@@ -283,7 +287,7 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
     id: "age",
     label: "How old?",
     ...(ageMs === null
-      ? { answer: "?", status: issued ? "info" : "unknown", note: null }
+      ? { answer: "?", status: gap, note: null }
       : ageMs >= t.minPoolAgeMs
         ? { answer: age(ageMs), status: "good", note: null }
         : { answer: age(ageMs), status: small, note: "Just launched." }),
