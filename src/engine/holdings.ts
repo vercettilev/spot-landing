@@ -24,7 +24,8 @@ export interface Holdings {
   owner: string;
   totalUsd: number;
   usdc: { amount: number; raw: string; usd: number };
-  sol: { amount: number; usd: number | null };
+  /** SOL, with its card when Jupiter priced it, so the app can show it as the coin it is. */
+  sol: { amount: number; usd: number | null; token?: TokenCard };
   /** Coins worth a cent or more, the biggest first. */
   positions: Holding[];
   /** Everything else: unpriced, spam, dust. */
@@ -46,7 +47,9 @@ export async function holdings(owner: string, deps: HoldingsDeps): Promise<Outco
   if (!acc.ok) return { ok: false, reason: "lookup_failed" };
 
   const usdcRow = acc.value.tokens.find((t) => t.mint === USDC_MINT);
-  const coins = acc.value.tokens.filter((t) => t.mint !== USDC_MINT && t.amount > 0);
+  /* Wrapped SOL is SOL: it is counted with it, not listed as a second Solana. */
+  const wrapped = acc.value.tokens.find((t) => t.mint === SOL_MINT)?.amount ?? 0;
+  const coins = acc.value.tokens.filter((t) => t.mint !== USDC_MINT && t.mint !== SOL_MINT && t.amount > 0);
   const asked = coins.slice(0, MAX_MINTS);
 
   const found = await deps.search.search([SOL_MINT, ...asked.map((t) => t.mint)].join(","), { timeoutMs: 3_000 });
@@ -64,8 +67,14 @@ export async function holdings(owner: string, deps: HoldingsDeps): Promise<Outco
   }
   positions.sort((a, b) => b.usd - a.usd);
 
-  const solPrice = num(infos.get(SOL_MINT)?.usdPrice);
-  const sol = { amount: acc.value.sol, usd: solPrice === undefined ? null : cents(acc.value.sol * solPrice) };
+  const solInfo = infos.get(SOL_MINT);
+  const solPrice = num(solInfo?.usdPrice);
+  const solAmount = acc.value.sol + wrapped;
+  const sol = {
+    amount: solAmount,
+    usd: solPrice === undefined ? null : cents(solAmount * solPrice),
+    ...(solInfo && solPrice !== undefined ? { token: cardOf(solInfo) } : {}),
+  };
   const usdc = { amount: usdcRow?.amount ?? 0, raw: usdcRow?.raw ?? "0", usd: cents(usdcRow?.amount ?? 0) };
   const totalUsd = cents(usdc.usd + (sol.usd ?? 0) + positions.reduce((sum, p) => sum + p.usd, 0));
 

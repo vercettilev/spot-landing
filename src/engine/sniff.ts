@@ -208,12 +208,25 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
     add({ id: "delegate", label: "Dev can take it?", answer: "?", status: "unknown", blocks: true, note: "Couldn't read this coin's settings. Try again.", observed: f.chain.ok ? null : f.chain.reason });
   }
 
+  /* A dev's mint key is forgiven on a coin that has outgrown printing and
+     dumping: verified, a pool of $250k or more, 5,000 holders or more, and
+     trading Jupiter scores as organic, medium or high. All four at once.
+     Looser than core's established bar, which also makes a coin a blue chip
+     and skips its test trade; this one only quiets the mint check. */
+  const liqNow = num(info.liquidity);
+  const holdersNow = num(info.holderCount);
+  const outgrown =
+    info.isVerified === true &&
+    liqNow !== undefined && liqNow >= 250_000 &&
+    holdersNow !== undefined && holdersNow >= 5_000 &&
+    (info.organicScoreLabel === "medium" || info.organicScoreLabel === "high");
+
   const mintKey = chain ? chain.mintAuthority : ultraAuthority(info, "mint") === "retained" ? "retained" : null;
   const mint = (answer: string, status: Status, note: string | null) =>
     add({ id: "mint", label: "Dev can print more?", answer, status, blocks: false, note, observed: mintKey });
   if (!mintKey) mint("No", "good", null);
   else if (issued) mint("Issuer", "info", "Normal for stock coins.");
-  else if (isEstablished(info)) mint("Yes", "info", "Normal for a big, old, verified coin.");
+  else if (outgrown) mint("Yes", "info", "Normal for a big, verified coin.");
   else mint("Yes", "warn", "New coins can be printed and dumped on you.");
 
   if (chain?.transferFeeBps) {

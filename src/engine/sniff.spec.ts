@@ -176,11 +176,28 @@ describe("what only growls", () => {
     expect(judge(facts(token(COIN_A, { audit: { isSus: true } }))).level).toBe("warn");
   });
 
-  it("a mint key on something big, old and verified is only noted", () => {
+  it("a mint key on something big and verified is only noted", () => {
     const big = token(COIN_A, { liquidity: 3_000_000, holderCount: 70_000, isVerified: true, organicScoreLabel: "high" });
     const s = judge(facts(big, { mint: { mintAuthority: "Bridge111" } }));
     expect(s.level).toBe("ok");
-    expect(check(s, "mint")).toMatchObject({ status: "info", note: "Normal for a big, old, verified coin." });
+    expect(check(s, "mint")).toMatchObject({ status: "info", note: "Normal for a big, verified coin." });
+  });
+
+  it("a mint key is forgiven from a $250k pool, 5,000 holders, verified and medium organic trading, all four", () => {
+    /* Seeker's SKR on 2026-10-21: $640k, 46.5k holders, verified, organic medium, its mint key kept. */
+    const skr = token(COIN_A, { liquidity: 640_000, holderCount: 46_500, isVerified: true, organicScoreLabel: "medium" });
+    const s = judge(facts(skr, { mint: { mintAuthority: "Issuer111" } }));
+    expect(s.level).toBe("ok");
+    expect(check(s, "mint")).toMatchObject({ answer: "Yes", status: "info" });
+    for (const short of [
+      { liquidity: 249_000 },
+      { holderCount: 4_999 },
+      { isVerified: false },
+      { organicScoreLabel: "low" },
+    ]) {
+      const m = judge(facts(token(COIN_A, { liquidity: 640_000, holderCount: 46_500, isVerified: true, organicScoreLabel: "medium", ...short }), { mint: { mintAuthority: "Issuer111" } }));
+      expect(check(m, "mint")).toMatchObject({ status: "warn" });
+    }
   });
 });
 

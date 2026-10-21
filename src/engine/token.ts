@@ -1,4 +1,5 @@
 import { curatedByMint, type CuratedAsset } from "@/core/catalog/index";
+import { SOL_MINT } from "@/core/route/jupiter";
 import { num } from "./http";
 import type { TokenInfo } from "./jupiter";
 
@@ -43,10 +44,13 @@ const orNull = (v: unknown): number | null => num(v) ?? null;
 export function cardOf(t: TokenInfo): TokenCard {
   const curated = curatedByMint(t.id);
   const issued = issuedAsset(t.id);
+  /* SOL's mint is Jupiter's "Wrapped SOL", the token account SOL rides in
+     through a swap. To anyone holding it, it is Solana. */
+  const sol = t.id === SOL_MINT;
   return {
     mint: t.id,
-    symbol: (t.symbol ?? "").replace(/^\$/, "").trim(),
-    name: (t.name ?? "").trim(),
+    symbol: sol ? "SOL" : (t.symbol ?? "").replace(/^\$/, "").trim(),
+    name: sol ? "Solana" : (t.name ?? "").trim(),
     icon: t.icon || null,
     decimals: t.decimals,
     kind: curated?.category === "equity" ? "stock" : curated?.category === "commodity" ? "commodity" : "coin",
