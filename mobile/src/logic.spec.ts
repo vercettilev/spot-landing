@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { MAX_TRADE, coinLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import type { Candidate, Check } from "./types";
 
 describe("a share", () => {
@@ -97,6 +97,28 @@ describe("where it came from", () => {
 
   it("says Try it's coin is Spot's pick, not a paste", () => {
     expect(sourceLine({ platform: "text", url: null, author: null, text: "$WIF" }, { from: "try" })).toBe("from Spot");
+  });
+});
+
+describe("SOL in the bag", () => {
+  const bag = (sol: { amount: number; usd: number | null; token?: never }) => ({ ok: true as const, owner: "w", totalUsd: 0, usdc: { amount: 0, raw: "0", usd: 0 }, sol, positions: [], hidden: 0 });
+  it("is a coin, Solana, worth all of it, with a dollar kept back from what a sell can take", () => {
+    const h = solHolding({ amount: 0.9, usd: 90 })!;
+    expect(h.token).toMatchObject({ mint: SOL_MINT, symbol: "SOL", name: "Solana", decimals: 9 });
+    expect(h.usd).toBe(90);
+    expect(h.amount).toBe(0.9);
+    expect(Number(h.raw)).toBe(900_000_000 - 10_000_000);
+  });
+  it("is the server's card when it sent one", () => {
+    const token = { mint: SOL_MINT, symbol: "SOL", name: "Solana", icon: "i", decimals: 9, kind: "coin" as const, priceUsd: 100, mcapUsd: 1, liquidityUsd: 1, holders: 1, change24hPct: 2.5, verified: true, issuer: null, restrictions: [] };
+    expect(solHolding({ amount: 1, usd: 100, token })!.token.change24hPct).toBe(2.5);
+  });
+  it("is nothing when there is none, and nothing to trade under a dollar", () => {
+    expect(solHolding({ amount: 0, usd: 0 })).toBeNull();
+    expect(solHolding({ amount: 0.5, usd: null })).toBeNull();
+    expect(solPosition(SOL_MINT, bag({ amount: 0.008, usd: 0.8 }))).toBeNull();
+    expect(solPosition(SOL_MINT, bag({ amount: 0.9, usd: 90 }))?.token.name).toBe("Solana");
+    expect(solPosition("EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm", bag({ amount: 0.9, usd: 90 }))).toBeNull();
   });
 });
 

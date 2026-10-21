@@ -218,7 +218,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
         <Card style={styles.turn}>
           <Text style={styles.turnTitle}>Turn SOL into cash</Text>
           <Text style={styles.turnNote}>
-            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. About $1 of it stays for fees.
+            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}.
           </Text>
           <View style={styles.turnChips}>
             {choices.map((c) => (

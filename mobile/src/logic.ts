@@ -1,4 +1,4 @@
-import type { Candidate, Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
+import type { Candidate, Check, CheckId, Holding, Holdings, Level, Platform, Share, Sniff, Source, TokenCard } from "./types";
 
 /**
  * The decisions behind the screen, kept free of React Native so they can be
@@ -231,6 +231,46 @@ export function sourceLine(source: Source, share: Share): string {
   }
   if (share.from === "try") return "from Spot";
   return share.from === "paste" ? "from your paste" : share.from === "screenshot" ? "from your screenshot" : "from your share";
+}
+
+export const SOL_MINT = "So11111111111111111111111111111111111111112";
+const SOL_ICON = "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png";
+
+/**
+ * SOL IN THE BAG, as the coin it is: its own row, its own screen, apes and
+ * sells like any other. Its card is the server's when it sent one, else one
+ * made from its price. What a sell can take keeps a dollar's worth back, as
+ * Add cash does, so the trade can pay its own way; the row shows all of it.
+ */
+export function solHolding(sol: Holdings["sol"]): Holding | null {
+  if (!(sol.amount > 0) || sol.usd === null || sol.usd < 0.01) return null;
+  const price = sol.token?.priceUsd ?? sol.usd / sol.amount;
+  const token: TokenCard = sol.token ?? {
+    mint: SOL_MINT,
+    symbol: "SOL",
+    name: "Solana",
+    icon: SOL_ICON,
+    decimals: 9,
+    kind: "coin",
+    priceUsd: price,
+    mcapUsd: null,
+    liquidityUsd: null,
+    holders: null,
+    change24hPct: null,
+    verified: true,
+    issuer: null,
+    restrictions: [],
+  };
+  const lamports = Math.floor(sol.amount * 1e9);
+  const kept = Math.ceil((1 / price) * 1e9);
+  return { token, amount: sol.amount, raw: String(Math.max(0, lamports - kept)), usd: sol.usd };
+}
+
+/** SOL held, as the coin screen trades it: only while there is more than the dollar a trade keeps back. */
+export function solPosition(mint: string, bag: Holdings | null | undefined): Holding | null {
+  if (mint !== SOL_MINT || !bag) return null;
+  const held = solHolding(bag.sol);
+  return held && held.raw !== "0" ? held : null;
 }
 
 /** One name for every coin offered: a cashtag that several launches share, not a share that names several coins. */

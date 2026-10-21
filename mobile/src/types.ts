@@ -103,7 +103,8 @@ export interface Holdings {
   owner: string;
   totalUsd: number;
   usdc: { amount: number; raw: string; usd: number };
-  sol: { amount: number; usd: number | null };
+  /** SOL, with its card when the server priced it (older servers send none). */
+  sol: { amount: number; usd: number | null; token?: TokenCard };
   positions: Holding[];
   hidden: number;
 }

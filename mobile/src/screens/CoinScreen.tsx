@@ -12,6 +12,7 @@ import {
   DEFAULT_AMOUNT,
   MAX_TRADE,
   SNIFF_AGAIN,
+  SOL_MINT,
   chipsFor,
   clampAmount,
   coinLine,
@@ -26,6 +27,7 @@ import {
   price,
   shareFor,
   shareOf,
+  solPosition,
   sourceLine,
   typeDigit,
   usd,
@@ -118,7 +120,8 @@ export function CoinScreen({ navigation, route }: Props) {
   const bag = useHoldings(wallet?.address ?? null);
   const done = sniff.status === "done" ? sniff.sniff : null;
   const coin = done?.token ?? candidate.token;
-  const position = bag.value?.positions.find((p) => p.token.mint === coin.mint) ?? null;
+  /* SOL is held as SOL, not as a token account: its position is made from the bag's SOL. */
+  const position = bag.value?.positions.find((p) => p.token.mint === coin.mint) ?? solPosition(coin.mint, bag.value);
 
   const sniffNow = useCallback(async () => {
     const id = ++run.current;
@@ -196,7 +199,7 @@ export function CoinScreen({ navigation, route }: Props) {
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
   /* Spot apes in dollars. Short of them, the one thing to do is add cash. */
   const cash = bag.value?.usdc.usd ?? null;
-  const solCovers = bag.value !== null && (bag.value.sol.usd ?? 0) - 1 >= amount;
+  const solCovers = coin.mint !== SOL_MINT && bag.value !== null && (bag.value.sol.usd ?? 0) - 1 >= amount;
   const dock: DockState = {
     side,
     sniff: sniff.status === "done" ? sniff.sniff.level : sniff.status === "error" ? "error" : "loading",
