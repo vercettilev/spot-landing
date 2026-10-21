@@ -75,11 +75,20 @@ describe("the bag", () => {
       owner: WALLET,
       totalUsd: 25 + 75 + 25,
       usdc: { amount: 25, usd: 25 },
-      sol: { amount: 0.5, usd: 75 },
+      sol: { amount: 0.5, usd: 75, token: { mint: SOL, symbol: "SOL", name: "Solana" } },
       positions: [{ token: { mint: COIN_A, symbol: "EXAMPLE" }, amount: 6250, raw: "6250000000", usd: 25 }],
       hidden: 2,
     });
     expect(search.queries).toEqual([`${SOL},${COIN_A},${COIN_B},2g7qfRJ9Y1Re5fAjZ6Uv5LJLZSfBbSeUeFF25R8RHKLF`]);
+  });
+
+  it("counts wrapped SOL as SOL, Solana, never as a second coin", async () => {
+    const wrapped = fakeAccounts({
+      ok: true,
+      value: { sol: 0.5, tokens: [{ mint: SOL, raw: "250000000", amount: 0.25, decimals: 9 }, { mint: USDC, raw: "0", amount: 0, decimals: 6 }] },
+    });
+    const got = await holdings(WALLET, { search: fakeSearch([token(SOL, { symbol: "SOL", name: "Wrapped SOL", usdPrice: 100 })]), readAccounts: wrapped });
+    expect(got.ok && got.value).toMatchObject({ totalUsd: 75, sol: { amount: 0.75, usd: 75, token: { name: "Solana" } }, positions: [], hidden: 0 });
   });
 
   it("says so when the chain or Jupiter did not answer", async () => {

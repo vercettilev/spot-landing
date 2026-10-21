@@ -1,4 +1,4 @@
-import type { Candidate, Check, CheckId, Level, Platform, Share, Sniff, Source } from "./types";
+import type { Candidate, Check, CheckId, Holding, Holdings, Level, Platform, Share, Sniff, Source, TokenCard } from "./types";
 
 /**
  * The decisions behind the screen, kept free of React Native so they can be
@@ -233,6 +233,81 @@ export function sourceLine(source: Source, share: Share): string {
   return share.from === "paste" ? "from your paste" : share.from === "screenshot" ? "from your screenshot" : "from your share";
 }
 
+export const SOL_MINT = "So11111111111111111111111111111111111111112";
+const SOL_ICON = "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png";
+/* SOL a sell or a swap never takes: the 0.01 SOL Jupiter's own swap keeps
+   back when you sell all of it, so the next trade can pay its way. */
+const SOL_KEPT = 0.01;
+
+/**
+ * SOL IN THE BAG, as the coin it is: its own row, its own screen, apes and
+ * sells like any other. Its card is the server's when it sent one, else one
+ * made from its price.
+ */
+export function solHolding(sol: Holdings["sol"]): Holding | null {
+  if (!(sol.amount > 0) || sol.usd === null || sol.usd < 0.01) return null;
+  const price = sol.token?.priceUsd ?? sol.usd / sol.amount;
+  const token: TokenCard = sol.token ?? {
+    mint: SOL_MINT,
+    symbol: "SOL",
+    name: "Solana",
+    icon: SOL_ICON,
+    decimals: 9,
+    kind: "coin",
+    priceUsd: price,
+    mcapUsd: null,
+    liquidityUsd: null,
+    holders: null,
+    change24hPct: null,
+    verified: true,
+    issuer: null,
+    restrictions: [],
+  };
+  return { token, amount: sol.amount, raw: String(Math.floor(sol.amount * 1e9)), usd: sol.usd };
+}
+
+/** SOL's dollars a trade can spend: all of it but the 0.01 SOL kept back. */
+export function spareSol(sol: Holdings["sol"]): number {
+  if (sol.usd === null || !(sol.amount > SOL_KEPT)) return 0;
+  return sol.usd * (1 - SOL_KEPT / sol.amount);
+}
+
+/**
+ * WHAT A SELL TAKES, as Jupiter's own swap has it: a share is a share of
+ * all of it, and all of SOL is all but the 0.01 SOL kept back. The trade
+ * reads its raw amount from what this returns, and the key its dollars.
+ */
+export function saleOf(h: Holding, pct: number): Holding {
+  if (h.token.mint !== SOL_MINT || pct < 100) return h;
+  const raw = BigInt(/^\d+$/.test(h.raw) ? h.raw : "0");
+  const kept = BigInt(Math.round(SOL_KEPT * 1e9));
+  const left = raw > kept ? raw - kept : BigInt(0);
+  const part = raw > BigInt(0) ? Number(left) / Number(raw) : 0;
+  return { ...h, amount: h.amount * part, raw: left.toString(), usd: Math.round(h.usd * part * 100) / 100 };
+}
+
+/** The share of a holding a typed dollar amount sells: all of it, once that is what all of it brings. */
+export function sellShare(h: Holding, dollars: number): number {
+  if (!(dollars > 0)) return 0;
+  const all = saleOf(h, 100);
+  if (dollars >= all.usd) return 100;
+  const pct = shareFor(dollars, h.usd);
+  return BigInt(shareOf(h.raw, pct)) >= BigInt(all.raw) ? 100 : pct;
+}
+
+/** A bag's coins with SOL among them, the biggest first: what Home lists, and what its all-time figure counts. */
+export function coinsOf(bag: Holdings): Holding[] {
+  const sol = solHolding(bag.sol);
+  return sol ? [...bag.positions, sol].sort((x, y) => y.usd - x.usd) : bag.positions;
+}
+
+/** SOL held, as the coin screen trades it: only while there is more than the 0.01 SOL a sell keeps back. */
+export function solPosition(mint: string, bag: Holdings | null | undefined): Holding | null {
+  if (mint !== SOL_MINT || !bag) return null;
+  const held = solHolding(bag.sol);
+  return held && saleOf(held, 100).raw !== "0" ? held : null;
+}
+
 /** One name for every coin offered: a cashtag that several launches share, not a share that names several coins. */
 export function sameName(candidates: Candidate[]): boolean {
   return candidates.length > 1 && new Set(candidates.map((c) => c.token.symbol.toLowerCase())).size === 1;
@@ -436,11 +511,11 @@ export function maxApe(cash: number | null, cap: number | null): number | null {
   return cap !== null && cap >= 1 ? Math.floor(limit) : null;
 }
 
-/** The line under the amount being typed. `over` when the last digit was refused. */
-export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: boolean; cap: number | null; cash: number | null; held: number | null }): string {
+/** The line under the amount being typed. `over` when the last digit was refused; `share`, the share a typed sell takes, when it is not just the typed dollars' share. */
+export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: boolean; cap: number | null; cash: number | null; held: number | null; share?: number }): string {
   if (p.side === "sell") {
     if (p.held === null) return "";
-    if (p.typed !== null && !p.over) return `${shareWord(shareFor(p.typed, p.held))} of your ${money(p.held)}.`.replace(/^all of/, "All of");
+    if (p.typed !== null && !p.over) return `${shareWord(p.share ?? shareFor(p.typed, p.held))} of your ${money(p.held)}.`.replace(/^all of/, "All of");
     return `You hold ${money(p.held)}.`;
   }
   if (p.over) return p.cap !== null ? `Spot caps this one at $${p.cap}.` : `Up to $${MAX_TRADE.toLocaleString("en-US")} a trade.`;

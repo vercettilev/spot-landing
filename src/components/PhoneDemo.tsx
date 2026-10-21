@@ -378,7 +378,7 @@ function SpotScreen() {
               </span>
             </p>
             <p className={styles.coinName}>
-              Wrapped SOL <b className={styles.price}>$106.64</b> <span className={styles.change}>−4.0%</span>
+              Solana <b className={styles.price}>$106.64</b> <span className={styles.change}>−4.0%</span>
             </p>
           </div>
         </div>

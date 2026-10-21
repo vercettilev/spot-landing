@@ -176,11 +176,28 @@ describe("what only growls", () => {
     expect(judge(facts(token(COIN_A, { audit: { isSus: true } }))).level).toBe("warn");
   });
 
-  it("a mint key on something big, old and verified is only noted", () => {
+  it("a mint key on something big and verified is only noted", () => {
     const big = token(COIN_A, { liquidity: 3_000_000, holderCount: 70_000, isVerified: true, organicScoreLabel: "high" });
     const s = judge(facts(big, { mint: { mintAuthority: "Bridge111" } }));
     expect(s.level).toBe("ok");
-    expect(check(s, "mint")).toMatchObject({ status: "info", note: "Normal for a big, old, verified coin." });
+    expect(check(s, "mint")).toMatchObject({ status: "info", note: "Normal for a big, verified coin." });
+  });
+
+  it("a mint key is forgiven from a $250k pool, 5,000 holders, verified and medium organic trading, all four", () => {
+    /* Seeker's SKR on 2026-10-21: $640k, 46.5k holders, verified, organic medium, its mint key kept. */
+    const skr = token(COIN_A, { liquidity: 640_000, holderCount: 46_500, isVerified: true, organicScoreLabel: "medium" });
+    const s = judge(facts(skr, { mint: { mintAuthority: "Issuer111" } }));
+    expect(s.level).toBe("ok");
+    expect(check(s, "mint")).toMatchObject({ answer: "Yes", status: "info" });
+    for (const short of [
+      { liquidity: 249_000 },
+      { holderCount: 4_999 },
+      { isVerified: false },
+      { organicScoreLabel: "low" },
+    ]) {
+      const m = judge(facts(token(COIN_A, { liquidity: 640_000, holderCount: 46_500, isVerified: true, organicScoreLabel: "medium", ...short }), { mint: { mintAuthority: "Issuer111" } }));
+      expect(check(m, "mint")).toMatchObject({ status: "warn" });
+    }
   });
 });
 
@@ -254,6 +271,23 @@ describe("a blue chip", () => {
     const s = judge(facts(token(COIN_A), { blueChip: true, buy: null, sell: null, mint: { freezeAuthority: "dev" } }));
     expect(s.level).toBe("block");
     expect(s.headline).toBe("Dev can freeze it. Spot won't buy it.");
+  });
+
+  it("keeps its mint key without a growl, whatever its numbers say today", () => {
+    /* Seeker's SKR is on Spot's list, its key kept to mint on a schedule: clean on a slow day too. */
+    const slow = token(COIN_A, { liquidity: 90_000, holderCount: 4_000, isVerified: true, organicScoreLabel: "low" });
+    const s = judge(facts(slow, { blueChip: true, buy: null, sell: null, mint: { mintAuthority: "Issuer111" } }));
+    expect(s.level).toBe("ok");
+    expect(s.headline).toBe("Blue chip. Nothing smells off.");
+    expect(check(s, "mint")).toMatchObject({ answer: "Yes", status: "info", note: "Normal for a big, verified coin." });
+  });
+
+  it("isn't growled at for a figure Jupiter didn't send", () => {
+    const gaps = token(COIN_A, { liquidity: undefined, holderCount: undefined, firstPool: undefined });
+    const s = judge(facts(gaps, { blueChip: true, buy: null, sell: null }));
+    expect(s.level).toBe("ok");
+    expect(answers(s)).toMatchObject({ liquidity: "? (info)", holders: "? (info)", age: "? (info)" });
+    expect(judge(facts(gaps)).level).toBe("warn");
   });
 });
 

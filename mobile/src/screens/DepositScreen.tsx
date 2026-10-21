@@ -8,7 +8,7 @@ import { ICON_SVG } from "../art";
 import { celebrate, onCelebrate } from "../components/Moment";
 import { Button, Card, Group, Pill, Row, Section, Sheet, Steps, feel, useRouteSheet, useToast } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
-import { amount as fmtAmount, cashLede, coverWith, money, turnKey, usd } from "../logic";
+import { amount as fmtAmount, cashLede, coverWith, money, spareSol, turnKey, usd } from "../logic";
 import type { RootParams } from "../navigation";
 import { hold, pendingFor, subscribe } from "../pending";
 import { useStore } from "../store";
@@ -138,9 +138,9 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
     toast("Address copied. Paste it where you send from.");
   }
 
-  /* SOL that could be cash: all but a dollar's worth, for fees. */
+  /* SOL that could be cash: all but the 0.01 SOL a trade keeps back. */
   const sol = bag.value?.sol ?? null;
-  const spare = sol?.usd !== null && sol?.usd !== undefined ? Math.floor(sol.usd - 1) : 0;
+  const spare = sol ? Math.floor(spareSol(sol)) : 0;
   const options = CASH_CHIPS.filter((c) => c <= spare);
   const all = spare >= 5 && !options.includes(spare) ? spare : null;
   /* For an ape, the swaps that cover it; "All" sits apart from them, where a slip of the finger can't spend it. */
@@ -218,7 +218,7 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
         <Card style={styles.turn}>
           <Text style={styles.turnTitle}>Turn SOL into cash</Text>
           <Text style={styles.turnNote}>
-            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}. About $1 of it stays for fees.
+            {fmtAmount(sol.amount)} SOL, about {usd(sol.usd)}.
           </Text>
           <View style={styles.turnChips}>
             {choices.map((c) => (

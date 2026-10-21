@@ -40,7 +40,14 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.6.2)
+## What's new (0.6.3)
+
+• SOL is a coin like any other: ape it, see what it made, sell it.
+• It says Solana now, not Wrapped SOL.
+• Seeker's $SKR sniffs CLEAN, and your first try is on it.
+• Big, verified coins don't get GRRR just because their team can still print more.
+
+## What was new in 0.6.2
 
 • Share to Spot works every time, even when your phone had closed Spot in the background.
 • Screenshots read right away, on any phone, even when the CA wraps over two lines.

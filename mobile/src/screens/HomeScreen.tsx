@@ -8,7 +8,7 @@ import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
 import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, amount as fmtAmount, emptyBag, fromPaste, money, pct, verdictWord, worth } from "../logic";
+import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, verdictWord, worth } from "../logic";
 import type { RootParams } from "../navigation";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
 import { useStore } from "../store";
@@ -17,8 +17,8 @@ import { short } from "../wallet/base58";
 
 type Props = NativeStackScreenProps<RootParams, "Home">;
 
-/* A coin from spot-core's hand-probed catalog: always found, always sniffable. One, not a choice of three. */
-const TRY = "$WIF";
+/* Seeker's own coin, from spot-core's hand-probed catalog: always found, always sniffable, always clean. One, not a choice of three. */
+const TRY = "$SKR";
 
 /**
  * HOME, the one screen: what you have, what you can do, what you sniffed.
@@ -101,7 +101,8 @@ export function HomeScreen({ navigation }: Props) {
   const b = bag.value;
   const mine = wallet ? trades.filter((t) => t.owner === wallet.address) : [];
   const ledger = books(mine);
-  const pnl = b ? pnlOf(mine, b.positions) : null;
+  const held = b ? coinsOf(b) : [];
+  const pnl = b ? pnlOf(mine, held) : null;
   const nothing = b ? emptyBag(b.totalUsd) : false;
   const trading = wallet?.kind === "mwa";
 
@@ -159,11 +160,12 @@ export function HomeScreen({ navigation }: Props) {
             <Group>
               {/* A tracked wallet's cash can't be aped with here, so it is only named. */}
               <Row left={<Cash glyph="$" />} title="Cash" subtitle={trading ? "Ready to ape" : "USDC"} right={<Value value={worth(b.usdc.usd)} />} />
-              {b.positions.map((p) => {
+              {/* SOL is a coin like the rest: in the list by its worth, so the rows still add up to the number over them. */}
+              {held.map((p) => {
                 /* Your own gain where Spot bought it; the coin's day where it did not. */
                 const book = ledger.get(p.token.mint);
                 const s = book ? since(book, p) : null;
-                const under = s ? sinceLine(s) : `${pct(p.token.change24hPct)} today`;
+                const under = s ? sinceLine(s) : p.token.change24hPct === null ? undefined : `${pct(p.token.change24hPct)} today`;
                 const down = (s ? s.usd : (p.token.change24hPct ?? 0)) < 0;
                 return (
                   <Row
@@ -173,19 +175,10 @@ export function HomeScreen({ navigation }: Props) {
                     subtitle={`${fmtAmount(p.amount)} ${p.token.symbol}`}
                     right={<Value value={worth(p.usd)} under={under} tint={down ? color.dim : color.green} />}
                     onPress={() => navigation.navigate("Coin", { candidate: { token: p.token, via: "link" }, source: null, share: null, others: [], side: "sell" })}
-                    label={`$${p.token.symbol}, ${worth(p.usd)}, ${under}. Opens on Sell.`}
+                    label={`$${p.token.symbol}, ${worth(p.usd)}${under ? `, ${under}` : ""}. Opens on Sell.`}
                   />
                 );
               })}
-              {/* SOL is in the total, so it is in the list: the rows add up to the number over them. */}
-              {b.sol.amount > 0 ? (
-                <Row
-                  left={<Cash glyph="◎" />}
-                  title="SOL"
-                  subtitle="For network fees"
-                  right={<Value value={worth(b.sol.usd)} under={`${fmtAmount(b.sol.amount)} SOL`} />}
-                />
-              ) : null}
             </Group>
             {b.hidden > 0 && <Text style={styles.small}>Plus {b.hidden} tiny coin{b.hidden === 1 ? "" : "s"}, too small to show.</Text>}
           </>

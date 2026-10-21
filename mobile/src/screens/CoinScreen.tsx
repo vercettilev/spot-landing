@@ -12,6 +12,7 @@ import {
   DEFAULT_AMOUNT,
   MAX_TRADE,
   SNIFF_AGAIN,
+  SOL_MINT,
   chipsFor,
   clampAmount,
   coinLine,
@@ -24,8 +25,11 @@ import {
   pct,
   plainShortFill,
   price,
-  shareFor,
+  saleOf,
+  sellShare,
   shareOf,
+  solPosition,
+  spareSol,
   sourceLine,
   typeDigit,
   usd,
@@ -118,7 +122,8 @@ export function CoinScreen({ navigation, route }: Props) {
   const bag = useHoldings(wallet?.address ?? null);
   const done = sniff.status === "done" ? sniff.sniff : null;
   const coin = done?.token ?? candidate.token;
-  const position = bag.value?.positions.find((p) => p.token.mint === coin.mint) ?? null;
+  /* SOL is held as SOL, not as a token account: its holding is made from the bag's SOL. */
+  const holding = bag.value?.positions.find((p) => p.token.mint === coin.mint) ?? solPosition(coin.mint, bag.value);
 
   const sniffNow = useCallback(async () => {
     const id = ++run.current;
@@ -150,8 +155,8 @@ export function CoinScreen({ navigation, route }: Props) {
 
   /* Sold the last of it: back to buying, once the bag has been read. */
   useEffect(() => {
-    if (bag.value && !position && side === "sell") setSide("buy");
-  }, [bag.value, position, side]);
+    if (bag.value && !holding && side === "sell") setSide("buy");
+  }, [bag.value, holding, side]);
 
   /* The hold on this coin and, when it comes, the verdict, from the
      watcher in pending.ts. Said here while this screen is the one showing;
@@ -190,13 +195,15 @@ export function CoinScreen({ navigation, route }: Props) {
   const typed = custom ? clampAmount(Math.min(MAX_TRADE, Math.max(1, Number(custom))), cap) : null;
   const amount = typed ?? preset;
   const up = (coin.change24hPct ?? 0) >= 0;
-  const sellTyped = sellCustom && position ? shareFor(Number(sellCustom), position.usd) : 0;
+  const sellTyped = sellCustom && holding ? sellShare(holding, Number(sellCustom)) : 0;
   const sellPct = sellTyped > 0 ? sellTyped : sellPreset;
+  /* What the sell takes, and what the trade reads: on SOL, all of it is all but the 0.01 SOL kept back. */
+  const position = holding ? saleOf(holding, sellPct) : null;
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
-  const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(position);
+  const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(holding);
   /* Spot apes in dollars. Short of them, the one thing to do is add cash. */
   const cash = bag.value?.usdc.usd ?? null;
-  const solCovers = bag.value !== null && (bag.value.sol.usd ?? 0) - 1 >= amount;
+  const solCovers = coin.mint !== SOL_MINT && bag.value !== null && spareSol(bag.value.sol) >= amount;
   const dock: DockState = {
     side,
     sniff: sniff.status === "done" ? sniff.sniff.level : sniff.status === "error" ? "error" : "loading",
@@ -215,14 +222,14 @@ export function CoinScreen({ navigation, route }: Props) {
   const note = dockNote(dock);
   /* What the coins Spot bought are worth now, against what they cost. */
   const book = owner ? books(store.trades.filter((t) => t.owner === owner)).get(coin.mint) : undefined;
-  const gained = book && position ? since(book, position) : null;
+  const gained = book && holding ? since(book, holding) : null;
 
   /* The keypad: dollars to ape, or dollars of the holding to sell. */
   const padValue = buying ? custom : sellCustom;
-  const padMax = buying ? Math.min(MAX_TRADE, cap ?? MAX_TRADE) : Math.ceil(position?.usd ?? 0);
+  const padMax = buying ? Math.min(MAX_TRADE, cap ?? MAX_TRADE) : Math.ceil(holding?.usd ?? 0);
   const padAction = dockKey({ ...dock, empty: !padValue });
   const most = buying ? maxApe(wallet?.kind === "mwa" ? cash : null, cap) : null;
-  const hint = padHint({ side, typed: padValue ? Number(padValue) : null, over, cap, cash: wallet?.kind === "mwa" ? cash : null, held: position?.usd ?? null });
+  const hint = padHint({ side, typed: padValue ? Number(padValue) : null, over, cap, cash: wallet?.kind === "mwa" ? cash : null, held: holding?.usd ?? null, share: sellTyped > 0 ? sellTyped : undefined });
 
   function openPad() {
     setOver(false);
@@ -462,11 +469,11 @@ export function CoinScreen({ navigation, route }: Props) {
         )}
 
         {/* On a coin you hold, the money comes first: what it is worth, and what it made since you aped. */}
-        {position ? (
-          <View style={styles.hold} accessible accessibilityLabel={`You hold ${money(position.usd)}${gained ? `, ${sinceLine(gained)} since you aped` : ""}`}>
+        {holding ? (
+          <View style={styles.hold} accessible accessibilityLabel={`You hold ${money(holding.usd)}${gained ? `, ${sinceLine(gained)} since you aped` : ""}`}>
             <View>
               <Text style={styles.holdLabel}>You hold</Text>
-              <Text style={styles.holdValue}>{money(position.usd)}</Text>
+              <Text style={styles.holdValue}>{money(holding.usd)}</Text>
             </View>
             {gained ? (
               <View style={styles.holdGain}>
@@ -561,7 +568,7 @@ export function CoinScreen({ navigation, route }: Props) {
                           }}
                         />
                       ))}
-                  {buying || (position && position.usd > 0) ? (
+                  {buying || (holding && holding.usd > 0) ? (
                     <Pill
                       label={padValue ? `$${padValue}` : "Other"}
                       on={Boolean(padValue)}
@@ -576,7 +583,7 @@ export function CoinScreen({ navigation, route }: Props) {
                   <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
                   {note ? <Text style={styles.note}>{note}</Text> : null}
                   {/* On a coin you hold, the other way is one quiet tap under the key: no switch to read first. */}
-                  {position ? (
+                  {holding ? (
                     <Pressable
                       onPress={() => {
                         tap();
