@@ -1,7 +1,7 @@
 import { curatedByMint } from "@/core/catalog/index";
 import type { UltraSearchClient } from "@/core/resolve/ultra";
 import { USDC_MINT } from "@/core/route/jupiter";
-import { DEFAULT_THRESHOLDS, isEstablished, type OpenMintThresholds } from "@/core/safety/open-mint-gate";
+import { DEFAULT_THRESHOLDS, isEstablished, type EstablishedBar, type OpenMintThresholds } from "@/core/safety/open-mint-gate";
 import { TOKEN_PROGRAM } from "./address";
 import type { MintFacts, MintFailure, MintReader } from "./chain";
 import { num, type Outcome } from "./http";
@@ -134,6 +134,14 @@ const BLOCK_HEADLINE: Partial<Record<CheckId, string>> = {
   tax: "The tax eats your bag. Spot won't buy it.",
 };
 
+/* A dev's mint key is forgiven on a coin that has outgrown printing and
+   dumping: verified, a pool of $250k or more, 5,000 holders or more, and
+   trading Jupiter scores as organic, medium or high. All four at once.
+   Looser than core's established bar, which also makes a coin a blue chip
+   and skips its test trade; this one only quiets the mint check. Core's
+   bar knows only "high", so "medium" is let in beside it. */
+const OUTGROWN: EstablishedBar = { minLiquidityUsd: 250_000, minHolderCount: 5_000, requireVerified: true, requireHighOrganic: false };
+
 export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   const { info } = f;
   const t = policy.thresholds;
@@ -208,18 +216,7 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
     add({ id: "delegate", label: "Dev can take it?", answer: "?", status: "unknown", blocks: true, note: "Couldn't read this coin's settings. Try again.", observed: f.chain.ok ? null : f.chain.reason });
   }
 
-  /* A dev's mint key is forgiven on a coin that has outgrown printing and
-     dumping: verified, a pool of $250k or more, 5,000 holders or more, and
-     trading Jupiter scores as organic, medium or high. All four at once.
-     Looser than core's established bar, which also makes a coin a blue chip
-     and skips its test trade; this one only quiets the mint check. */
-  const liqNow = num(info.liquidity);
-  const holdersNow = num(info.holderCount);
-  const outgrown =
-    info.isVerified === true &&
-    liqNow !== undefined && liqNow >= 250_000 &&
-    holdersNow !== undefined && holdersNow >= 5_000 &&
-    (info.organicScoreLabel === "medium" || info.organicScoreLabel === "high");
+  const outgrown = isEstablished(info, OUTGROWN) && (info.organicScoreLabel === "medium" || info.organicScoreLabel === "high");
 
   const mintKey = chain ? chain.mintAuthority : ultraAuthority(info, "mint") === "retained" ? "retained" : null;
   const mint = (answer: string, status: Status, note: string | null) =>
