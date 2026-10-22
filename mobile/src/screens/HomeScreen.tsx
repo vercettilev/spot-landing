@@ -8,9 +8,10 @@ import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
 import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, verdictWord, worth } from "../logic";
+import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, sinceSniff, sniffedLine, verdictWord, worth } from "../logic";
 import type { RootParams } from "../navigation";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
+import { usePrices } from "../prices";
 import { useStore } from "../store";
 import { color, font, leading, radius, size, space, tracking, type } from "../theme";
 import type { Share } from "../types";
@@ -45,6 +46,12 @@ export function HomeScreen({ navigation, route }: Props) {
   const bag = useHoldings(wallet?.address ?? null);
   const recent = store.history.slice(0, 8);
   const first = recent.length === 0 && !wallet;
+  /* Each coin sniffed lately, against its price when it was sniffed: what was missed, or dodged. */
+  const now = usePrices(recent.map((h) => h.mint));
+  useEffect(() => {
+    if (focused) void now.refreshIfOld();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused]);
 
   /* The clipboard's CA, link or $ticker, when it holds one. */
   async function paste(justOpened = false) {
@@ -123,7 +130,18 @@ export function HomeScreen({ navigation, route }: Props) {
     <View style={styles.fill} aria-hidden={!focused}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: space.x10 + insets.bottom }]}
-        refreshControl={wallet ? <RefreshControl refreshing={bag.status === "loading"} onRefresh={() => void bag.refresh()} tintColor={color.orange} /> : undefined}
+        refreshControl={
+          wallet ? (
+            <RefreshControl
+              refreshing={bag.status === "loading"}
+              onRefresh={() => {
+                void bag.refresh();
+                void now.refresh();
+              }}
+              tintColor={color.orange}
+            />
+          ) : undefined
+        }
       >
         {header}
 
@@ -209,6 +227,9 @@ export function HomeScreen({ navigation, route }: Props) {
             <Group>
               {recent.map((h) => {
                 const v = verdictWord(h.level);
+                const when = ago(h.at);
+                const change = sinceSniff(h.token.priceUsd, now.prices.get(h.mint));
+                const line = sniffedLine(change, when);
                 return (
                   <Row
                     key={h.mint}
@@ -217,12 +238,13 @@ export function HomeScreen({ navigation, route }: Props) {
                     subtitle={h.token.name}
                     right={
                       <View style={styles.recentRight}>
-                        <Text style={styles.ago}>{ago(h.at)}</Text>
+                        {/* Up is green, as a coin's day is in the bag; down is quiet, never red. */}
+                        <Text style={[styles.ago, line !== when && change !== null && (change < 0 ? styles.agoDown : styles.agoUp)]}>{line}</Text>
                         <Answer status={v.status}>{v.word}</Answer>
                       </View>
                     }
                     onPress={() => navigation.navigate("Coin", { candidate: { token: h.token, via: "link" }, source: null, share: null, others: [] })}
-                    label={`$${h.token.symbol}, ${v.word}, ${ago(h.at)}`}
+                    label={`$${h.token.symbol}, ${v.word}, sniffed ${when === "now" ? "just now" : `${when} ago`}${line !== when && change !== null ? `, ${pct(change)} since` : ""}`}
                   />
                 );
               })}
@@ -355,6 +377,8 @@ const styles = StyleSheet.create({
   small: { marginTop: space.x3, marginLeft: space.x1, fontFamily: font.body, fontSize: type.footnote, color: color.faint },
   recentRight: { flexDirection: "row", alignItems: "center", gap: space.x2 },
   ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
+  agoUp: { color: color.green },
+  agoDown: { color: color.dim },
   hint: { flexDirection: "row", alignItems: "center", gap: space.x3, marginTop: space.x8, paddingHorizontal: space.x1 },
   hintWords: { flex: 1 },
   hintText: { fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },

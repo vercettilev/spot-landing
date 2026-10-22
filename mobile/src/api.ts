@@ -75,6 +75,10 @@ export const sniffCoin = (mint: string, amount: number) =>
 export const fetchHoldings = (owner: string) =>
   call<Holdings>(`/api/holdings?owner=${encodeURIComponent(owner)}`, { method: "GET" }, 15_000);
 
+/** Coins' prices now, null where Jupiter has none: what Sniffed lately measures against. Up to ten at once. */
+export const fetchPrices = (mints: string[]) =>
+  call<{ ok: true; prices: Record<string, number | null> }>(`/api/prices?mints=${mints.map(encodeURIComponent).join(",")}`, { method: "GET" }, 10_000);
+
 const post = <T>(path: string, body: unknown, timeoutMs: number) =>
   call<T>(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }, timeoutMs);
 

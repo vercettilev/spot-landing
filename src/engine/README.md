@@ -11,6 +11,7 @@ They ship with the site, at `https://www.usespot.fun/api/…`. Call the `www` ho
 ```
 src/app/api/resolve/route.ts  share payload in, coin out
 src/app/api/sniff/route.ts    a mint in, the verdict out
+src/app/api/prices/route.ts   up to ten mints in, their prices now
 src/app/api/health/route.ts   which upstreams this deployment points at
 src/engine/resolve.ts         links, posts, pools, cashtags → one coin, or "which one?"
 src/engine/sniff.ts           the checks and the block / warn / wait rules
@@ -29,6 +30,10 @@ src/core/                     vendored from Poppin's spot-core (see src/core/REA
 ## `GET /api/holdings?owner=…`
 
 A wallet's bag for the app's Bag tab: `{ ok, owner, totalUsd, usdc, sol, positions: [{ token, amount, raw, usd }], hidden }`. Balances from the chain (both token programs, plus SOL), prices and faces from one Jupiter search. Coins worth under a cent, and whatever Jupiter cannot price (spam, dust), are counted in `hidden`, not listed. Errors: `400 invalid_owner`, `429`, `503 lookup_failed`.
+
+## `GET /api/prices?mints=…,…`
+
+Up to ten coins' prices now, for the app's Sniffed lately, where each coin says how far it has gone since it was sniffed: `{ ok, prices: { <mint>: usd | null } }`, from one Jupiter search for all of them, `null` where Jupiter has no price. Shared at the CDN for half a minute. Errors: `400 invalid_mints`, `429`, `503 lookup_failed`.
 
 ## `POST /api/order` and `POST /api/execute` (closed by default)
 

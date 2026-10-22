@@ -369,6 +369,17 @@ export function ago(iso: string, now = Date.now()): string {
   return `${Math.floor(s / (86400 * 7))}w`;
 }
 
+/** How far a coin has gone since it was sniffed, in percent; null when either price is missing. */
+export function sinceSniff(then: number | null | undefined, now: number | null | undefined): number | null {
+  if (then == null || now == null || !(then > 0) || !(now >= 0)) return null;
+  return ((now - then) / then) * 100;
+}
+
+/** A sniffed coin's line in Sniffed lately: how far it has gone in the time since ("+42% in 2h"), or only the time. */
+export function sniffedLine(change: number | null, when: string): string {
+  return change === null || when === "now" ? when : `${pct(change)} in ${when}`;
+}
+
 /** A verdict as one word on a chip. */
 export function verdictWord(level: Level): { word: string; status: "good" | "warn" | "bad" | "unknown" } {
   switch (level) {

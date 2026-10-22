@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, amountChips, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashInLine, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { MAX_TRADE, amountChips, sinceSniff, sniffedLine, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashInLine, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import { pnlOf } from "./pnl";
 import type { Candidate, Check, Holding } from "./types";
 
@@ -577,6 +577,23 @@ describe("the amount chips", () => {
     expect(usds(null, 25)).toEqual([10, 25, 50]);
     expect(usds(25, 10)).toEqual([10, 25]);
     expect(usds(0, 37)).toEqual([]);
+  });
+});
+
+describe("a coin sniffed lately", () => {
+  it("says how far it has gone since the sniff, in the time since", () => {
+    expect(sinceSniff(0.1, 0.142)).toBeCloseTo(42);
+    expect(sniffedLine(sinceSniff(0.1, 0.142), "2h")).toBe("+42.0% in 2h");
+    expect(sniffedLine(sinceSniff(1, 0.1), "3d")).toBe("−90.0% in 3d");
+    expect(sniffedLine(sinceSniff(1, 3.5), "1w")).toBe("+250% in 1w");
+  });
+
+  it("says only the time when a price is missing, or no time has passed", () => {
+    expect(sinceSniff(null, 1)).toBeNull();
+    expect(sinceSniff(0, 1)).toBeNull();
+    expect(sinceSniff(1, null)).toBeNull();
+    expect(sniffedLine(null, "5m")).toBe("5m");
+    expect(sniffedLine(12, "now")).toBe("now");
   });
 });
 
