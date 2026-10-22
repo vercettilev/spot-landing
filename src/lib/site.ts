@@ -11,14 +11,20 @@
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.usespot.fun").replace(/\/+$/, "");
 
 /**
- * WHO RUNS THIS SITE. A privacy notice has to name the company that collects
- * the addresses, so this is the legal operator, not a brand. If Spot moves to
- * its own company, this line changes with it.
+ * WHO RUNS SPOT. A privacy notice has to name who collects the addresses, so
+ * this is the legal operator, not a brand: the person or company behind Spot,
+ * set as NEXT_PUBLIC_OPERATOR on the deployment, so no name lives in the
+ * code. Until it is set the pages leave the name out and say "we", as they
+ * do the contact email. Spot is not run by Poppin Social, Inc.; the engine
+ * in src/core came from Poppin's hackathon, which is history, not ownership.
  */
-export const OPERATOR = "Poppin Social, Inc.";
+export const OPERATOR = process.env.NEXT_PUBLIC_OPERATOR?.trim() || "";
 
-/** Where people can write about their data. Required before launch; the privacy page omits the line until it is set. */
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
+/**
+ * Where people write about their data or with questions, on /privacy and
+ * /terms: Spot's own mailbox. NEXT_PUBLIC_CONTACT_EMAIL overrides it.
+ */
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "lev@spot.fun";
 
 /**
  * Spot on X: the header and the pass link to it, a post shared from the pass

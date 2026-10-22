@@ -21,12 +21,12 @@ export default function Terms() {
         <Link href="/">← Spot</Link>
       </p>
       <h1>Terms</h1>
-      <p className={styles.updated}>Last updated 12 October 2026</p>
+      <p className={styles.updated}>Last updated 22 October 2026</p>
 
       <h2>The deal</h2>
       <p>
-        Spot is made by {OPERATOR}. By using the app or this site you agree to these terms. If you do not, do not
-        use Spot.
+        Spot is made by {OPERATOR || "an independent developer"} (&ldquo;we&rdquo;). By using the app or this site you agree
+        to these terms. If you do not, do not use Spot.
       </p>
 
       <h2>What Spot is</h2>
@@ -86,8 +86,8 @@ export default function Terms() {
 
       <h2>No warranty, limited liability</h2>
       <p>
-        Spot is provided as is, without warranty of any kind. To the fullest extent the law allows, {OPERATOR} is not
-        liable for any loss that comes from using Spot, including lost money, lost coins, missed trades, wrong data
+        Spot is provided as is, without warranty of any kind. To the fullest extent the law allows, we are not liable
+        for any loss that comes from using Spot, including lost money, lost coins, missed trades, wrong data
         or a wallet you no longer control. Where the law does not allow that, our liability is limited to the
         amount you paid us for Spot, which today is nothing.
       </p>
@@ -100,7 +100,7 @@ export default function Terms() {
       <h2>Changes and contact</h2>
       <p>
         When these terms change, the date at the top changes with it, and anything that matters gets said in the
-        app. They are governed by the laws of the place where {OPERATOR} is established.
+        app. They are governed by the laws of the place where we are based.
         {CONTACT_EMAIL ? (
           <>
             {" "}
