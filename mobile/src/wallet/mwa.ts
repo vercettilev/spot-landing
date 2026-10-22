@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { toAddress } from "./base58";
+import { sessionAt, walletHome } from "./home";
 
 /**
  * Mobile Wallet Adapter: the wallet already on the phone (Seed Vault on a
@@ -32,16 +33,41 @@ export interface Connected {
   walletUriBase: string | null;
 }
 
+/* Each account's wallet, where it asked to be found again (src/wallet/home.ts):
+   told at connect, and again whenever the wallet renews Spot's access. The
+   store is told of every change, to keep it for the next start. */
+const homes = new Map<string, string>();
+let keeper: ((address: string, home: string | null) => void) | null = null;
+
+/** The wallet an account is connected through, as the app knows it: its home goes with it into every later session. */
+export function rememberWallet(address: string, walletUriBase: string | null): void {
+  const home = walletHome(walletUriBase);
+  if (home === (homes.get(address) ?? null)) return;
+  if (home) homes.set(address, home);
+  else homes.delete(address);
+  keeper?.(address, home);
+}
+
+/** Where this account's wallet asked to be found, if it did. */
+export const homeOf = (address: string): string | null => homes.get(address) ?? null;
+
+/** Who keeps the homes for the next start. */
+export function keepHomes(listener: ((address: string, home: string | null) => void) | null): void {
+  keeper = listener;
+}
+
 export async function connectWallet(): Promise<Connected> {
   return load().transact(async (wallet) => {
     const auth = await wallet.authorize({ chain: CHAIN, identity: IDENTITY });
     const account = auth.accounts[0];
     if (!account) throw new Error("The wallet shared no account.");
+    const address = toAddress(account.address);
+    rememberWallet(address, auth.wallet_uri_base ?? null);
     return {
-      address: toAddress(account.address),
+      address,
       label: ("label" in account && typeof account.label === "string" ? account.label : null) ?? null,
       authToken: auth.auth_token,
-      walletUriBase: auth.wallet_uri_base ?? null,
+      walletUriBase: homeOf(address),
     };
   });
 }
@@ -65,19 +91,23 @@ async function authorize(wallet: Session, authToken: string | null) {
 /**
  * One transaction, signed by the wallet (not sent: Jupiter lands it), and
  * only by the account the order was made out to: a wallet switched to
- * another account would sign a transaction that cannot land.
+ * another account would sign a transaction that cannot land. The session
+ * opens at the wallet's home when it gave one, so Android doesn't ask
+ * which wallet app to use.
  */
 export async function signTransaction(transaction: string, authToken: string | null, address: string): Promise<{ signed: string; authToken: string }> {
-  return load().transact(async (wallet) => {
+  const session = async (wallet: Session) => {
     const auth = await authorize(wallet, authToken);
     if (!auth.accounts.some((a) => toAddress(a.address) === address)) {
       throw Object.assign(new Error("The wallet is on another account."), { code: "SPOT_WRONG_ACCOUNT" });
     }
+    if (auth.wallet_uri_base) rememberWallet(address, auth.wallet_uri_base);
     const { signed_payloads } = await wallet.signTransactions({ payloads: [transaction] });
     const signed = signed_payloads[0];
     if (!signed) throw new Error("The wallet returned nothing to send.");
     return { signed, authToken: auth.auth_token };
-  });
+  };
+  return sessionAt(async (run, config) => load().transact(run, config), homeOf(address), session, () => rememberWallet(address, null));
 }
 
 /** Why a wallet session ended without an answer, in words. */
