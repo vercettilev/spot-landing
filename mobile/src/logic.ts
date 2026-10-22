@@ -35,6 +35,26 @@ export function chipsFor(cap: number | null): number[] {
   return [...CHIPS.filter((c) => c < cap), cap].slice(-3);
 }
 
+export interface Chip {
+  usd: number;
+  /** All one buy can spend, in place of a chip the wallet can't cover. */
+  max?: true;
+}
+
+/**
+ * The chips a buy offers: the coin's (chipsFor), with Max in place of the
+ * biggest when the wallet can't cover it, so a short wallet apes all it
+ * has in one tap instead of meeting Add cash. A wallet that covers every
+ * chip finds Max on the keypad: all of a big bag is a deliberate tap away.
+ * `most` is maxApe's, and null without a wallet whose money has been read.
+ */
+export function amountChips(cap: number | null, most: number | null): Chip[] {
+  const chips: Chip[] = chipsFor(cap).map((usd) => ({ usd }));
+  const biggest = chips[chips.length - 1];
+  if (most === null || !biggest || biggest.usd <= most || chips.some((c) => c.usd === most)) return chips;
+  return [...chips.slice(0, -1), { usd: most, max: true }];
+}
+
 export function clampAmount(amount: number, cap: number | null): number {
   return cap === null ? amount : Math.min(amount, cap);
 }
@@ -45,7 +65,7 @@ export function clampAmount(amount: number, cap: number | null): number {
  * when Spot knows; a loss is said plainly and without a sting.
  */
 export interface MomentData {
-  kind: "ape" | "sell" | "cash";
+  kind: "ape" | "sell";
   symbol: string;
   usdc: number;
   amount: number;
@@ -65,7 +85,6 @@ const signed = (n: number) => `${n < 0 ? "−" : "+"}${money(Math.abs(n))}`;
 export function momentLines(m: MomentData): MomentLines {
   const coins = `${amount(m.amount)} ${m.symbol}`;
   if (m.kind === "ape") return { head: "Aped.", big: `${money(m.usdc)} → ${coins}`, small: "In your bag. Sniffed for rugs first.", backdrop: "orange" };
-  if (m.kind === "cash") return { head: "Cash in.", big: `${money(m.usdc)} ready to ape`, small: "From SOL, in one tap.", backdrop: "orange" };
   const trade = `${coins} → ${money(m.usdc)}`;
   /* Where the money went, in so many words: a sell's dollars stay in the wallet, as cash, not in a bank. */
   const back = `${money(m.usdc)} is back in your wallet as cash.`;
@@ -86,7 +105,6 @@ export interface CardLines {
 
 export function cardLines(m: MomentData): CardLines {
   if (m.kind === "ape") return { figure: "Aped.", line: `${money(m.usdc)} of $${m.symbol}`, foot: "Sniffed for rugs first.", tint: "orange" };
-  if (m.kind === "cash") return { figure: "Cash in.", line: `${money(m.usdc)} ready to ape`, foot: "", tint: "orange" };
   if (!m.gain) return { figure: "Sold.", line: `${amount(m.amount)} ${m.symbol} → ${money(m.usdc)}`, foot: "", tint: "orange" };
   const won = m.gain.usd >= 0;
   return {
@@ -543,10 +561,14 @@ export function typeDigit(current: string, digit: string, max: number): { next: 
   return Number(next) > max ? { next: current, over: true } : { next, over: false };
 }
 
-/** The most a buy can be: the cap on a coin that growls, the server's limit, and the cash when it is read. Null when there is no sensible most to offer. */
-export function maxApe(cash: number | null, cap: number | null): number | null {
+/* SOL is turned into dollars at the price of the moment the order is built, which may be a little under the bag's: Max paid in SOL leaves this much of it unspent. */
+const SOL_MARGIN = 0.01;
+
+/** The most a buy can be: the cap on a coin that growls, the server's limit, and the cash when it is read (`inSol` when it is SOL that pays). Null when there is no sensible most to offer. */
+export function maxApe(cash: number | null, cap: number | null, inSol = false): number | null {
   const limit = Math.min(cap ?? MAX_TRADE, MAX_TRADE);
-  if (cash !== null && cash >= 1) return Math.floor(Math.min(cash, limit));
+  const spend = cash === null ? null : inSol ? cash * (1 - SOL_MARGIN) : cash;
+  if (spend !== null && spend >= 1) return Math.floor(Math.min(spend, limit));
   return cap !== null && cap >= 1 ? Math.floor(limit) : null;
 }
 
@@ -565,6 +587,8 @@ export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: b
   return "";
 }
 
+/** SOL turned into cash has landed: not a trade, so no moment, just the word (where the Turn key was, or as a toast when it landed later). */
+export const cashInLine = (usdc: number): string => `Cash in: ${money(usdc)} ready to ape.`;
 
 /** The key that turns SOL into cash: locked like a trade's while a swap may still land. */
 export function turnKey(p: { pending: { landed: boolean; seconds: number } | null; busy: boolean; chosen: number | null }): { label: string; enabled: boolean } {

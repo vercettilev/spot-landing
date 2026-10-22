@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { apeAfterConnect } from "../afterConnect";
 import { fetchHoldings } from "../api";
-import { onCelebrate } from "../components/Moment";
+import { onCashIn } from "../cashIn";
 import { Button, Field, Section, Sheet, useRouteSheet, useToast } from "../components/ui";
 import { primeHoldings } from "../holdings";
 import { SOL_MINT, payFor, spareSol } from "../logic";
@@ -50,13 +50,7 @@ export function ConnectScreen({ navigation, route }: Props) {
   const valid = isAddressLike(address);
 
   /* The cash landed: back to the coin, its key ready. */
-  useEffect(
-    () =>
-      onCelebrate((m) => {
-        if (m.kind === "cash") ref.current?.close();
-      }),
-    [ref],
-  );
+  useEffect(() => onCashIn(() => ref.current?.close()), [ref]);
 
   /* Opened by a tap on Ape, the wallet is asked at once: that tap was the ask. */
   useEffect(() => {

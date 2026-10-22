@@ -28,11 +28,6 @@ export function celebrate(m: MomentData): void {
   for (const fn of listeners) fn(m);
 }
 
-/** Hears every moment as it starts: a sheet waiting on cash closes when the cash lands. */
-export function onCelebrate(fn: (m: MomentData) => void): () => void {
-  listeners.add(fn);
-  return () => void listeners.delete(fn);
-}
 
 /* Whether a moment is up, for the app under it to step out of a screen reader's way. */
 let up = false;
@@ -53,7 +48,7 @@ export function useMomentUp(): boolean {
 }
 
 const native = Platform.OS !== "web";
-const SHOW_MS = { ape: 6_000, sell: 6_000, cash: 2_600 } as const;
+const SHOW_MS = { ape: 6_000, sell: 6_000 } as const;
 
 /* For looking at the card in a browser: window.__SPOT_QA_CARD = true draws it on screen. */
 const cardOnScreen = () => Boolean((globalThis as { __SPOT_QA_CARD?: boolean }).__SPOT_QA_CARD);
@@ -204,18 +199,16 @@ export function Moment() {
             <Text style={styles.small}>{l.small}</Text>
           </View>
           <View style={[styles.actions, { pointerEvents: "box-none" }]}>
-            {m.kind !== "cash" && (
-              <Pressable onPress={() => void share()} disabled={sharing} style={({ pressed }) => [styles.share, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Share">
-                <Text style={styles.shareText}>{sharing ? "Sharing…" : "Share"}</Text>
-              </Pressable>
-            )}
+            <Pressable onPress={() => void share()} disabled={sharing} style={({ pressed }) => [styles.share, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Share">
+              <Text style={styles.shareText}>{sharing ? "Sharing…" : "Share"}</Text>
+            </Pressable>
             <Pressable onPress={dismiss} style={({ pressed }) => [styles.done, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="Done">
               <Text style={styles.doneText}>Done</Text>
             </Pressable>
           </View>
         </Animated.View>
       </View>
-      {m.kind !== "cash" && <ShareCard ref={card} data={m} onScreen={cardOnScreen()} />}
+      <ShareCard ref={card} data={m} onScreen={cardOnScreen()} />
     </Animated.View>
   );
 }

@@ -203,6 +203,8 @@ export const motion = {
   sheetUp: 300,
   /** Leaving is quicker than arriving. */
   fadeOut: 140,
+  /** "Cash in" said where the cash was asked for, before the sheet goes. */
+  cashIn: 1400,
   press: 100,
   toggle: 160,
   /** The receipt's answers ticking in, one after another. */

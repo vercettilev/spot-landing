@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { USDC_MINT } from "../api";
+import { cashIn } from "../cashIn";
+import { cashInLine } from "../logic";
 import { isClaimed, restore, subscribe } from "../pending";
 import { useStore } from "../store";
 import { books, saleGain } from "../pnl";
@@ -26,10 +28,12 @@ export function TradeWatch() {
     return subscribe((p, fate, fill) => {
       if (!fate) return;
       const s = latest.current;
-      /* Turning SOL into cash is not a trade: no book, no watch, just the word. */
+      /* Turning SOL into cash is not a trade: no book, no watch, no moment, just the word. */
       if (p.mint === USDC_MINT) {
-        if (fate === "landed") celebrate({ kind: "cash", symbol: "USDC", usdc: p.quote.usdc, amount: p.quote.usdc });
-        else if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
+        if (fate === "landed") {
+          cashIn(p.quote.usdc);
+          toast(cashInLine(p.quote.usdc));
+        } else if (!isClaimed(p.owner, p.mint)) toast(fateLine(p, fate));
         return;
       }
       if (fate === "landed") {

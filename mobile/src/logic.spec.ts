@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { MAX_TRADE, amountChips, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashInLine, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import { pnlOf } from "./pnl";
 import type { Candidate, Check, Holding } from "./types";
 
@@ -229,7 +229,6 @@ describe("a shared screenshot", () => {
 describe("the moment after a trade", () => {
   it("says what happened in three lines, loudest where the money is", () => {
     expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Sniffed for rugs first.", backdrop: "orange" });
-    expect(momentLines({ kind: "cash", symbol: "USDC", usdc: 50, amount: 50 })).toEqual({ head: "Cash in.", big: "$50.00 ready to ape", small: "From SOL, in one tap.", backdrop: "orange" });
     expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Back in your wallet as cash.", backdrop: "orange" });
   });
 
@@ -406,6 +405,10 @@ describe("the keypad", () => {
     expect(maxApe(0.4, 50)).toBe(50);
     expect(maxApe(null, null)).toBeNull();
     expect(maxApe(0.4, null)).toBeNull();
+    /* Paid in SOL, a hundredth of it stays: the price can dip before the order is built. */
+    expect(maxApe(93.7, null, true)).toBe(92);
+    expect(maxApe(1_000, null, true)).toBe(990);
+    expect(maxApe(93.7, 50, true)).toBe(50);
   });
 
   it("says the cap, the cash, or what a sell amount is of the bag", () => {
@@ -450,6 +453,7 @@ describe("adding cash", () => {
     expect(turnKey({ pending: { landed: true, seconds: 3 }, busy: false, chosen: 25 })).toEqual({ label: "Updating your bag…", enabled: false });
     expect(turnKey({ pending: null, busy: true, chosen: 25 })).toEqual({ label: "Turning…", enabled: false });
     expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 of SOL into cash", enabled: true });
+    expect(cashInLine(25)).toBe("Cash in: $25.00 ready to ape.");
   });
 
   it("says what the wallet has, never leading with $0.00, and nothing when it has nothing", () => {
@@ -551,3 +555,28 @@ describe("a coin sized up", () => {
     expect(shortAge(800 * 86_400_000)).toBe("2y");
   });
 });
+
+describe("the amount chips", () => {
+  const usds = (cap: number | null, most: number | null) => amountChips(cap, most).map((c) => (c.max ? `Max ${c.usd}` : c.usd));
+
+  it("are the coin's chips while the wallet covers them, or no wallet has been read", () => {
+    expect(usds(null, null)).toEqual([10, 25, 50]);
+    expect(usds(null, 50)).toEqual([10, 25, 50]);
+    expect(usds(null, 4_000)).toEqual([10, 25, 50]);
+    expect(usds(20, 37)).toEqual([10, 20]);
+  });
+
+  it("give the biggest one's place to Max when the wallet can't cover it", () => {
+    expect(usds(null, 37)).toEqual([10, 25, "Max 37"]);
+    expect(usds(null, 5)).toEqual([10, 25, "Max 5"]);
+    expect(usds(50, 37)).toEqual([10, 25, "Max 37"]);
+    expect(usds(20, 15)).toEqual([10, "Max 15"]);
+  });
+
+  it("never offer the same amount twice", () => {
+    expect(usds(null, 25)).toEqual([10, 25, 50]);
+    expect(usds(25, 10)).toEqual([10, 25]);
+    expect(usds(0, 37)).toEqual([]);
+  });
+});
+

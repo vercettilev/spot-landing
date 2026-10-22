@@ -10,11 +10,12 @@ import { SniffReport, type SniffState } from "../components/SniffReport";
 import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
 import { forgetHoldings, useHoldings } from "../holdings";
 import {
+  CHIPS,
   DEFAULT_AMOUNT,
   MAX_TRADE,
   SNIFF_AGAIN,
   SOL_MINT,
-  chipsFor,
+  amountChips,
   clampAmount,
   coinLine,
   dockKey,
@@ -36,6 +37,7 @@ import {
   statsLine,
   typeDigit,
   usd,
+  type Chip,
   type DockState,
 } from "../logic";
 import type { RootParams } from "../navigation";
@@ -103,6 +105,8 @@ export function CoinScreen({ navigation, route }: Props) {
   const [preset, setPreset] = useState(store.settings.defaultAmount || DEFAULT_AMOUNT);
   /* Dollars typed on the keypad, digits only. */
   const [custom, setCustom] = useState("");
+  /* The Max chip is picked: the ape follows all the wallet can spend. */
+  const [maxed, setMaxed] = useState(false);
   const [sellPreset, setSellPreset] = useState(50);
   /* Dollars of the holding typed on the keypad, sold as the share of it they are. */
   const [sellCustom, setSellCustom] = useState("");
@@ -200,10 +204,22 @@ export function CoinScreen({ navigation, route }: Props) {
   /* The first coin the issuer won't sell in the US asks, once, instead of trusting a switch in Settings nobody has seen. */
   const askUs = buying && coin.restrictions.includes("us-persons") && !store.settings.usAsked && !store.settings.usPerson && !checking;
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
-  const chips = chipsFor(cap);
-  /* A typed amount wins over the chips, within the server's $1 to $10,000 and a warned coin's cap. */
+  /* What one buy can spend: the more of the USDC and the SOL, as a buy is paid from one of them. */
+  const cash = bag.value?.usdc.usd ?? null;
+  const solSpare = bag.value ? (coin.mint === SOL_MINT ? 0 : spareSol(bag.value.sol)) : null;
+  const spendable = wallet?.kind === "mwa" && cash !== null ? Math.max(cash, solSpare ?? 0) : null;
+  const inSol = spendable !== null && cash !== null && spendable > cash;
+  const most = buying ? maxApe(spendable, cap, inSol) : null;
+  const chips = amountChips(cap, spendable !== null && spendable >= 1 ? most : null);
+  const maxChip = chips.find((c) => c.max);
+  /* A typed amount wins over the chips, within the server's $1 to $10,000 and a warned coin's cap; Max is Max while it is a chip. */
   const typed = custom ? clampAmount(Math.min(MAX_TRADE, Math.max(1, Number(custom))), cap) : null;
-  const amount = typed ?? preset;
+  const onMax = maxed && !custom && maxChip !== undefined;
+  const amount = typed ?? (onMax ? maxChip.usd : preset);
+  /* Max gone (the wallet covers every chip now, or holds under a dollar): it is not picked again on its own when it comes back. */
+  useEffect(() => {
+    if (maxed && !maxChip) setMaxed(false);
+  }, [maxed, maxChip]);
   const up = (coin.change24hPct ?? 0) >= 0;
   const sellTyped = sellCustom && holding ? sellShare(holding, Number(sellCustom)) : 0;
   const sellPct = sellTyped > 0 ? sellTyped : sellPreset;
@@ -213,8 +229,6 @@ export function CoinScreen({ navigation, route }: Props) {
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(holding);
   /* An ape is paid in USDC, or in SOL when the USDC doesn't cover it (never SOL for SOL).
      Short of both, the one thing to do is add cash. */
-  const cash = bag.value?.usdc.usd ?? null;
-  const solSpare = bag.value ? (coin.mint === SOL_MINT ? 0 : spareSol(bag.value.sol)) : null;
   const solSide = bag.value?.sol;
   const solPrice = solSide ? (solSide.token?.priceUsd ?? (solSide.amount > 0 && solSide.usd !== null ? solSide.usd / solSide.amount : null)) : null;
   const dock: DockState = {
@@ -262,10 +276,6 @@ export function CoinScreen({ navigation, route }: Props) {
   const padValue = buying ? custom : sellCustom;
   const padMax = buying ? Math.min(MAX_TRADE, cap ?? MAX_TRADE) : Math.ceil(holding?.usd ?? 0);
   const padAction = dockKey({ ...dock, empty: !padValue });
-  /* What one buy can spend: the more of the USDC and the SOL, as a buy is paid from one of them. */
-  const spendable = wallet?.kind === "mwa" && cash !== null ? Math.max(cash, solSpare ?? 0) : null;
-  const inSol = spendable !== null && cash !== null && spendable > cash;
-  const most = buying ? maxApe(spendable, cap) : null;
   const hint = padHint({ side, typed: padValue ? Number(padValue) : null, over, cap, cash: spendable, held: holding?.usd ?? null, share: sellTyped > 0 ? sellTyped : undefined, inSol });
 
   function openPad() {
@@ -288,6 +298,12 @@ export function CoinScreen({ navigation, route }: Props) {
     setOver(false);
     if (buying) setCustom(v);
     else setSellCustom(v);
+  }
+
+  function pickChip(c: Chip) {
+    setCustom("");
+    setMaxed(Boolean(c.max));
+    if (!c.max) setPreset(c.usd);
   }
 
   /* Connecting or adding cash rises as a sheet over the coin, told what the
@@ -349,6 +365,8 @@ export function CoinScreen({ navigation, route }: Props) {
         return;
       }
       const payWith: PayWith = pays;
+      /* A standard chip, aped, is where the next coin starts (Settings shows it). A typed amount or Max is a one-off. */
+      if (buying && !custom && !onMax && (CHIPS as readonly number[]).includes(amount) && amount !== store.settings.defaultAmount) store.setSettings({ defaultAmount: amount });
       /* The wallet as it is right now, read while the order is built: what
          a trade that may still land is checked against. */
       const sellRaw = shareOf(position?.raw ?? "0", sellPct);
@@ -613,13 +631,11 @@ export function CoinScreen({ navigation, route }: Props) {
                   {buying
                     ? chips.map((c) => (
                         <Pill
-                          key={c}
-                          label={`$${c}`}
-                          on={!custom && c === amount}
-                          onPress={() => {
-                            setCustom("");
-                            setPreset(c);
-                          }}
+                          key={c.max ? "max" : c.usd}
+                          label={c.max ? "Max" : `$${c.usd}`}
+                          on={c.max ? onMax : !custom && !onMax && c.usd === amount}
+                          onPress={() => pickChip(c)}
+                          accessibilityLabel={c.max ? `Max, $${c.usd}` : undefined}
                         />
                       ))
                     : SELL_SHARES.map((p) => (
