@@ -1,7 +1,7 @@
 import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -13,6 +13,7 @@ import type { RootParams } from "../navigation";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
 import { useStore } from "../store";
 import { color, font, leading, radius, size, space, tracking, type } from "../theme";
+import type { Share } from "../types";
 import { short } from "../wallet/base58";
 
 type Props = NativeStackScreenProps<RootParams, "Home">;
@@ -34,7 +35,7 @@ const SHARES_LEARNT = 3;
  * is three things: what Spot does, how (a phone's share menu with Spot in
  * it), and one key to try it on a coin; pasting a CA is a quiet key under.
  */
-export function HomeScreen({ navigation }: Props) {
+export function HomeScreen({ navigation, route }: Props) {
   const store = useStore();
   const { wallet, trades } = store;
   const [toastNode, toast] = useToast();
@@ -46,15 +47,23 @@ export function HomeScreen({ navigation }: Props) {
   const first = recent.length === 0 && !wallet;
 
   /* The clipboard's CA, link or $ticker, when it holds one. */
-  async function paste() {
-    const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
-    const pasted = fromPaste(text);
+  async function paste(justOpened = false) {
+    const read = async () => fromPaste((await Clipboard.getStringAsync().catch(() => "")).trim());
+    /* Android hands the clipboard only to the app in focus, which an app just opened may not be yet. */
+    const pasted = (await read()) ?? (justOpened ? await new Promise<Share | null>((r) => setTimeout(() => void read().then(r), 600)) : null);
     if (!pasted) {
       toast("Nothing to paste. Copy a CA, link or $ticker first.");
       return;
     }
     navigation.navigate("Resolve", { share: pasted });
   }
+
+  /* Paste CA, pressed from the launcher's shortcut. */
+  const pasteAt = route.params?.paste;
+  useEffect(() => {
+    if (pasteAt) void paste(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasteAt]);
 
   const header = (
     <View style={styles.header}>

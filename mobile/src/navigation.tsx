@@ -1,6 +1,7 @@
 import { DarkTheme, NavigationContainer, createNavigationContainerRef, type Theme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { Linking } from "react-native";
 import { ChooseScreen } from "./screens/ChooseScreen";
 import { CoinScreen } from "./screens/CoinScreen";
 import { ConnectScreen } from "./screens/ConnectScreen";
@@ -21,7 +22,8 @@ import type { Candidate, Share, Source } from "./types";
  */
 
 export type RootParams = {
-  Home: undefined;
+  /** `paste`: Paste CA pressed from outside (the launcher's shortcut), at this time. */
+  Home: { paste?: number } | undefined;
   Resolve: { share: Share };
   /** `side: "sell"` opens on the Sell side, as from the bag; `continues` fades it in over the reading screen it replaces. */
   Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[]; side?: "buy" | "sell"; continues?: boolean };
@@ -30,7 +32,6 @@ export type RootParams = {
   Deposit: { need?: number; cash?: boolean } | undefined;
   /** `ape`: connecting to ape this much, so a short wallet goes straight on to Add cash; `track`: track an address instead, from Settings. */
   Connect: { ape?: number; mint?: string; track?: boolean } | undefined;
-  /** How cash reaches a bank: through an exchange, from the wallet app. */
   /** The wallet, every trade, the choices every buy starts with, the app's links. */
   Settings: undefined;
 };
@@ -47,18 +48,31 @@ const THEME: Theme = {
 };
 
 /* Shares can land before the navigator is ready (a cold start from the
-   share sheet): those wait for onReady. */
+   share sheet): those wait for onReady. So does Paste CA from the
+   launcher's shortcut (spot://paste, modules/share-target), which is
+   Home's key, pressed. */
 function useShareRouting() {
-  const pending = useRef<Share | null>(null);
-  const open = (share: Share) => {
-    if (navRef.isReady()) navRef.navigate("Resolve", { share });
-    else pending.current = share;
+  const pending = useRef<Share | "paste" | null>(null);
+  const go = (next: Share | "paste") =>
+    next === "paste" ? navRef.navigate("Home", { paste: Date.now() }) : navRef.navigate("Resolve", { share: next });
+  const open = (next: Share | "paste") => {
+    if (navRef.isReady()) go(next);
+    else pending.current = next;
   };
   useIncomingShare(open);
+  useEffect(() => {
+    const opened = (url: string | null) => {
+      if (url?.startsWith("spot://paste")) open("paste");
+    };
+    Linking.getInitialURL().then(opened, () => {});
+    const sub = Linking.addEventListener("url", ({ url }) => opened(url));
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return () => {
-    const share = pending.current;
+    const next = pending.current;
     pending.current = null;
-    if (share) navRef.navigate("Resolve", { share });
+    if (next) go(next);
   };
 }
 
