@@ -11,7 +11,7 @@ What to paste into the publisher portal, and the files next to this one.
 - **Website:** https://www.usespot.fun
 - **Privacy policy:** https://www.usespot.fun/privacy
 - **Terms / license:** https://www.usespot.fun/terms
-- **Copyright:** © 2026 Poppin Social, Inc.
+- **Copyright:** © 2026 and the name set as NEXT_PUBLIC_OPERATOR on the site, the person or company that runs Spot (not Poppin Social, Inc.)
 - **Support email:** (set NEXT_PUBLIC_CONTACT_EMAIL on the site and use the same address here)
 - **Icon:** `icon-512.png` (512×512)
 - **Screenshots:** `shot-1-sniff.png` … `shot-6-moment.png` (1080×2341, portrait)

@@ -27,10 +27,10 @@ export default function Privacy() {
         <Link href="/">← Spot</Link>
       </p>
       <h1>Privacy</h1>
-      <p className={styles.updated}>Last updated 16 October 2026</p>
+      <p className={styles.updated}>Last updated 22 October 2026</p>
 
       <h2>Who we are</h2>
-      <p>Spot, the app and this site, is run by {OPERATOR}.</p>
+      <p>Spot, the app and this site, is run by {OPERATOR || "an independent developer, not a company"}.</p>
 
       <h2>The app: no account, nothing on our side</h2>
       <p>
