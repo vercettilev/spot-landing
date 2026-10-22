@@ -40,7 +40,11 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.6.3)
+## What's new (0.6.4)
+
+• Trades go straight to the wallet you connected, no wallet picker, where your wallet allows it.
+
+## What was new in 0.6.3
 
 • SOL is a coin like any other: ape it, see what it made, sell it.
 • It says Solana now, not Wrapped SOL.

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { setHaptics } from "./components/ui";
 import type { Trade } from "./pnl";
 import type { Level, Sniff, TokenCard } from "./types";
+import { homeOf, keepHomes, rememberWallet } from "./wallet/mwa";
 
 /**
  * WHAT THE APP REMEMBERS, on the phone and nowhere else: settings, the coins
@@ -134,6 +135,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const base = fresh();
         const settings = parse(got[KEY.settings], base.settings);
         const wallet = got[KEY.wallet] ? (JSON.parse(got[KEY.wallet]!) as Wallet | null) : null;
+        if (wallet?.kind === "mwa") rememberWallet(wallet.address, wallet.walletUriBase ?? null);
         setState({
           settings,
           history: parseList<SniffRecord>(got[KEY.history]),
@@ -157,6 +159,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, [key]: value }));
     void AsyncStorage.setItem(KEY[key], JSON.stringify(value)).catch(() => {});
   }, []);
+
+  /* Where the connected wallet asked to be found, kept as the wallet bridge last heard it. */
+  useEffect(() => {
+    keepHomes((address, home) => {
+      const w = latest.current.wallet;
+      if (w?.kind === "mwa" && w.address === address && w.walletUriBase !== home) save("wallet", { ...w, walletUriBase: home });
+    });
+    return () => keepHomes(null);
+  }, [save]);
 
   const addActivity = useCallback(
     (item: Omit<ActivityItem, "id" | "at">) => {
@@ -212,7 +223,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         save("trades", [trade, ...latest.current.trades].slice(0, MAX_TRADES));
       },
       setWallet: (wallet) => {
-        save("wallet", wallet);
+        /* The bridge knows the wallet's home best: a renewed token arrives with the home it had. */
+        save("wallet", wallet?.kind === "mwa" ? { ...wallet, walletUriBase: homeOf(wallet.address) } : wallet);
         if (wallet) addActivity({ kind: "connect", mint: null, symbol: null, text: wallet.kind === "mwa" ? "Wallet connected" : "Tracking a wallet" });
       },
     };
