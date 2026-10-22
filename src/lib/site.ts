@@ -20,8 +20,12 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.usespo
  */
 export const OPERATOR = process.env.NEXT_PUBLIC_OPERATOR?.trim() || "";
 
-/** Where people can write about their data. Required before launch; the privacy page omits the line until it is set. */
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
+/**
+ * Where people write about their data or with questions, on /privacy and
+ * /terms: Spot's own address, on the site's domain (whose mail is set up to
+ * be sent and received). NEXT_PUBLIC_CONTACT_EMAIL overrides it.
+ */
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "hello@usespot.fun";
 
 /**
  * Spot on X: the header and the pass link to it, a post shared from the pass
