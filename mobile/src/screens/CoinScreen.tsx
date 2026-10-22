@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { onApeAfterConnect } from "../afterConnect";
-import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
+import { executeOrder, fetchHoldings, placeOrder, sniffCoin, type Answer } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
 import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
@@ -41,11 +41,12 @@ import {
 import type { RootParams } from "../navigation";
 import { claim, hold, pendingFor, subscribe } from "../pending";
 import { books, saleGain, since, sinceLine } from "../pnl";
+import { sniffComing, sniffTaken } from "../resolve";
 import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font, layer, leading, radius, size, space, tracking, type } from "../theme";
 import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type PayWith, type Pending, type Side, type Snapshot } from "../trade";
-import type { Order } from "../types";
+import type { Order, Sniff } from "../types";
 import { short } from "../wallet/base58";
 import { signTransaction, walletError } from "../wallet/mwa";
 
@@ -133,7 +134,12 @@ export function CoinScreen({ navigation, route }: Props) {
     const id = ++run.current;
     setSniff({ status: "loading" });
     for (let attempt = 0; attempt < 2; attempt++) {
-      const res = await sniffCoin(candidate.token.mint, DEFAULT_AMOUNT);
+      /* The first look takes the sniff that came with the coin, when one is on its way. */
+      const early = attempt === 0 ? sniffComing(candidate.token.mint) : null;
+      const came = early ? await early : null;
+      if (id !== run.current) return;
+      if (early) sniffTaken(candidate.token.mint, early);
+      const res: Answer<Sniff> = came ? { ok: true, value: came } : await sniffCoin(candidate.token.mint, DEFAULT_AMOUNT);
       if (id !== run.current) return;
       if (!res.ok) {
         setSniff({ status: "error", error: res.error });

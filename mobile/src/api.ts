@@ -1,4 +1,4 @@
-import type { Executed, Holdings, Order, ResolveResult, Share, Sniff } from "./types";
+import type { Executed, Holdings, Order, Sniff } from "./types";
 
 /* The site's API (src/engine in the repo root). EXPO_PUBLIC_SPOT_API points
    a build elsewhere, a preview deployment for instance. The www host on
@@ -42,16 +42,22 @@ const KNOWN = new Set<ApiError>([
 /** A failed answer keeps whatever the API said with it: a headline, a cap, Jupiter's words. */
 export type Answer<T> = { ok: true; value: T } | { ok: false; error: ApiError; detail?: Record<string, unknown> };
 
+export type Body = { ok?: boolean; error?: string } & Record<string, unknown>;
+
+/** What an answer says: its value, or the API's error and whatever came with it. */
+export function answerOf<T>(res: { ok: boolean; status: number }, body: Body | null): Answer<T> {
+  if (res.ok && body?.ok) return { ok: true, value: body as T };
+  if (res.status === 429) return { ok: false, error: "busy" };
+  const error = body?.error as ApiError | undefined;
+  return { ok: false, error: error && KNOWN.has(error) ? error : "bad", ...(body ? { detail: body } : {}) };
+}
+
 async function call<T>(path: string, init: RequestInit, timeoutMs: number): Promise<Answer<T>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${API_BASE}${path}`, { ...init, signal: controller.signal });
-    const body = (await res.json().catch(() => null)) as ({ ok?: boolean; error?: string } & Record<string, unknown>) | null;
-    if (res.ok && body?.ok) return { ok: true, value: body as T };
-    if (res.status === 429) return { ok: false, error: "busy" };
-    const error = body?.error as ApiError | undefined;
-    return { ok: false, error: error && KNOWN.has(error) ? error : "bad", ...(body ? { detail: body } : {}) };
+    return answerOf<T>(res, (await res.json().catch(() => null)) as Body | null);
   } catch (e) {
     return { ok: false, error: (e as Error)?.name === "AbortError" ? "timeout" : "offline" };
   } finally {
@@ -59,17 +65,7 @@ async function call<T>(path: string, init: RequestInit, timeoutMs: number): Prom
   }
 }
 
-/** What did they share? → one coin, "which one?", or none. */
-export const resolveShare = (share: Share) =>
-  call<ResolveResult>(
-    "/api/resolve",
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: share.url, text: share.text }),
-    },
-    15_000,
-  );
+/* What did they share? is asked in resolve.ts: its answer comes in lines. */
 
 /** The sniff, sized to the amount. A few seconds on Jupiter's free plan. */
 export const sniffCoin = (mint: string, amount: number) =>

@@ -350,6 +350,14 @@ export interface SniffDeps {
 
 export type SniffError = "not_found" | "not_a_mint" | "lookup_failed";
 
+/** What a sniff is sized to when nobody says: the app's first chip, the landing's buy sheet. */
+export const SNIFF_USDC = 25;
+
+/** A size a sniff takes, $1 to $10,000 and in cents, or null for any other. */
+export function sniffSize(usdc: number): number | null {
+  return Number.isFinite(usdc) && usdc >= 1 && usdc <= 10_000 ? Math.round(usdc * 100) / 100 : null;
+}
+
 /**
  * Four questions, three of them at once: the token's record, its mint
  * account, and a buy quote; then the sell of exactly what that buy would

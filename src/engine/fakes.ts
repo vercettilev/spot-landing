@@ -6,6 +6,7 @@ import type { Outcome } from "@/engine/http";
 import type { Quote, QuoteFailure, Quoter, QuoteRequest, TokenInfo } from "@/engine/jupiter";
 import type { PostRef } from "@/engine/links";
 import type { Post, PostFailure } from "@/engine/posts";
+import { sniffSharing } from "@/engine/shared";
 import { DEFAULT_POLICY } from "@/engine/sniff";
 import type { Executor, Order, OrderRequest, Orderer } from "@/engine/trade";
 
@@ -197,6 +198,7 @@ export function fakeDeps(over: Partial<Deps> = {}): Deps {
     readPost: fakePosts({}),
     expand: fakeExpand({}),
     pairs: noPairs,
+    shareSniff: sniffSharing(),
     policy: DEFAULT_POLICY,
     now: () => NOW,
     ...over,

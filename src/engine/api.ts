@@ -27,6 +27,35 @@ export function json(body: unknown, init: { status?: number; cache?: string } = 
 export const fail = (status: number, error: string, extra: Record<string, unknown> = {}) =>
   json({ ok: false, error, ...extra }, { status });
 
+/**
+ * An answer in lines (NDJSON), each sent the moment it is known: the first
+ * at once, the next when it comes. A next line that fails to come is left
+ * out, and the first stands on its own.
+ */
+export function inLines(first: unknown, next: () => Promise<unknown>): Response {
+  const line = (v: unknown) => new TextEncoder().encode(`${JSON.stringify(v)}\n`);
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      controller.enqueue(line(first));
+      try {
+        controller.enqueue(line(await next()));
+      } catch {
+        /* Nothing more to say. */
+      }
+      controller.close();
+    },
+  });
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": "application/x-ndjson; charset=utf-8",
+      /* A proxy that compressed the answer could hold the first line back until the last. */
+      "cache-control": `${NO_STORE}, no-transform`,
+      ...CORS,
+    },
+  });
+}
+
 export const preflight = () => new Response(null, { status: 204, headers: CORS });
 
 /* The caller's IP and the per-instance limiter are the waitlist's own: one
