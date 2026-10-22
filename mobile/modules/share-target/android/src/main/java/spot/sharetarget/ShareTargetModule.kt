@@ -18,13 +18,13 @@ import expo.modules.kotlin.modules.ModuleDefinition
  * targets it matches are declared by plugins/withShareTarget.js.
  *
  * The launcher lists the same shortcut on a long press of Spot's icon,
- * where it does what Home's key does: Paste CA (spot://paste).
+ * where "Sniff it" sniffs what is copied: Home's Paste CA (spot://paste).
  */
 class ShareTargetModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("SpotShareTarget")
 
-    /* Once the app runs: the shortcut is there, without counting a use. */
+    /* Each time the app starts: the shortcut is there and current, without counting a use. */
     Function("publish") { publish(appContext.reactContext, used = false) }
 
     /* A share reached Spot. */
@@ -34,8 +34,8 @@ class ShareTargetModule : Module() {
   private fun publish(context: Context?, used: Boolean) {
     if (context == null) return
     val shortcut = ShortcutInfoCompat.Builder(context, ID)
+      /* One label for both places: the share sheet shows a long label over a short one, as the launcher does. */
       .setShortLabel("Sniff it")
-      .setLongLabel("Paste CA")
       .setIcon(IconCompat.createWithResource(context, context.applicationInfo.icon))
       .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("spot://paste")).setPackage(context.packageName))
       .setLongLived(true)
@@ -45,7 +45,8 @@ class ShareTargetModule : Module() {
       if (used) {
         /* Publishes it if it is not there, and reports the use either way. */
         ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
-      } else if (ShortcutManagerCompat.getDynamicShortcuts(context).none { it.id == ID }) {
+      } else {
+        /* Publishes it, or brings one an older Spot published up to date. */
         ShortcutManagerCompat.addDynamicShortcuts(context, listOf(shortcut))
       }
     } catch (e: Exception) {

@@ -40,7 +40,15 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.6.5)
+## What's new (0.6.6)
+
+• The verdict comes about a second sooner after a share.
+• "Sniff it" can show up in the top row of your share menu, a tap from any post. Long-press Spot's icon to sniff a CA you copied.
+• The chip you last aped with is where the next coin starts. Wallet short of a chip? Max apes all it can.
+• Sniffed lately shows how far each coin has gone since you sniffed it.
+• Turning SOL into cash says "Cash in" on the spot, no full-screen moment.
+
+## What was new in 0.6.5
 
 • Ape straight from your SOL when your USDC runs short: one swap, one approval.
 • Every coin shows its market cap, pool, holders and age under the price, and a Chart link.
