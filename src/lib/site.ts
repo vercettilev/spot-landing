@@ -22,10 +22,9 @@ export const OPERATOR = process.env.NEXT_PUBLIC_OPERATOR?.trim() || "";
 
 /**
  * Where people write about their data or with questions, on /privacy and
- * /terms: Spot's own address, on the site's domain (whose mail is set up to
- * be sent and received). NEXT_PUBLIC_CONTACT_EMAIL overrides it.
+ * /terms: Spot's own mailbox. NEXT_PUBLIC_CONTACT_EMAIL overrides it.
  */
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "hello@usespot.fun";
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "lev@spot.fun";
 
 /**
  * Spot on X: the header and the pass link to it, a post shared from the pass
