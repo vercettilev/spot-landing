@@ -3,6 +3,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { onApeAfterConnect } from "../afterConnect";
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
@@ -22,6 +23,7 @@ import {
   money,
   needsCash as shortOfCash,
   padHint,
+  payFor,
   pct,
   plainShortFill,
   price,
@@ -31,6 +33,7 @@ import {
   solPosition,
   spareSol,
   sourceLine,
+  statsLine,
   typeDigit,
   usd,
   type DockState,
@@ -41,7 +44,7 @@ import { books, saleGain, since, sinceLine } from "../pnl";
 import { AUTO_SELL } from "../soon";
 import { useStore, type Wallet } from "../store";
 import { color, font, layer, leading, radius, size, space, tracking, type } from "../theme";
-import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type Pending, type Side, type Snapshot } from "../trade";
+import { LAND_WINDOW_MS, SETTLE_MS, failedLine, fateLine, orderErrorLine, quoteUsd, secondsLeft, settled, shortFill, snapshotOf, type PayWith, type Pending, type Side, type Snapshot } from "../trade";
 import type { Order } from "../types";
 import { short } from "../wallet/base58";
 import { signTransaction, walletError } from "../wallet/mwa";
@@ -58,6 +61,7 @@ interface Confirm {
   text: string;
   builtAt: number;
   quote: { usdc: number; amount: number };
+  payWith: PayWith;
   line: string;
   label: string;
 }
@@ -201,16 +205,20 @@ export function CoinScreen({ navigation, route }: Props) {
   const position = holding ? saleOf(holding, sellPct) : null;
   const sellUsd = position ? Math.round(position.usd * sellPct) / 100 : 0;
   const canPickAmount = buying ? Boolean(done) && (done!.level === "ok" || done!.level === "warn") && !restricted : Boolean(holding);
-  /* Spot apes in dollars. Short of them, the one thing to do is add cash. */
+  /* An ape is paid in USDC, or in SOL when the USDC doesn't cover it (never SOL for SOL).
+     Short of both, the one thing to do is add cash. */
   const cash = bag.value?.usdc.usd ?? null;
-  const solCovers = coin.mint !== SOL_MINT && bag.value !== null && spareSol(bag.value.sol) >= amount;
+  const solSpare = bag.value ? (coin.mint === SOL_MINT ? 0 : spareSol(bag.value.sol)) : null;
+  const solSide = bag.value?.sol;
+  const solPrice = solSide ? (solSide.token?.priceUsd ?? (solSide.amount > 0 && solSide.usd !== null ? solSide.usd / solSide.amount : null)) : null;
   const dock: DockState = {
     side,
     sniff: sniff.status === "done" ? sniff.sniff.level : sniff.status === "error" ? "error" : "loading",
     amount,
     wallet: wallet?.kind ?? "none",
     cash,
-    solCovers,
+    sol: solSpare,
+    solCost: solPrice ? amount / solPrice : null,
     restricted,
     busy,
     checking: checking ? { landed: checking.landed, seconds: secondsLeft(checking, now) } : null,
@@ -223,13 +231,36 @@ export function CoinScreen({ navigation, route }: Props) {
   /* What the coins Spot bought are worth now, against what they cost. */
   const book = owner ? books(store.trades.filter((t) => t.owner === owner)).get(coin.mint) : undefined;
   const gained = book && holding ? since(book, holding) : null;
+  /* The numbers CT sizes a coin up by, in one line under its price. */
+  const ageMs = done?.checks.find((c) => c.id === "age")?.observed;
+  const stats = statsLine(coin, typeof ageMs === "number" ? ageMs : null);
+
+  /* Connect rose over this coin for an ape: once the wallet is in, the bag read and this
+     screen back on top, the ape goes on, if it is still the ape that was asked for. */
+  const [next, setNext] = useState<number | null>(null);
+  useEffect(
+    () =>
+      onApeAfterConnect((n) => {
+        if (n.mint === mint) setNext(n.amount);
+      }),
+    [mint],
+  );
+  useEffect(() => {
+    if (next === null || !focused || wallet?.kind !== "mwa" || !bag.value || busy || checking) return;
+    setNext(null);
+    if (buying && next === amount && canPickAmount) act();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [next, focused, wallet, bag.value, busy, checking]);
 
   /* The keypad: dollars to ape, or dollars of the holding to sell. */
   const padValue = buying ? custom : sellCustom;
   const padMax = buying ? Math.min(MAX_TRADE, cap ?? MAX_TRADE) : Math.ceil(holding?.usd ?? 0);
   const padAction = dockKey({ ...dock, empty: !padValue });
-  const most = buying ? maxApe(wallet?.kind === "mwa" ? cash : null, cap) : null;
-  const hint = padHint({ side, typed: padValue ? Number(padValue) : null, over, cap, cash: wallet?.kind === "mwa" ? cash : null, held: holding?.usd ?? null, share: sellTyped > 0 ? sellTyped : undefined });
+  /* What one buy can spend: the more of the USDC and the SOL, as a buy is paid from one of them. */
+  const spendable = wallet?.kind === "mwa" && cash !== null ? Math.max(cash, solSpare ?? 0) : null;
+  const inSol = spendable !== null && cash !== null && spendable > cash;
+  const most = buying ? maxApe(spendable, cap) : null;
+  const hint = padHint({ side, typed: padValue ? Number(padValue) : null, over, cap, cash: spendable, held: holding?.usd ?? null, share: sellTyped > 0 ? sellTyped : undefined, inSol });
 
   function openPad() {
     setOver(false);
@@ -256,8 +287,9 @@ export function CoinScreen({ navigation, route }: Props) {
   /* Connecting or adding cash rises as a sheet over the coin, told what the
      ape is for; everything else is the trade. */
   function act() {
-    if (buying && !wallet && canPickAmount) {
-      navigation.navigate("Connect", { ape: amount });
+    /* No wallet of one's own: Connect rises, told the ape it is for, and the ape goes on once the wallet is in. */
+    if (wallet?.kind !== "mwa" && (buying ? canPickAmount : Boolean(holding))) {
+      navigation.navigate("Connect", buying ? { ape: amount, mint: coin.mint } : undefined);
       return;
     }
     if (needsCash) {
@@ -302,13 +334,22 @@ export function CoinScreen({ navigation, route }: Props) {
     inFlight.current = true;
     setBusy(true);
     try {
+      /* A buy is paid in USDC, or in SOL when the USDC doesn't cover it; the
+         bag is read first if it hasn't been. Short of both: add cash. */
+      const known = bag.value ?? (buying ? await fetchHoldings(wallet.address).then((r) => (r.ok ? r.value : null)) : null);
+      const pays = buying && known ? payFor({ amount, cash: known.usdc.usd, sol: coin.mint === SOL_MINT ? 0 : spareSol(known.sol) }) : "usdc";
+      if (pays === null) {
+        navigation.navigate("Deposit", { need: amount });
+        return;
+      }
+      const payWith: PayWith = pays;
       /* The wallet as it is right now, read while the order is built: what
          a trade that may still land is checked against. */
       const sellRaw = shareOf(position?.raw ?? "0", sellPct);
       const [order, fresh] = await Promise.all([
         placeOrder(
           buying
-            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount }
+            ? { mint: coin.mint, side, taker: wallet.address, amountUsdc: amount, ...(payWith === "sol" ? { payWith } : {}) }
             : { mint: coin.mint, side, taker: wallet.address, amountRaw: sellRaw },
         ),
         fetchHoldings(wallet.address),
@@ -335,6 +376,7 @@ export function CoinScreen({ navigation, route }: Props) {
           text,
           builtAt,
           quote,
+          payWith,
           line: buying
             ? `Thin pool. Your $${amount} only buys about ${usd(short.gotUsd)} of it.`
             : `Thin pool. You'd get ${usd(short.gotUsd)} back, not ${usd(short.expectedUsd)}.`,
@@ -342,7 +384,7 @@ export function CoinScreen({ navigation, route }: Props) {
         });
         return;
       }
-      await send(wallet, order.value, side, before, text, builtAt, quote);
+      await send(wallet, order.value, side, before, text, builtAt, quote, payWith);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -363,7 +405,7 @@ export function CoinScreen({ navigation, route }: Props) {
     inFlight.current = true;
     setBusy(true);
     try {
-      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote);
+      await send(wallet, c.order, c.side, c.before, c.text, c.builtAt, c.quote, c.payWith);
     } catch (e) {
       toast(walletError(e));
     } finally {
@@ -380,12 +422,13 @@ export function CoinScreen({ navigation, route }: Props) {
     text: string,
     builtAt: number,
     quote: { usdc: number; amount: number },
+    payWith: PayWith,
   ) {
     const signed = await signTransaction(order.transaction, w.authToken, w.address);
     if (signed.authToken !== w.authToken) store.setWallet({ ...w, authToken: signed.authToken });
     const res = await executeOrder(order.requestId, signed.signed);
     const signature = res.ok ? res.value.signature : null;
-    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, payWith: "usdc" as const, before, text, signature, quote };
+    const held = { owner: w.address, mint: coin.mint, token: coin, side: sideNow, payWith, before, text, signature, quote };
     switch (settled(res)) {
       case "landed":
         finish(w.address, sideNow, text, signature, quote);
@@ -444,6 +487,11 @@ export function CoinScreen({ navigation, route }: Props) {
               <Text style={styles.price}>{price(coin.priceUsd)}</Text>
               <Text style={[styles.change, { color: up ? color.green : color.red }]}>{pct(coin.change24hPct)}</Text>
             </View>
+            {stats ? (
+              <Text style={styles.stats} numberOfLines={1}>
+                {stats}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -495,15 +543,26 @@ export function CoinScreen({ navigation, route }: Props) {
             <Text style={styles.caText}>{short(coin.mint)}</Text>
             <Text style={styles.caLink}>Copy</Text>
           </Pressable>
-          <Pressable
-            onPress={() => void Linking.openURL(`https://solscan.io/token/${coin.mint}`).catch(() => {})}
-            accessibilityRole="link"
-            accessibilityLabel="See it on Solscan"
-            style={styles.ca}
-          >
-            <Text style={styles.caLink}>Solscan</Text>
-            <OutIcon tint={color.orange} />
-          </Pressable>
+          <View style={styles.links}>
+            <Pressable
+              onPress={() => void Linking.openURL(`https://dexscreener.com/solana/${coin.mint}`).catch(() => {})}
+              accessibilityRole="link"
+              accessibilityLabel="See the chart on DEX Screener"
+              style={styles.ca}
+            >
+              <Text style={styles.caLink}>Chart</Text>
+              <OutIcon tint={color.orange} />
+            </Pressable>
+            <Pressable
+              onPress={() => void Linking.openURL(`https://solscan.io/token/${coin.mint}`).catch(() => {})}
+              accessibilityRole="link"
+              accessibilityLabel="See it on Solscan"
+              style={styles.ca}
+            >
+              <Text style={styles.caLink}>Solscan</Text>
+              <OutIcon tint={color.orange} />
+            </Pressable>
+          </View>
         </View>
 
         {AUTO_SELL && buying && canPickAmount && (
@@ -637,9 +696,11 @@ const styles = StyleSheet.create({
   symbol: { flexShrink: 1, fontFamily: font.display, fontSize: type.display, lineHeight: leading.display, letterSpacing: tracking.display, color: color.white },
   nameRow: { flexDirection: "row", alignItems: "baseline", gap: space.x2, marginTop: space.hair },
   name: { flexShrink: 1, fontFamily: font.body, fontSize: type.callout, color: color.dim },
+  stats: { fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim, marginTop: space.hair },
   price: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.white },
   change: { fontFamily: font.bodyBold, fontSize: type.callout },
   caRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space.x2 },
+  links: { flexDirection: "row", alignItems: "center", gap: space.x4 },
   ca: { flexDirection: "row", alignItems: "center", gap: space.x2, minHeight: size.tap },
   caLabel: { fontFamily: font.bodyBold, fontSize: type.footnote, color: color.faint },
   caText: { fontFamily: font.mono, fontSize: type.footnote, color: color.dim },

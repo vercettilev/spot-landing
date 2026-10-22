@@ -1,7 +1,6 @@
 import { DarkTheme, NavigationContainer, createNavigationContainerRef, type Theme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useRef } from "react";
-import { CashOutScreen } from "./screens/CashOutScreen";
 import { ChooseScreen } from "./screens/ChooseScreen";
 import { CoinScreen } from "./screens/CoinScreen";
 import { ConnectScreen } from "./screens/ConnectScreen";
@@ -28,11 +27,10 @@ export type RootParams = {
   Coin: { candidate: Candidate; source: Source | null; share: Share | null; others: Candidate[]; side?: "buy" | "sell"; continues?: boolean };
   Choose: { title: string; line: string; candidates: Candidate[]; source: Source | null; share: Share | null; current?: Candidate; continues?: boolean };
   /** `need`: the ape it is for, so the swap that covers it is picked already. */
-  Deposit: { need?: number } | undefined;
+  Deposit: { need?: number; cash?: boolean } | undefined;
   /** `ape`: connecting to ape this much, so a short wallet goes straight on to Add cash; `track`: track an address instead, from Settings. */
-  Connect: { ape?: number; track?: boolean } | undefined;
+  Connect: { ape?: number; mint?: string; track?: boolean } | undefined;
   /** How cash reaches a bank: through an exchange, from the wallet app. */
-  CashOut: undefined;
   /** The wallet, every trade, the choices every buy starts with, the app's links. */
   Settings: undefined;
 };
@@ -76,7 +74,6 @@ export function Navigation() {
         {/* Sheets: the screen they belong to stays in view behind them, and they bring their own motion. */}
         <Stack.Screen name="Deposit" component={DepositScreen} options={SHEET} />
         <Stack.Screen name="Connect" component={ConnectScreen} options={SHEET} />
-        <Stack.Screen name="CashOut" component={CashOutScreen} options={SHEET} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={SHEET} />
       </Stack.Navigator>
     </NavigationContainer>

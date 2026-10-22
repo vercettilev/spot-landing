@@ -2,13 +2,15 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { apeAfterConnect } from "../afterConnect";
 import { fetchHoldings } from "../api";
 import { onCelebrate } from "../components/Moment";
 import { Button, Field, Section, Sheet, useRouteSheet, useToast } from "../components/ui";
 import { primeHoldings } from "../holdings";
+import { SOL_MINT, payFor, spareSol } from "../logic";
 import type { RootParams } from "../navigation";
 import { useStore } from "../store";
-import { color, font, leading, space, type } from "../theme";
+import { color, font, leading, motion, space, type } from "../theme";
 import { isAddressLike } from "../wallet/base58";
 import { MWA_AVAILABLE, connectWallet, walletError } from "../wallet/mwa";
 import { CashPanel } from "./DepositScreen";
@@ -33,6 +35,7 @@ export function ConnectScreen({ navigation, route }: Props) {
   const { ref, onDismiss } = useRouteSheet(navigation);
   const [toastNode, toast] = useToast(space.x6);
   const ape = route.params?.ape ?? null;
+  const mint = route.params?.mint ?? null;
   const track = route.params?.track ?? false;
   const [step, setStep] = useState<"connect" | "counting" | "cash">("connect");
   const [busy, setBusy] = useState(false);
@@ -55,6 +58,14 @@ export function ConnectScreen({ navigation, route }: Props) {
     [ref],
   );
 
+  /* Opened by a tap on Ape, the wallet is asked at once: that tap was the ask. */
+  useEffect(() => {
+    if (ape === null || track || !MWA_AVAILABLE) return;
+    const timer = setTimeout(() => void connect(), motion.sheetUp);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function connect() {
     setBusy(true);
     setError(null);
@@ -66,10 +77,13 @@ export function ConnectScreen({ navigation, route }: Props) {
         setStep("counting");
         const bag = await fetchHoldings(c.address);
         if (bag.ok) primeHoldings(c.address, bag.value);
-        if (bag.ok && bag.value.usdc.usd < ape) {
+        /* Short of both USDC and SOL for the ape, the next thing is cash; otherwise the ape goes on under the sheet. */
+        const pays = bag.ok ? payFor({ amount: ape, cash: bag.value.usdc.usd, sol: mint === SOL_MINT ? 0 : spareSol(bag.value.sol) }) : null;
+        if (bag.ok && pays === null) {
           setStep("cash");
           return;
         }
+        if (pays !== null && mint) apeAfterConnect({ mint, amount: ape });
       }
       ref.current?.close();
     } catch (e) {

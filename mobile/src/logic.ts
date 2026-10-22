@@ -389,6 +389,28 @@ export function readablePath(uri: string, os: string): string {
 }
 
 /** What tells same-named coins apart, under each in "which one?": its name, its size, its holders. */
+/** A coin's age, short: 40m, 5h, 275d, 2y. */
+export function shortAge(ms: number): string {
+  const m = Math.floor(ms / 60_000);
+  if (m < 60) return `${Math.max(m, 1)}m`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return d < 730 ? `${d}d` : `${Math.floor(d / 365)}y`;
+}
+
+/** A coin sized up in one line, the way CT reads it: MC $108.5M · Liq $631.2k · 47k holders · 275d. What isn't known is left out. */
+export function statsLine(t: { mcapUsd: number | null; liquidityUsd: number | null; holders: number | null }, ageMs: number | null): string {
+  return [
+    t.mcapUsd !== null ? `MC ${usd(t.mcapUsd)}` : null,
+    t.liquidityUsd !== null ? `Liq ${usd(t.liquidityUsd)}` : null,
+    t.holders !== null ? `${count(t.holders)} holders` : null,
+    ageMs !== null && ageMs >= 0 ? shortAge(ageMs) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function candidateLine(t: { name: string; mcapUsd: number | null; holders: number | null }): string {
   const parts = [t.mcapUsd !== null ? `${usd(t.mcapUsd)} market cap` : null, t.holders !== null ? `${count(t.holders)} holders` : null].filter(Boolean);
   return parts.length ? `${t.name}. ${parts.join(", ")}` : t.name;
@@ -435,8 +457,10 @@ export interface DockState {
   wallet: "none" | "watch" | "mwa";
   /** USDC in the wallet, in dollars, once the bag is read. */
   cash: number | null;
-  /** The SOL in the wallet could become enough cash. */
-  solCovers: boolean;
+  /** SOL a buy can spend, in dollars, once the bag is read: all of it but the 0.01 SOL kept back, and none on SOL itself. */
+  sol: number | null;
+  /** What this buy costs in SOL, when it is paid in SOL. */
+  solCost: number | null;
   restricted: boolean;
   busy: boolean;
   /** A trade that may still land (or has, and the bag is behind), and the seconds left on it. */
@@ -449,9 +473,20 @@ export interface DockState {
 /** A buy can be sized: the coin is clean or growls, and it may be sold to this user. */
 export const canSize = (s: Pick<DockState, "sniff" | "restricted">): boolean => (s.sniff === "ok" || s.sniff === "warn") && !s.restricted;
 
-/** Spot apes in dollars: short of them, the one thing to do is add cash. */
+/**
+ * WHAT A BUY IS PAID IN. USDC when it covers the ape, else SOL when what can
+ * be spent of it does: one swap and one approval either way. Null when
+ * neither covers it on its own, or the bag isn't read yet.
+ */
+export function payFor(s: Pick<DockState, "amount" | "cash" | "sol">): "usdc" | "sol" | null {
+  if (s.cash !== null && s.cash >= s.amount) return "usdc";
+  if (s.sol !== null && s.sol >= s.amount) return "sol";
+  return null;
+}
+
+/** Short of both USDC and SOL for the ape: the one thing to do is add cash. */
 export const needsCash = (s: DockState): boolean =>
-  s.side === "buy" && canSize(s) && s.wallet === "mwa" && s.cash !== null && s.cash < s.amount;
+  s.side === "buy" && canSize(s) && s.wallet === "mwa" && s.cash !== null && payFor(s) === null;
 
 /**
  * THE KEY. In order: a trade that may still land locks it, whatever else
@@ -463,11 +498,14 @@ export function dockKey(s: DockState): Action {
   if (s.checking) return { label: s.checking.landed ? "Updating your bag…" : `Checking… ${s.checking.seconds}s left`, enabled: false, tone: "wait" };
   if (s.empty) return { label: "Type an amount", enabled: false, tone: "stop" };
   if (s.side === "sell") {
+    /* A tracked wallet's coins are only seen: the key is the way to trade them. */
+    if (s.wallet === "watch") return { label: "Connect to sell", enabled: true, tone: "go" };
     if (s.busy) return { label: "Selling…", enabled: false, tone: "wait" };
     if (s.held === null) return { label: "Counting your bag…", enabled: false, tone: "wait" };
     return { label: `Sell ${shareWord(s.sellPct)} for ${approx((s.held * s.sellPct) / 100)}`, enabled: true, tone: "sell" };
   }
   if (s.restricted) return { label: "Not for US users", enabled: false, tone: "stop" };
+  if (s.wallet === "watch" && canSize(s)) return { label: "Connect to ape", enabled: true, tone: "go" };
   if (s.busy) return { label: "Aping…", enabled: false, tone: "wait" };
   /* Short of cash with the coin already in the bag (as right after an ape): the next thing is not
      to pay again, so the way to add cash is there but quiet. */
@@ -478,19 +516,20 @@ export function dockKey(s: DockState): Action {
 /** The line under the key: what happens next, or what to do instead. */
 /**
  * THE LINE UNDER THE KEY, only when there is something to know or to do
- * first: a trade still landing, a wallet only tracked, the US, short of
- * cash. Otherwise the key says it all, and there is no line.
+ * first: a trade still landing, the US, short of cash, an ape paid in SOL.
+ * Otherwise the key says it all, and there is no line.
  */
 export function dockNote(s: DockState): string | null {
   if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it went through. You can leave, Spot will tell you.";
-  if (s.side === "sell") return s.wallet === "mwa" ? null : "You're only tracking this wallet. Connect yours to sell.";
+  if (s.side === "sell") return null;
   if (s.sniff === "block") return null;
   /* The key already says who it isn't for; the line says why this user, and where to change it. */
   if (s.restricted) return "You said you're in the US. Change that in Settings.";
   /* What is held is over the key already; the line says the way out. */
   if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell below.";
-  if (needsCash(s)) return `Only ${money(s.cash)} in USDC. ${s.solCovers ? "Turn some SOL into cash first." : "Add cash, then ape."}`;
-  if (s.wallet === "watch") return "You're only tracking this wallet. Connect yours to ape.";
+  if (needsCash(s)) return `Only ${money(s.cash)} in USDC${s.sol !== null && s.sol >= 1 ? ` and ${money(s.sol)} in SOL` : ""}. Add cash, then ape.`;
+  /* Paid in SOL, said the way Jupiter says it. */
+  if (s.wallet === "mwa" && canSize(s) && s.solCost !== null && payFor(s) === "sol") return `You pay about ${amount(s.solCost)} SOL.`;
   return null;
 }
 
@@ -512,16 +551,17 @@ export function maxApe(cash: number | null, cap: number | null): number | null {
 }
 
 /** The line under the amount being typed. `over` when the last digit was refused; `share`, the share a typed sell takes, when it is not just the typed dollars' share. */
-export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: boolean; cap: number | null; cash: number | null; held: number | null; share?: number }): string {
+export function padHint(p: { side: "buy" | "sell"; typed: number | null; over: boolean; cap: number | null; cash: number | null; held: number | null; share?: number; inSol?: boolean }): string {
   if (p.side === "sell") {
     if (p.held === null) return "";
     if (p.typed !== null && !p.over) return `${shareWord(p.share ?? shareFor(p.typed, p.held))} of your ${money(p.held)}.`.replace(/^all of/, "All of");
     return `You hold ${money(p.held)}.`;
   }
   if (p.over) return p.cap !== null ? `Spot caps this one at $${p.cap}.` : `Up to $${MAX_TRADE.toLocaleString("en-US")} a trade.`;
-  if (p.cash !== null && p.typed !== null && p.typed > p.cash) return `More than your ${money(p.cash)}. Add cash first.`;
+  const what = p.cash !== null ? `${money(p.cash)}${p.inSol ? " in SOL" : ""}` : "";
+  if (p.cash !== null && p.typed !== null && p.typed > p.cash) return `More than your ${what}. Add cash first.`;
   if (p.cap !== null) return `Spot caps this one at $${p.cap}.`;
-  if (p.cash !== null) return `${money(p.cash)} ready to ape.`;
+  if (p.cash !== null) return `${what} ready to ape.`;
   return "";
 }
 

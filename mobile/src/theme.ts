@@ -161,7 +161,7 @@ export const size = {
   mark: 28,
   /** The puppy across from the wordmark. */
   markHeader: 40,
-  /** Home's round keys: Paste CA, Add cash, Cash out. */
+  /** Home's round keys: Paste CA, and Add cash or Connect beside it when they come first. */
   action: 56,
   /** The wordmark across the top of Sniff. */
   wordmark: 84,
@@ -199,6 +199,8 @@ export const motion = {
   /** The puppy landing in the moment. */
   pop: spring(0.25, 0.32),
   fadeIn: 200,
+  /** About as long as a sheet takes to arrive: what waits for it to be up before going on. */
+  sheetUp: 300,
   /** Leaving is quicker than arriving. */
   fadeOut: 140,
   press: 100,

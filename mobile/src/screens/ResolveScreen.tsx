@@ -8,6 +8,7 @@ import { SniffReport } from "../components/SniffReport";
 import { Breathing, Button, Dock, IconButton } from "../components/ui";
 import { fromPaste, sourceLine } from "../logic";
 import type { RootParams } from "../navigation";
+import { useStore } from "../store";
 import { color, font, leading, radius, size, space, type } from "../theme";
 import type { ResolveResult, Share } from "../types";
 
@@ -33,6 +34,13 @@ function whichLine(r: ResolveResult, share: Share): string {
  */
 export function ResolveScreen({ navigation, route }: Props) {
   const { share } = route.params;
+  const store = useStore();
+
+  /* A post or a screenshot shared in counts once, as it arrives: Home's how-to-share hint goes after a few. */
+  useEffect(() => {
+    if (share.from === "share" || share.from === "screenshot") store.setSettings({ shares: store.settings.shares + 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [state, setState] = useState<{ kind: "reading" } | { kind: "none"; unread: boolean } | { kind: "failed"; error: ApiError }>({ kind: "reading" });
   const run = useRef(0);
   const [note, setNote] = useState<string | null>(null);

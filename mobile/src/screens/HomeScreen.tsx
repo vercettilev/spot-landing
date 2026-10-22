@@ -20,12 +20,16 @@ type Props = NativeStackScreenProps<RootParams, "Home">;
 /* Seeker's own coin, from spot-core's hand-probed catalog: always found, always sniffable, always clean. One, not a choice of three. */
 const TRY = "$SKR";
 
+/* Shares after which the hint at the bottom of Home has done its job. */
+const SHARES_LEARNT = 3;
+
 /**
  * HOME, the one screen: what you have, what you can do, what you sniffed.
  * The bag's worth is the loud thing, with what your apes made under it in
- * the colour of the outcome; then three round keys (paste a CA, add cash,
- * cash out), the coins you hold, each one tap from its page opened on Sell,
- * and the coins sniffed lately. Settings, the wallet and every trade sit
+ * the colour of the outcome; then one round key, Paste CA (an empty wallet
+ * gets Add cash beside it, no wallet gets Connect), the coins you hold, each
+ * one tap from its page opened on Sell, cash opening the Cash sheet, and the
+ * coins sniffed lately. Settings, the wallet and every trade sit
  * behind the puppy. The first time, before any of that exists, the screen
  * is three things: what Spot does, how (a phone's share menu with Spot in
  * it), and one key to try it on a coin; pasting a CA is a quiet key under.
@@ -141,14 +145,12 @@ export function HomeScreen({ navigation }: Props) {
           ) : null
         ) : null}
 
-        {/* Paste is the loud key, until an empty wallet's next step is cash. */}
+        {/* Paste is the one key. Beside it, only what comes first: an empty wallet's cash, or a wallet to connect.
+            The rest of the money lives behind the Cash row. */}
         <View style={styles.actions}>
           <ActionKey glyph="paste" label="Paste CA" loud={!(trading && nothing)} onPress={() => void paste()} />
           {trading ? (
-            <>
-              <ActionKey glyph="plus" label="Add cash" loud={nothing} onPress={() => navigation.navigate("Deposit")} />
-              {b && b.usdc.usd >= 1 ? <ActionKey glyph="out" label="Cash out" onPress={() => navigation.navigate("CashOut")} /> : null}
-            </>
+            nothing ? <ActionKey glyph="plus" label="Add cash" loud onPress={() => navigation.navigate("Deposit")} /> : null
           ) : (
             <ActionKey glyph="wallet" label="Connect" onPress={() => navigation.navigate("Connect")} />
           )}
@@ -158,8 +160,16 @@ export function HomeScreen({ navigation }: Props) {
           <>
             <Section>Your coins</Section>
             <Group>
-              {/* A tracked wallet's cash can't be aped with here, so it is only named. */}
-              <Row left={<Cash glyph="$" />} title="Cash" subtitle={trading ? "Ready to ape" : "USDC"} right={<Value value={worth(b.usdc.usd)} />} />
+              {/* Your own cash opens what can be done with it: add, send in, cash out. A tracked wallet's is only named,
+                  and "Ready to ape" only when it covers an ape. */}
+              <Row
+                left={<Cash glyph="$" />}
+                title="Cash"
+                subtitle={trading && b.usdc.usd >= store.settings.defaultAmount ? "Ready to ape" : "USDC"}
+                right={<Value value={worth(b.usdc.usd)} />}
+                onPress={trading ? () => navigation.navigate("Deposit", { cash: true }) : undefined}
+                label={`Cash, ${worth(b.usdc.usd)} in USDC.${trading ? " Add cash or cash out." : ""}`}
+              />
               {/* SOL is a coin like the rest: in the list by its worth, so the rows still add up to the number over them. */}
               {held.map((p) => {
                 /* Your own gain where Spot bought it; the coin's day where it did not. */
@@ -211,13 +221,16 @@ export function HomeScreen({ navigation }: Props) {
           </>
         ) : null}
 
-        <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot. No Spot? Tap Share via, or More, first.">
-          <PuppyIcon size={size.mark} />
-          <View style={styles.hintWords}>
-            <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
-            <Text style={styles.hintMore}>{NOT_THERE}</Text>
+        {/* How to share, until it has been done a few times. */}
+        {store.settings.shares < SHARES_LEARNT ? (
+          <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot. No Spot? Tap Share via, or More, first.">
+            <PuppyIcon size={size.mark} />
+            <View style={styles.hintWords}>
+              <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
+              <Text style={styles.hintMore}>{NOT_THERE}</Text>
+            </View>
           </View>
-        </View>
+        ) : null}
       </ScrollView>
       {toastNode}
     </View>
