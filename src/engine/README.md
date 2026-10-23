@@ -47,7 +47,7 @@ On the site's Vercel project, Settings → Environment Variables, for Production
 
 - `JUPITER_API_KEY` from [developers.jup.ag](https://developers.jup.ag). With it the engine uses `api.jup.ag` and Swap V2's `/order` for quotes; without it, `lite-api.jup.ag` and `/swap/v1/quote`, which Jupiter is retiring. Real traffic needs the key.
 - `SOLANA_RPC_URL`: a Helius, Triton or QuickNode endpoint (Helius's free plan is enough to start). The public one rate-limits hard: the bag reads every token account a wallet holds, and when the chain does not answer for a Token-2022 coin the sniff waits rather than guess (see below).
-- `SPOT_GATE_MIN_LIQUIDITY_USD`, `SPOT_GATE_MIN_HOLDERS`, `SPOT_GATE_MIN_POOL_AGE_HOURS`: where the warn line sits (defaults $7,500, 150, 2 hours).
+- `SPOT_GATE_MIN_LIQUIDITY_USD`, `SPOT_GATE_MIN_HOLDERS`, `SPOT_GATE_MIN_POOL_AGE_HOURS`: the size a coin needs for CLEAN instead of GRRR (defaults $50,000, 1,000, 24 hours: `CLEAN_FLOORS` in sniff.ts).
 - `SPOT_WARN_CAP_USDC`: the most a warned coin can be bought for (default 50).
 - `JUPITER_RPS`: the Jupiter plan's requests per second. With a key it defaults to 1, the free plan, and calls queue a second apart, so a sniff (three calls) takes two to three seconds. Set 10 on Developer, and so on.
 - `SPOT_TRADING`: `1` opens `/api/order` and `/api/execute`. Leave it unset until the fee, the wallet and the legal read are settled.
@@ -55,7 +55,7 @@ On the site's Vercel project, Settings → Environment Variables, for Production
 - `SPOT_STATS_KEY`: with it set, `GET /api/stats?key=…&days=14` answers the daily counts (posts resolved, sniffs by verdict, orders by side, trades landed, bags read, distinct wallets as one-way hashes), kept 90 days in the same Redis as the waitlist (`tally.ts`). Without a Redis database nothing is counted.
 - `JUPITER_BASE_URL`, `JUPITER_QUOTE_PATH`, `JUPITER_ORDER_PATH`, `JUPITER_EXECUTE_PATH`: overrides, rarely needed.
 
-After a deploy, `/api/health` says which host and quote path it chose, whether an RPC is set (`custom`) and whether trading is `closed`, `testing` or `open`; then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
+After a deploy, `/api/health` says which host and quote path it chose, whether an RPC is set (`custom`), whether trading is `closed`, `testing` or `open`, and the size floors in force (`clean`); then sniff something known, `/api/sniff?mint=EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm` (WIF).
 
 ## `POST /api/resolve`
 
@@ -129,9 +129,9 @@ A blue chip (a coin in the catalog, or one Jupiter's record shows to be verified
 | **warn** | a round trip losing 15–50%, a transfer tax, a transfer hook, Jupiter's `isSus` flag | an exit that costs, or could be stopped |
 | **wait** | the exit probe or a Token-2022 mint read did not answer | "could not check" never reads as "passed" |
 
-The keys are read from the chain (`getAccountInfo`, jsonParsed) and from Jupiter when the chain does not answer; for a classic SPL token a silent chain costs nothing, for a Token-2022 one it holds the buy. Tokenized stocks and bridged coins from spot-core's catalog keep their issuer's keys on purpose: those show as `info` and do not count against them, and they are never held to the size floors. They are still blocked when there is no way out.
+The keys are read from the chain (`getAccountInfo`, jsonParsed) and from Jupiter when the chain does not answer; for a classic SPL token a silent chain costs nothing, for a Token-2022 one it holds the buy. Tokenized stocks and bridged coins from spot-core's catalog keep their issuer's keys on purpose: those show as `info` and do not count against them, and they are never held to the size floors; nor is a blue chip (Spot's list, or big and old by Jupiter's record), whose small figures show as `info`. They are still blocked when there is no way out.
 
-The floors are spot-core's, calibrated on live mints in August 2026 to tell established coins from fresh ones; here they set how loud the warning is, never whether a coin can be bought. Top-holder concentration is left out on purpose: spot-core measured that it separated nothing (Ultra counts pools and CEX wallets as holders).
+The floors set how loud the warning is, never whether a coin can be bought. They are Spot's own (`CLEAN_FLOORS`): spot-core's were widened in August 2026 to decide whether a coin may be shown at all ($7,500, 150 holders, 2 hours), and with them a $34k coin with a $17k pool came out CLEAN. Spot's sit inside the gap spot-core measured between fresh coins (at most $4.9k, 120 holders, hours old) and established ones (at least $80k, 931 holders, 54 hours). Top-holder concentration is left out on purpose: spot-core measured that it separated nothing (Ultra counts pools and CEX wallets as holders).
 
 ## Things to know
 
@@ -139,4 +139,5 @@ The floors are spot-core's, calibrated on live mints in August 2026 to tell esta
 - `/api/sniff` makes four upstream calls (search, mint, buy quote, sell quote), three of them at once when the plan allows. Jupiter calls share one pacer per instance, and a 429 gets one more try at the time Jupiter names. Without a key it runs on `lite-api.jup.ag` for as long as Jupiter keeps it up; Jupiter's keyless tier on `api.jup.ag` allows about 0.5 requests a second, which a few sniffs outrun.
 - A sniff is shared for ten seconds by every request an instance answers about the same coin at the same size (`src/engine/shared.ts`), however it was asked for: the CDN keeps `/api/sniff`'s GETs as long, but no CDN keeps the POST that brings a resolve's sniff. A sniff that failed or could not finish is not kept, and `/api/order` never reads from it.
 - The limiters bound one function instance (30 resolves and 60 sniffs a minute per IP). For a fleet-wide limit, add a Vercel Firewall rate-limit rule on `/api/*`.
-- No keys, cookies or wallets here: everything the engine reads is public. Swaps, signing and take profit move money and hold a fee payer's key, so they get their own private backend rather than a home in the site.
+- No keys, cookies or wallets here: everything the engine reads is public. Swaps are built by Jupiter and signed in the user's wallet; Spot never holds a key.
+- `/api/tp/<step>` passes "sell half at 2x" through to Jupiter's trigger orders (V2) with Spot's key, which the app must not carry: `challenge` and `verify` (a signed message buys the wallet a session at Jupiter), `refresh`, `vault`, `deposit`, `order`, `orders`, `cancel`, `confirm-cancel`. The wallet's session rides in `Authorization`. The only order passed is a coin sold for USDC once its price is above a mark, single, ending within a month; a deposit or an order waits on SPOT_TRADING like a buy, seeing and cancelling never do. The coins wait in the wallet's vault at Jupiter, "a Privy-managed custodial account" in Jupiter's words, until they sell or are taken back.

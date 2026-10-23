@@ -20,6 +20,16 @@ export function base64ToBytes(b64: string): Uint8Array {
   return Uint8Array.from(out);
 }
 
+export function bytesToBase64(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const [a, b, c] = [bytes[i]!, bytes[i + 1], bytes[i + 2]];
+    const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0);
+    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]! + (b === undefined ? "=" : B64[(n >> 6) & 63]!) + (c === undefined ? "=" : B64[n & 63]!);
+  }
+  return out;
+}
+
 export function bytesToBase58(bytes: Uint8Array): string {
   let zeros = 0;
   while (zeros < bytes.length && bytes[zeros] === 0) zeros++;

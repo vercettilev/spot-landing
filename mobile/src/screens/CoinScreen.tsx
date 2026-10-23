@@ -7,7 +7,8 @@ import { onApeAfterConnect } from "../afterConnect";
 import { executeOrder, fetchHoldings, placeOrder, sniffCoin, type Answer } from "../api";
 import { celebrate } from "../components/Moment";
 import { SniffReport, type SniffState } from "../components/SniffReport";
-import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Sheet, Toggle, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
+import { Button, CoinFace, Dock, EdgeFade, IconButton, Keypad, OutIcon, Pill, Sheet, Verified, feel, tap, useToast, type SheetHandle } from "../components/ui";
+import { placeHalf, takeBack } from "../half";
 import { forgetHoldings, useHoldings } from "../holdings";
 import {
   CHIPS,
@@ -16,10 +17,13 @@ import {
   SNIFF_AGAIN,
   SOL_MINT,
   amountChips,
+  amount as fmtAmount,
   clampAmount,
   coinLine,
   dockKey,
   dockNote,
+  halfAt2x,
+  halfCard,
   maxApe,
   money,
   needsCash as shortOfCash,
@@ -110,7 +114,8 @@ export function CoinScreen({ navigation, route }: Props) {
   const [sellPreset, setSellPreset] = useState(50);
   /* Dollars of the holding typed on the keypad, sold as the share of it they are. */
   const [sellCustom, setSellCustom] = useState("");
-  const [tp, setTp] = useState(store.settings.tpDefault);
+  /* A 2x sell going into, or coming back from, Jupiter's vault. */
+  const [halfBusy, setHalfBusy] = useState<"placing" | "taking" | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [pad, setPad] = useState(false);
@@ -248,9 +253,21 @@ export function CoinScreen({ navigation, route }: Props) {
   const needsCash = shortOfCash(dock);
   const action = dockKey(dock);
   const note = dockNote(dock);
-  /* What the coins Spot bought are worth now, against what they cost. */
+  /* What the coins Spot bought are worth now, against what they cost: the
+     half waiting in Jupiter's vault for 2x is still held, at today's price. */
   const book = owner ? books(store.trades.filter((t) => t.owner === owner)).get(coin.mint) : undefined;
-  const gained = book && holding ? since(book, holding) : null;
+  const myHalf = owner ? store.halves.find((h) => h.owner === owner && h.mint === coin.mint) : undefined;
+  const priceNow = holding && holding.amount > 0 ? holding.usd / holding.amount : coin.priceUsd;
+  const vault = myHalf && priceNow !== null ? { amount: myHalf.amount, usd: myHalf.amount * priceNow } : null;
+  const held = holding || vault ? { amount: (holding?.amount ?? 0) + (vault?.amount ?? 0), usd: (holding?.usd ?? 0) + (vault?.usd ?? 0) } : null;
+  const gained = book && held ? since(book, held) : null;
+  /* Sell half at 2x: offered on a coin Spot bought, once, while it isn't in the vault already. */
+  const plan = AUTO_SELL && store.settings.tpDefault && wallet?.kind === "mwa" && !myHalf && coin.mint !== SOL_MINT ? halfAt2x(book, holding) : null;
+  const half = myHalf
+    ? halfCard({ state: halfBusy === "taking" ? "cancelling" : myHalf.state, symbol: coin.symbol, amount: myHalf.amount, priceUsd: myHalf.priceUsd, back: myHalf.back, expiresAt: myHalf.expiresAt })
+    : plan
+      ? halfCard({ state: "offer", symbol: coin.symbol, amount: plan.amount, priceUsd: plan.priceUsd, back: plan.back })
+      : null;
   /* The numbers CT sizes a coin up by, in one line under its price. */
   const ageMs = done?.checks.find((c) => c.id === "age")?.observed;
   const stats = statsLine(coin, typeof ageMs === "number" ? ageMs : null);
@@ -329,6 +346,55 @@ export function CoinScreen({ navigation, route }: Props) {
     });
   }
 
+  /* Half into Jupiter's vault, to sell at twice what it cost: the deposit is one approval (and a sign-in to Jupiter the first time). */
+  async function sellHalf() {
+    if (!plan || wallet?.kind !== "mwa" || halfBusy) return;
+    tap();
+    setHalfBusy("placing");
+    const r = await placeHalf(wallet, { mint: coin.mint, raw: plan.raw, priceUsd: plan.priceUsd });
+    setHalfBusy(null);
+    if (!r.ok) {
+      toast(r.line);
+      return;
+    }
+    if (r.authToken !== wallet.authToken) store.setWallet({ ...wallet, authToken: r.authToken });
+    store.putHalf({
+      id: r.value.id,
+      owner: wallet.address,
+      mint: coin.mint,
+      symbol: coin.symbol,
+      icon: coin.icon,
+      decimals: coin.decimals,
+      amount: plan.amount,
+      raw: plan.raw,
+      priceUsd: plan.priceUsd,
+      back: plan.back,
+      at: new Date().toISOString(),
+      expiresAt: r.value.expiresAt,
+      state: "open",
+    });
+    forgetHoldings(wallet.address);
+    feel("success");
+    toast(`Half sells at ${price(plan.priceUsd)}. ${fmtAmount(plan.amount)} ${coin.symbol} went to Jupiter's vault.`);
+  }
+
+  /* The vault's half back in the wallet: a 2x sell cancelled, or one that ran out. */
+  async function takeHalfBack() {
+    if (!myHalf || wallet?.kind !== "mwa" || halfBusy) return;
+    tap();
+    setHalfBusy("taking");
+    const r = await takeBack(wallet, myHalf.id);
+    setHalfBusy(null);
+    if (!r.ok) {
+      toast(r.line);
+      return;
+    }
+    if (r.authToken !== wallet.authToken) store.setWallet({ ...wallet, authToken: r.authToken });
+    store.dropHalf(myHalf.id);
+    forgetHoldings(wallet.address);
+    toast(`${fmtAmount(myHalf.amount)} ${coin.symbol} are back in your wallet.`);
+  }
+
   async function copyCa() {
     tap();
     await Clipboard.setStringAsync(coin.mint).catch(() => {});
@@ -385,7 +451,7 @@ export function CoinScreen({ navigation, route }: Props) {
       const builtAt = Date.now();
       const before = snapshotOf(fresh.ok ? fresh.value : bag.value, coin.mint);
       const text = buying
-        ? `Aped $${amount} of $${coin.symbol}${AUTO_SELL && tp ? ". Half sells at 2x" : ""}`
+        ? `Aped $${amount} of $${coin.symbol}`
         : `Sold ${sellPct === 100 ? "all" : `${sellPct}%`} of $${coin.symbol}`;
       const quote = buying
         ? { usdc: amount, amount: units(order.value.outAmount, coin.decimals) }
@@ -541,17 +607,36 @@ export function CoinScreen({ navigation, route }: Props) {
         )}
 
         {/* On a coin you hold, the money comes first: what it is worth, and what it made since you aped. */}
-        {holding ? (
-          <View style={styles.hold} accessible accessibilityLabel={`You hold ${money(holding.usd)}${gained ? `, ${sinceLine(gained)} since you aped` : ""}`}>
+        {held ? (
+          <View style={styles.hold} accessible accessibilityLabel={`You hold ${money(held.usd)}${gained ? `, ${sinceLine(gained)} since you aped` : ""}`}>
             <View>
               <Text style={styles.holdLabel}>You hold</Text>
-              <Text style={styles.holdValue}>{money(holding.usd)}</Text>
+              <Text style={styles.holdValue}>{money(held.usd)}</Text>
             </View>
             {gained ? (
               <View style={styles.holdGain}>
                 <Text style={[styles.holdGainValue, { color: gained.usd >= 0 ? color.green : color.dim }]}>{sinceLine(gained)}</Text>
                 <Text style={styles.holdLabel}>since you aped</Text>
               </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Sell half at 2x: on offer, waiting in Jupiter's vault, or ended there. */}
+        {half ? (
+          <View style={styles.twox} accessible={!half.key} accessibilityLabel={`${half.title}. ${half.line}`}>
+            <Text style={styles.twoxTitle}>{half.title}</Text>
+            <Text style={styles.twoxLine}>{half.line}</Text>
+            {half.key ? (
+              <Pressable
+                onPress={() => void (myHalf ? takeHalfBack() : sellHalf())}
+                disabled={Boolean(halfBusy)}
+                style={({ pressed }) => [myHalf ? styles.twoxQuiet : styles.twoxKey, pressed && styles.twoxPressed, halfBusy && styles.twoxBusy]}
+                accessibilityRole="button"
+                accessibilityLabel={half.key}
+              >
+                <Text style={myHalf ? styles.twoxQuietText : styles.twoxKeyText}>{halfBusy === "placing" ? "Opening your wallet…" : half.key}</Text>
+              </Pressable>
             ) : null}
           </View>
         ) : null}
@@ -589,15 +674,6 @@ export function CoinScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {AUTO_SELL && buying && canPickAmount && (
-          <View style={styles.tp}>
-            <View style={styles.tpText}>
-              <Text style={styles.tpTitle}>Never round-trip a 2x</Text>
-              <Text style={styles.tpNote}>At 2x, Spot sells half: your ${amount} comes back and the rest rides free.</Text>
-            </View>
-            <Toggle value={tp} onChange={setTp} label="Sell half at 2x" />
-          </View>
-        )}
       </ScrollView>
 
       <Dock onHeight={setDockHeight}>
@@ -731,20 +807,23 @@ const styles = StyleSheet.create({
   notThis: { alignSelf: "flex-start", minHeight: size.tap, justifyContent: "center" },
   notThisText: { fontFamily: font.bodySemi, fontSize: type.callout, color: color.orange },
   report: { marginTop: space.x4, marginBottom: space.x3 },
-  tp: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.x3,
-    marginTop: space.x5,
-    padding: space.x4,
+  twox: {
+    marginTop: space.x2,
+    paddingVertical: space.x3,
+    paddingHorizontal: space.x4,
     borderRadius: radius.card,
     backgroundColor: color.ink2,
     borderWidth: size.hairline,
     borderColor: color.line,
   },
-  tpText: { flex: 1 },
-  tpTitle: { fontFamily: font.bodyBold, fontSize: type.lead, color: color.white },
-  tpNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.faint },
+  twoxTitle: { fontFamily: font.bodyBold, fontSize: type.body, color: color.white },
+  twoxLine: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
+  twoxKey: { alignSelf: "flex-start", minHeight: size.chip, justifyContent: "center", marginTop: space.x3, paddingHorizontal: space.x4, borderRadius: radius.pill, backgroundColor: color.orange },
+  twoxKeyText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.ink },
+  twoxQuiet: { alignSelf: "flex-start", minHeight: size.tap, justifyContent: "center", marginTop: space.x1 },
+  twoxQuietText: { fontFamily: font.bodyBold, fontSize: type.callout, color: color.orange },
+  twoxPressed: { opacity: 0.7 },
+  twoxBusy: { opacity: 0.6 },
   hold: {
     flexDirection: "row",
     alignItems: "center",

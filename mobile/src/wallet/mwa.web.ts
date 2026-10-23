@@ -17,6 +17,15 @@ export async function signTransaction(_transaction: string, _authToken: string |
   throw Object.assign(new Error("No wallet adapter on the web."), { code: "ERROR_WALLET_NOT_FOUND" });
 }
 
+export interface WalletAsk {
+  signMessage(message: Uint8Array): Promise<Uint8Array>;
+  signTransaction(transaction: string): Promise<string>;
+}
+
+export async function inWallet<T>(_address: string, _authToken: string | null, _steps: (ask: WalletAsk) => Promise<T>): Promise<{ value: T; authToken: string }> {
+  throw Object.assign(new Error("No wallet adapter on the web."), { code: "ERROR_WALLET_NOT_FOUND" });
+}
+
 export function rememberWallet(_address: string, _walletUriBase: string | null): void {}
 
 export const homeOf = (_address: string): string | null => null;

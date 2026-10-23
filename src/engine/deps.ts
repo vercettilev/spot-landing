@@ -8,10 +8,11 @@ import type { ResolveDeps } from "./resolve";
 import { sniffSharing, type ShareSniff } from "./shared";
 import { DEFAULT_POLICY, type Policy, type SniffDeps } from "./sniff";
 import { makeExecutor, makeOrderer, tradeConfig, type Executor, type Orderer } from "./trade";
+import { makeTrigger, type Trigger } from "./trigger";
 
 export type Deps = ResolveDeps &
   SniffDeps &
-  HoldingsDeps & { policy: Policy; order: Orderer; execute: Executor; readSignature: SignatureReader; readImage: ImageReader; shareSniff: ShareSniff };
+  HoldingsDeps & { policy: Policy; order: Orderer; execute: Executor; trigger: Trigger; readSignature: SignatureReader; readImage: ImageReader; shareSniff: ShareSniff };
 
 /** The cap for warned coins, from the environment; a typo keeps the default. */
 function warnCap(raw: string | undefined): number {
@@ -31,6 +32,7 @@ export function depsFromEnv(env: Record<string, string | undefined> = process.en
     readAccounts: makeAccountsReader(rpc),
     order: makeOrderer(trade, { pace }),
     execute: makeExecutor(trade, { pace }),
+    trigger: makeTrigger(jup, { pace }),
     readSignature: makeSignatureReader(rpc),
     readImage: makeImageReader(rpc),
     readPost: makePostReader(),

@@ -8,6 +8,7 @@ It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/or
 
 - **Works:** a share or a paste finds the coin from a CA, a link, a `$cashtag`, a bare ticker (`WIF`, offered, never auto-picked) or a screenshot (read on the phone with ML Kit; the image never leaves). The sniff, "which one?", history, the bag of any address with what your apes made, settings, Add cash (the deposit QR, and SOL turned into USDC), and connecting the wallet on the phone through Mobile Wallet Adapter (Seed Vault, Phantom, Solflare).
 - **Waits on the server:** buying and selling. The app asks `/api/order` for a transaction, the wallet signs it, `/api/execute` lands it; both answer 403 until `SPOT_TRADING=1` is set on Vercel, and the app says "Buying opens soon". Try it with a real wallet and a few dollars before opening it to anyone.
+- **Sell half at 2x:** after an ape of $25 or more, the coin's page offers to sell half at twice what it cost, through Jupiter's trigger orders: the half waits in Jupiter's vault (custodial, run by Jupiter) and sells for USDC on its own. Waits on a phone test with real money.
 - **Not built yet:** the alert pings (a watcher on the server plus push notifications; the coins you ape are kept as the watch list for them, and alerts come back on Home when they are real), Spot paying the gas, and iPhone (Mobile Wallet Adapter is Android only; on iOS the app can watch an address).
 
 ## What is here

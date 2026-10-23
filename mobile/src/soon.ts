@@ -4,8 +4,8 @@
  * same build that ships it, not one before.
  */
 
-/** "Never round-trip a 2x": Spot sells half at 2x by itself. Needs the take-profit order placed with every buy. */
-export const AUTO_SELL = false;
+/** "Never round-trip a 2x": after an ape, Spot offers to sell half at 2x through Jupiter's trigger orders (src/half.ts). */
+export const AUTO_SELL = true;
 
 /** Barks that reach the phone: the dev dumps, the pool gets pulled, a coin hits 2x. Needs the watcher and push.
     The coins aped are kept as a watch list (store.tsx) for then; alerts come back on Home with this flag. */
