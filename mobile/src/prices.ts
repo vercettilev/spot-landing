@@ -5,6 +5,8 @@ import { fetchPrices } from "./api";
    coin against its price when it was sniffed, every time Home shows. */
 const cache = new Map<string, { at: number; usd: number | null }>();
 const FRESH_MS = 60_000;
+/* Coins being asked about right now: Home showing and Home focusing ask at the same moment, once. */
+const asking = new Set<string>();
 
 /** The coins' prices now, as they come in; `refresh` asks again whatever their age, `refreshIfOld` only past a minute. */
 export function usePrices(mints: string[]): { prices: Map<string, number | null>; refresh: () => Promise<void>; refreshIfOld: () => Promise<void> } {
@@ -14,9 +16,12 @@ export function usePrices(mints: string[]): { prices: Map<string, number | null>
   const load = useCallback(
     async (force: boolean) => {
       const now = Date.now();
-      const stale = key ? key.split(",").filter((m) => force || !(now - (cache.get(m)?.at ?? 0) < FRESH_MS)) : [];
+      const stale = key ? key.split(",").filter((m) => !asking.has(m) && (force || !(now - (cache.get(m)?.at ?? 0) < FRESH_MS))) : [];
       if (!stale.length) return;
-      const res = await fetchPrices(stale);
+      for (const m of stale) asking.add(m);
+      const res = await fetchPrices(stale).finally(() => {
+        for (const m of stale) asking.delete(m);
+      });
       if (!res.ok) return;
       const at = Date.now();
       for (const m of stale) cache.set(m, { at, usd: res.value.prices[m] ?? null });
