@@ -1,7 +1,7 @@
 import { curatedByMint } from "@/core/catalog/index";
 import type { UltraSearchClient } from "@/core/resolve/ultra";
 import { USDC_MINT } from "@/core/route/jupiter";
-import { DEFAULT_THRESHOLDS, isEstablished, type EstablishedBar, type OpenMintThresholds } from "@/core/safety/open-mint-gate";
+import { isEstablished, type EstablishedBar, type OpenMintThresholds } from "@/core/safety/open-mint-gate";
 import { TOKEN_PROGRAM } from "./address";
 import type { MintFacts, MintFailure, MintReader } from "./chain";
 import { num, type Outcome } from "./http";
@@ -83,8 +83,24 @@ export interface Policy {
   thinExitLoss: number;
 }
 
+/**
+ * WHAT CLEAN ASKS OF A COIN'S SIZE. spot-core's floors ($7.5k of
+ * liquidity, 150 holders, a pool two hours old) were widened to answer
+ * whether a coin may be shown at all; here they decide CLEAN or GRRR, and
+ * a $34k coin with a $17k pool came out CLEAN (Bonnie, 2026-10-23), which
+ * nobody on CT would call it. These sit inside the gap spot-core measured
+ * between fresh coins (at most $4.9k, 120 holders, hours old) and
+ * established ones (at least $80k, 931 holders, 54 h). Below any of them
+ * is a GRRR with its cap, never a block. SPOT_GATE_* overrides them.
+ */
+export const CLEAN_FLOORS: OpenMintThresholds = {
+  minLiquidityUsd: 50_000,
+  minHolderCount: 1_000,
+  minPoolAgeMs: 24 * 60 * 60 * 1000,
+};
+
 export const DEFAULT_POLICY: Policy = {
-  thresholds: DEFAULT_THRESHOLDS,
+  thresholds: CLEAN_FLOORS,
   warnCapUsdc: 50,
   honeypotLoss: 0.5,
   thinExitLoss: 0.15,
@@ -247,11 +263,12 @@ export function judge(f: Facts, policy: Policy = DEFAULT_POLICY): Sniff {
   }
 
   /* ---- size: only ever a growl ----
-     The floors are spot-core's, which were calibrated to tell established
-     from fresh. Here they decide how loud the warning is, never whether
-     the coin can be bought. An issued asset is thin by nature, and on it
-     or a blue chip a figure Jupiter didn't send is a gap, not a risk. */
-  const small = issued ? "info" : "warn";
+     The floors (CLEAN_FLOORS) decide how loud the warning is, never
+     whether the coin can be bought. An issued asset is thin by nature, and
+     a blue chip (on Spot's own list, or big and old by Jupiter's record)
+     has been vetted already: on either, a small figure is shown, not held
+     against it, and a figure Jupiter didn't send is a gap, not a risk. */
+  const small = issued || f.blueChip ? "info" : "warn";
   const gap = issued || f.blueChip ? "info" : "unknown";
   const liq = num(info.liquidity);
   add({

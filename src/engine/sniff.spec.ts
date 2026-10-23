@@ -4,6 +4,7 @@ import {
   HOUR,
   NOW,
   NVDAX,
+  PAIR_A,
   classicMint,
   fakeDeps,
   fakeMintReader,
@@ -160,6 +161,19 @@ describe("what blocks", () => {
 });
 
 describe("what only growls", () => {
+  it("a micro-cap: a pool under $50k, under 1,000 holders, or a day old", () => {
+    /* Bonnie on 2026-10-23: a $34k coin, a $17.3k pool, 594 holders, two days old. It was CLEAN. */
+    const bonnie = token(COIN_A, { mcap: 34_100, liquidity: 17_300, holderCount: 594, firstPool: { id: PAIR_A, createdAt: new Date(NOW - 48 * HOUR).toISOString() } });
+    const s = judge(facts(bonnie));
+    expect(s.level).toBe("warn");
+    expect(s.headline).toBe("GRRR. Risky. Ape $50 max.");
+    expect(answers(s)).toMatchObject({ liquidity: "Only $17.3k (warn)", holders: "Only 594 (warn)", age: "2 days (good)" });
+    expect(judge(facts(token(COIN_A, { firstPool: { id: PAIR_A, createdAt: new Date(NOW - 20 * HOUR).toISOString() } }))).level).toBe("warn");
+    /* Just over every floor is CLEAN. */
+    const past = token(COIN_A, { liquidity: 50_000, holderCount: 1_000, firstPool: { id: PAIR_A, createdAt: new Date(NOW - 24 * HOUR).toISOString() } });
+    expect(judge(facts(past)).level).toBe("ok");
+  });
+
   it("a thin exit", () => {
     const s = judge(facts(token(COIN_A), { back: 20 }));
     expect(s.level).toBe("warn");
@@ -280,6 +294,14 @@ describe("a blue chip", () => {
     expect(s.level).toBe("ok");
     expect(s.headline).toBe("Blue chip. Nothing smells off.");
     expect(check(s, "mint")).toMatchObject({ answer: "Yes", status: "info", note: "Normal for a big, verified coin." });
+  });
+
+  it("isn't growled at for a small figure: it was vetted already", () => {
+    /* DRIFT and fih, on Spot's list, under CLEAN's pool floor on 2026-10-23. */
+    const thin = token(COIN_A, { liquidity: 20_667, holderCount: 27_902 });
+    const s = judge(facts(thin, { blueChip: true, buy: null, sell: null }));
+    expect(s.level).toBe("ok");
+    expect(answers(s)).toMatchObject({ liquidity: "Only $20.7k (info)" });
   });
 
   it("isn't growled at for a figure Jupiter didn't send", () => {
