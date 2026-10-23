@@ -334,7 +334,7 @@ describe("the dock", () => {
   it("keeps a coin the issuer won't sell in the US away from US users", () => {
     expect(dockKey({ ...base, restricted: true })).toEqual({ label: "Not for US users", enabled: false, tone: "stop" });
     expect(dockKey({ ...base, restricted: true, cash: 3 }).enabled).toBe(false);
-    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US. Change that in Settings.");
+    expect(dockNote({ ...base, restricted: true })).toBe("You said you're in the US.");
   });
 
   it("waits for an amount while the keypad is empty, and still locks while a trade may land", () => {

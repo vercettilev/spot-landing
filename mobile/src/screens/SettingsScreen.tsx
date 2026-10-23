@@ -2,8 +2,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import Constants from "expo-constants";
 import { useEffect, useState } from "react";
-import { Linking, StyleSheet, Text, View } from "react-native";
-import { CoinFace, Group, OutIcon, Pill, Row, Section, SettingRow, Sheet, Toggle, useRouteSheet, useToast } from "../components/ui";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { CoinFace, Group, OutIcon, Pill, Row, Section, SettingRow, Sheet, tap, Toggle, useRouteSheet, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
 import { ago, CHIPS, money } from "../logic";
 import type { RootParams } from "../navigation";
@@ -19,8 +19,12 @@ type Props = NativeStackScreenProps<RootParams, "Settings">;
 const LINKS = [
   { label: "Spot on X", note: "@usespotdotfun", url: "https://x.com/usespotdotfun" },
   { label: "usespot.fun", note: null, url: "https://www.usespot.fun" },
-  { label: "Privacy", note: "What Spot keeps, and doesn't", url: "https://www.usespot.fun/privacy" },
-  { label: "Terms", note: "The deal, in plain words", url: "https://www.usespot.fun/terms" },
+];
+
+/* Under the version: stores want the privacy policy reachable in the app. */
+const LEGAL = [
+  { label: "Privacy", url: "https://www.usespot.fun/privacy" },
+  { label: "Terms", url: "https://www.usespot.fun/terms" },
 ];
 
 /* How many trades show before "Show all". */
@@ -140,9 +144,6 @@ export function SettingsScreen({ navigation }: Props) {
               <Toggle label="Never round-trip a 2x" value={settings.tpDefault} onChange={(tpDefault) => store.setSettings({ tpDefault })} />
             </SettingRow>
           )}
-          <SettingRow title="I'm in the US" note="Hides the buy on stock coins that can't be sold in the US.">
-            <Toggle label="I'm in the US" value={settings.usPerson} onChange={(usPerson) => store.setSettings({ usPerson, usAsked: true })} />
-          </SettingRow>
         </Group>
 
         <Section>App</Section>
@@ -151,6 +152,7 @@ export function SettingsScreen({ navigation }: Props) {
             <Row
               title={`Update to ${update.version}`}
               subtitle="Downloads the new build. Open the file to install it over this one."
+              lines={2}
               right={<OutIcon />}
               onPress={() => void Linking.openURL(update.apk).catch(() => {})}
             />
@@ -167,6 +169,24 @@ export function SettingsScreen({ navigation }: Props) {
           Spot {version}
           {build ? ` (${build})` : ""}. Spot never holds your coins.
         </Text>
+        {/* The fine print, a tap away and out of the way. */}
+        <View style={styles.legal}>
+          {LEGAL.map((l, i) => (
+            <View key={l.url} style={styles.legalItem}>
+              {i > 0 ? <Text style={styles.legalDot}>·</Text> : null}
+              <Pressable
+                onPress={() => {
+                  tap();
+                  void Linking.openURL(l.url).catch(() => {});
+                }}
+                hitSlop={space.x3}
+                accessibilityRole="link"
+              >
+                <Text style={styles.legalLink}>{l.label}</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
       </Sheet>
       {toastNode}
     </View>
@@ -182,5 +202,9 @@ const styles = StyleSheet.create({
   blockTitle: { fontFamily: font.bodyBold, fontSize: type.body, color: color.white },
   blockNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   pills: { flexDirection: "row", gap: space.x2, marginTop: space.x3 },
-  version: { marginTop: space.x7, marginBottom: space.x2, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
+  version: { marginTop: space.x7, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
+  legal: { flexDirection: "row", justifyContent: "center", marginTop: space.x2, marginBottom: space.x2 },
+  legalItem: { flexDirection: "row", alignItems: "center" },
+  legalDot: { marginHorizontal: space.x3, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
+  legalLink: { fontFamily: font.bodySemi, fontSize: type.footnote, lineHeight: leading.footnote, color: color.dim },
 });

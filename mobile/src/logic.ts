@@ -672,8 +672,8 @@ export function dockNote(s: DockState): string | null {
   if (s.checking) return s.checking.landed ? "Done. Your bag catches up in a sec." : "Making sure it went through. You can leave, Spot will tell you.";
   if (s.side === "sell") return null;
   if (s.sniff === "block") return null;
-  /* The key already says who it isn't for; the line says why this user, and where to change it. */
-  if (s.restricted) return "You said you're in the US. Change that in Settings.";
+  /* The key already says who it isn't for; the line says why this user. Saying otherwise is the quiet key under it. */
+  if (s.restricted) return "You said you're in the US.";
   /* What is held is over the key already; the line says the way out. */
   if (needsCash(s) && s.held !== null) return "Sell it anytime: tap Sell below.";
   if (needsCash(s)) return `Only ${money(s.cash)} in USDC${s.sol !== null && s.sol >= 1 ? ` and ${money(s.sol)} in SOL` : ""}. Add cash, then ape.`;

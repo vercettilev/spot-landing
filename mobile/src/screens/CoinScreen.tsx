@@ -206,7 +206,7 @@ export function CoinScreen({ navigation, route }: Props) {
 
   const buying = side === "buy";
   const restricted = store.settings.usPerson && coin.restrictions.includes("us-persons");
-  /* The first coin the issuer won't sell in the US asks, once, instead of trusting a switch in Settings nobody has seen. */
+  /* The first coin the issuer won't sell in the US asks, once; a wrong answer is put right under the key, where it bites. */
   const askUs = buying && coin.restrictions.includes("us-persons") && !store.settings.usAsked && !store.settings.usPerson && !checking;
   const cap = done?.level === "warn" ? done.maxBuyUsdc : null;
   /* What one buy can spend: the more of the USDC and the SOL, as a buy is paid from one of them. */
@@ -695,7 +695,7 @@ export function CoinScreen({ navigation, route }: Props) {
                   <Text style={styles.askTitle} accessibilityRole="header">
                     Are you in the US?
                   </Text>
-                  <Text style={styles.askLine}>Coins like this aren't sold to people in the US, so Spot asks once. You can change it in Settings.</Text>
+                  <Text style={styles.askLine}>Coins like this aren't sold to people in the US, so Spot asks once.</Text>
                   <View style={styles.pair}>
                     <Button label="No" kind="quiet" onPress={() => store.setSettings({ usPerson: false, usAsked: true })} style={styles.half} />
                     <Button label="Yes, I am" kind="quiet" onPress={() => store.setSettings({ usPerson: true, usAsked: true })} style={styles.half} />
@@ -739,6 +739,18 @@ export function CoinScreen({ navigation, route }: Props) {
                 <>
                   <Button label={action.label} kind={action.tone} disabled={!action.enabled} onPress={act} />
                   {note ? <Text style={styles.note}>{note}</Text> : null}
+                  {restricted ? (
+                    <Pressable
+                      onPress={() => {
+                        tap();
+                        store.setSettings({ usPerson: false, usAsked: true });
+                      }}
+                      style={styles.other}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.otherText}>I'm not in the US</Text>
+                    </Pressable>
+                  ) : null}
                   {/* On a coin you hold, the other way is one quiet tap under the key: no switch to read first. */}
                   {holding ? (
                     <Pressable
