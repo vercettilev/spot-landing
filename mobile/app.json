@@ -3,7 +3,7 @@
     "name": "Spot",
     "slug": "spot",
     "scheme": "spot",
-    "version": "0.6.7",
+    "version": "0.6.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "fun.usespot.app",
-      "versionCode": 21,
+      "versionCode": 22,
       "adaptiveIcon": {
         "backgroundColor": "#fc4e02",
         "foregroundImage": "./assets/android-icon-foreground.png"

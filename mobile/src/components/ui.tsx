@@ -10,6 +10,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
@@ -90,23 +91,32 @@ export function useScreenReader(): boolean {
   return on;
 }
 
+/* The phone's "reduce motion" setting (Android: animations off), read once
+   for the whole app and kept current, so whatever opens later is drawn for
+   it from its first frame. Asked again by each sheet, the answer came just
+   after the sheet had begun to slide in: the slide was cut off, the fade
+   with it, and the sheet sat over the screen unseen, taking its taps. */
+let reducedMotion = false;
+const motionWatchers = new Set<() => void>();
+const setReducedMotion = (on: boolean) => {
+  if (on === reducedMotion) return;
+  reducedMotion = on;
+  motionWatchers.forEach((w) => w());
+};
+AccessibilityInfo.isReduceMotionEnabled()
+  .then((on) => setReducedMotion(Boolean(on)))
+  .catch(() => {});
+AccessibilityInfo.addEventListener("reduceMotionChanged", (on) => setReducedMotion(Boolean(on)));
+
 /** The phone's "reduce motion" setting, kept current: motion becomes a fade. */
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((on) => {
-        if (alive) setReduced(Boolean(on));
-      })
-      .catch(() => {});
-    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (on) => setReduced(Boolean(on)));
-    return () => {
-      alive = false;
-      sub.remove();
-    };
-  }, []);
-  return reduced;
+  return useSyncExternalStore(
+    (changed) => {
+      motionWatchers.add(changed);
+      return () => motionWatchers.delete(changed);
+    },
+    () => reducedMotion,
+  );
 }
 
 export function Wordmark({ width = 76 }: { width?: number }) {
@@ -672,10 +682,15 @@ export const Sheet = forwardRef<
       Animated.timing(shown, { toValue: 1, duration: motion.fadeIn, useNativeDriver: native }).start();
     } else {
       if (!turning) y.setValue(heightRef.current);
-      Animated.parallel([
-        Animated.timing(shown, { toValue: 1, duration: motion.fadeIn, useNativeDriver: native }),
-        Animated.spring(y, { toValue: 0, ...motion.settle, useNativeDriver: native }),
-      ]).start();
+      /* A slide cut short (a finger catching the sheet, the motion setting
+         changing) never takes the fade with it: the sheet always ends up seen. */
+      Animated.parallel(
+        [
+          Animated.timing(shown, { toValue: 1, duration: motion.fadeIn, useNativeDriver: native }),
+          Animated.spring(y, { toValue: 0, ...motion.settle, useNativeDriver: native }),
+        ],
+        { stopTogether: false },
+      ).start();
     }
     /* Whoever listens hears the sheet, not the screen under it. */
     setTimeout(() => {
