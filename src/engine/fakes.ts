@@ -9,6 +9,7 @@ import type { Post, PostFailure } from "@/engine/posts";
 import { sniffSharing } from "@/engine/shared";
 import { DEFAULT_POLICY } from "@/engine/sniff";
 import type { Executor, Order, OrderRequest, Orderer } from "@/engine/trade";
+import type { Trigger, TriggerCall } from "@/engine/trigger";
 
 /* Valid 32-byte addresses that are nobody's coin (sha256 of a label). */
 export const COIN_A = "GAKDkX3myHqofbqHQ4wV7HkzwLgAv8quFHpAPvGeunNG";
@@ -170,6 +171,18 @@ export function fakeOrderer(answer?: Awaited<ReturnType<Orderer>>): Orderer & { 
   return Object.assign(order, { asked });
 }
 
+/** Jupiter's trigger API: answers by path from a table, records every call. Unlisted paths are a 404. */
+export function fakeTrigger(answers: Record<string, { status?: number; body: unknown } | ((call: TriggerCall) => { status?: number; body: unknown })> = {}): Trigger & { calls: TriggerCall[] } {
+  const calls: TriggerCall[] = [];
+  const trigger: Trigger = async (call) => {
+    calls.push(call);
+    const a = answers[`${call.method} ${call.path}`];
+    const got = typeof a === "function" ? a(call) : a;
+    return { ok: true, value: got ? { status: got.status ?? 200, body: got.body } : { status: 404, body: { error: "not found" } } };
+  };
+  return Object.assign(trigger, { calls });
+}
+
 export const fakeExecutor =
   (answer: Awaited<ReturnType<Executor>> = { ok: true, value: { status: "Success", signature: "5ig", error: null } }): Executor =>
   async () =>
@@ -193,6 +206,7 @@ export function fakeDeps(over: Partial<Deps> = {}): Deps {
     readAccounts: fakeAccounts(),
     order: fakeOrderer(),
     execute: fakeExecutor(),
+    trigger: fakeTrigger(),
     readSignature: fakeSignatures(),
     readImage: fakeImages(),
     readPost: fakePosts({}),

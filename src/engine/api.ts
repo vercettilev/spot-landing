@@ -7,7 +7,8 @@
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "content-type",
+  /* authorization: the app's Jupiter session for its 2x orders (/api/tp). */
+  "access-control-allow-headers": "content-type, authorization",
   "access-control-max-age": "86400",
 };
 
