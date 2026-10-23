@@ -31,7 +31,7 @@ Then ape in one tap, from your own wallet. Spot builds the trade through Jupiter
 What you get:
 • A sniff report on any coin, in plain words. "No" is the good answer.
 • Paste a CA, a $ticker or a link, or share a screenshot: Spot reads the coin out of it.
-• Spot apes in dollars (USDC). Got SOL? Turn it into cash in a tap.
+• Ape with your USDC, or straight from your SOL when the USDC runs short: one approval.
 • Your bag, priced, with what every ape made since you aped.
 • Every trade written down from your wallet's own numbers, a tap from Solscan.
 • The CA under every coin, so a lookalike never fools you.
@@ -40,7 +40,23 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.6.4)
+## What's new (0.6.6)
+
+• The verdict comes about a second sooner after a share.
+• "Sniff it" can show up in the top row of your share menu, a tap from any post. Long-press Spot's icon to sniff a CA you copied.
+• The chip you last aped with is where the next coin starts. Wallet short of a chip? Max apes all it can.
+• Sniffed lately shows how far each coin has gone since you sniffed it.
+• Turning SOL into cash says "Cash in" on the spot, no full-screen moment.
+
+## What was new in 0.6.5
+
+• Ape straight from your SOL when your USDC runs short: one swap, one approval.
+• Every coin shows its market cap, pool, holders and age under the price, and a Chart link.
+• Your first ape goes on by itself once your wallet connects.
+• Tracking a wallet? The key connects yours.
+• Home is down to Paste CA. Adding cash and cashing out sit behind the Cash row.
+
+## What was new in 0.6.4
 
 • Trades go straight to the wallet you connected, no wallet picker, where your wallet allows it.
 

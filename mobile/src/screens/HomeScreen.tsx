@@ -1,18 +1,20 @@
 import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
 import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, verdictWord, worth } from "../logic";
+import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, sinceSniff, sniffedLine, verdictWord, worth } from "../logic";
 import type { RootParams } from "../navigation";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
+import { usePrices } from "../prices";
 import { useStore } from "../store";
 import { color, font, leading, radius, size, space, tracking, type } from "../theme";
+import type { Share } from "../types";
 import { short } from "../wallet/base58";
 
 type Props = NativeStackScreenProps<RootParams, "Home">;
@@ -20,17 +22,21 @@ type Props = NativeStackScreenProps<RootParams, "Home">;
 /* Seeker's own coin, from spot-core's hand-probed catalog: always found, always sniffable, always clean. One, not a choice of three. */
 const TRY = "$SKR";
 
+/* Shares after which the hint at the bottom of Home has done its job. */
+const SHARES_LEARNT = 3;
+
 /**
  * HOME, the one screen: what you have, what you can do, what you sniffed.
  * The bag's worth is the loud thing, with what your apes made under it in
- * the colour of the outcome; then three round keys (paste a CA, add cash,
- * cash out), the coins you hold, each one tap from its page opened on Sell,
- * and the coins sniffed lately. Settings, the wallet and every trade sit
+ * the colour of the outcome; then one round key, Paste CA (an empty wallet
+ * gets Add cash beside it, no wallet gets Connect), the coins you hold, each
+ * one tap from its page opened on Sell, cash opening the Cash sheet, and the
+ * coins sniffed lately. Settings, the wallet and every trade sit
  * behind the puppy. The first time, before any of that exists, the screen
  * is three things: what Spot does, how (a phone's share menu with Spot in
  * it), and one key to try it on a coin; pasting a CA is a quiet key under.
  */
-export function HomeScreen({ navigation }: Props) {
+export function HomeScreen({ navigation, route }: Props) {
   const store = useStore();
   const { wallet, trades } = store;
   const [toastNode, toast] = useToast();
@@ -40,17 +46,31 @@ export function HomeScreen({ navigation }: Props) {
   const bag = useHoldings(wallet?.address ?? null);
   const recent = store.history.slice(0, 8);
   const first = recent.length === 0 && !wallet;
+  /* Each coin sniffed lately, against its price when it was sniffed: what was missed, or dodged. */
+  const now = usePrices(recent.map((h) => h.mint));
+  useEffect(() => {
+    if (focused) void now.refreshIfOld();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused]);
 
   /* The clipboard's CA, link or $ticker, when it holds one. */
-  async function paste() {
-    const text = (await Clipboard.getStringAsync().catch(() => "")).trim();
-    const pasted = fromPaste(text);
+  async function paste(justOpened = false) {
+    const read = async () => fromPaste((await Clipboard.getStringAsync().catch(() => "")).trim());
+    /* Android hands the clipboard only to the app in focus, which an app just opened may not be yet. */
+    const pasted = (await read()) ?? (justOpened ? await new Promise<Share | null>((r) => setTimeout(() => void read().then(r), 600)) : null);
     if (!pasted) {
       toast("Nothing to paste. Copy a CA, link or $ticker first.");
       return;
     }
     navigation.navigate("Resolve", { share: pasted });
   }
+
+  /* Paste CA, pressed from the launcher's shortcut. */
+  const pasteAt = route.params?.paste;
+  useEffect(() => {
+    if (pasteAt) void paste(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasteAt]);
 
   const header = (
     <View style={styles.header}>
@@ -110,7 +130,18 @@ export function HomeScreen({ navigation }: Props) {
     <View style={styles.fill} aria-hidden={!focused}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: space.x10 + insets.bottom }]}
-        refreshControl={wallet ? <RefreshControl refreshing={bag.status === "loading"} onRefresh={() => void bag.refresh()} tintColor={color.orange} /> : undefined}
+        refreshControl={
+          wallet ? (
+            <RefreshControl
+              refreshing={bag.status === "loading"}
+              onRefresh={() => {
+                void bag.refresh();
+                void now.refresh();
+              }}
+              tintColor={color.orange}
+            />
+          ) : undefined
+        }
       >
         {header}
 
@@ -141,14 +172,12 @@ export function HomeScreen({ navigation }: Props) {
           ) : null
         ) : null}
 
-        {/* Paste is the loud key, until an empty wallet's next step is cash. */}
+        {/* Paste is the one key. Beside it, only what comes first: an empty wallet's cash, or a wallet to connect.
+            The rest of the money lives behind the Cash row. */}
         <View style={styles.actions}>
           <ActionKey glyph="paste" label="Paste CA" loud={!(trading && nothing)} onPress={() => void paste()} />
           {trading ? (
-            <>
-              <ActionKey glyph="plus" label="Add cash" loud={nothing} onPress={() => navigation.navigate("Deposit")} />
-              {b && b.usdc.usd >= 1 ? <ActionKey glyph="out" label="Cash out" onPress={() => navigation.navigate("CashOut")} /> : null}
-            </>
+            nothing ? <ActionKey glyph="plus" label="Add cash" loud onPress={() => navigation.navigate("Deposit")} /> : null
           ) : (
             <ActionKey glyph="wallet" label="Connect" onPress={() => navigation.navigate("Connect")} />
           )}
@@ -158,8 +187,16 @@ export function HomeScreen({ navigation }: Props) {
           <>
             <Section>Your coins</Section>
             <Group>
-              {/* A tracked wallet's cash can't be aped with here, so it is only named. */}
-              <Row left={<Cash glyph="$" />} title="Cash" subtitle={trading ? "Ready to ape" : "USDC"} right={<Value value={worth(b.usdc.usd)} />} />
+              {/* Your own cash opens what can be done with it: add, send in, cash out. A tracked wallet's is only named,
+                  and "Ready to ape" only when it covers an ape. */}
+              <Row
+                left={<Cash glyph="$" />}
+                title="Cash"
+                subtitle={trading && b.usdc.usd >= store.settings.defaultAmount ? "Ready to ape" : "USDC"}
+                right={<Value value={worth(b.usdc.usd)} />}
+                onPress={trading ? () => navigation.navigate("Deposit", { cash: true }) : undefined}
+                label={`Cash, ${worth(b.usdc.usd)} in USDC.${trading ? " Add cash or cash out." : ""}`}
+              />
               {/* SOL is a coin like the rest: in the list by its worth, so the rows still add up to the number over them. */}
               {held.map((p) => {
                 /* Your own gain where Spot bought it; the coin's day where it did not. */
@@ -190,6 +227,9 @@ export function HomeScreen({ navigation }: Props) {
             <Group>
               {recent.map((h) => {
                 const v = verdictWord(h.level);
+                const when = ago(h.at);
+                const change = sinceSniff(h.token.priceUsd, now.prices.get(h.mint));
+                const line = sniffedLine(change, when);
                 return (
                   <Row
                     key={h.mint}
@@ -198,12 +238,13 @@ export function HomeScreen({ navigation }: Props) {
                     subtitle={h.token.name}
                     right={
                       <View style={styles.recentRight}>
-                        <Text style={styles.ago}>{ago(h.at)}</Text>
+                        {/* Up is green, as a coin's day is in the bag; down is quiet, never red. */}
+                        <Text style={[styles.ago, line !== when && change !== null && (change < 0 ? styles.agoDown : styles.agoUp)]}>{line}</Text>
                         <Answer status={v.status}>{v.word}</Answer>
                       </View>
                     }
                     onPress={() => navigation.navigate("Coin", { candidate: { token: h.token, via: "link" }, source: null, share: null, others: [] })}
-                    label={`$${h.token.symbol}, ${v.word}, ${ago(h.at)}`}
+                    label={`$${h.token.symbol}, ${v.word}, sniffed ${when === "now" ? "just now" : `${when} ago`}${line !== when && change !== null ? `, ${pct(change)} since` : ""}`}
                   />
                 );
               })}
@@ -211,13 +252,16 @@ export function HomeScreen({ navigation }: Props) {
           </>
         ) : null}
 
-        <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot. No Spot? Tap Share via, or More, first.">
-          <PuppyIcon size={size.mark} />
-          <View style={styles.hintWords}>
-            <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
-            <Text style={styles.hintMore}>{NOT_THERE}</Text>
+        {/* How to share, until it has been done a few times. */}
+        {store.settings.shares < SHARES_LEARNT ? (
+          <View style={styles.hint} accessible accessibilityLabel="On any post, tap Share, then Spot. No Spot? Tap Share via, or More, first.">
+            <PuppyIcon size={size.mark} />
+            <View style={styles.hintWords}>
+              <Text style={styles.hintText}>On any post: tap Share, then Spot.</Text>
+              <Text style={styles.hintMore}>{NOT_THERE}</Text>
+            </View>
           </View>
-        </View>
+        ) : null}
       </ScrollView>
       {toastNode}
     </View>
@@ -333,6 +377,8 @@ const styles = StyleSheet.create({
   small: { marginTop: space.x3, marginLeft: space.x1, fontFamily: font.body, fontSize: type.footnote, color: color.faint },
   recentRight: { flexDirection: "row", alignItems: "center", gap: space.x2 },
   ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
+  agoUp: { color: color.green },
+  agoDown: { color: color.dim },
   hint: { flexDirection: "row", alignItems: "center", gap: space.x3, marginTop: space.x8, paddingHorizontal: space.x1 },
   hintWords: { flex: 1 },
   hintText: { fontFamily: font.bodySemi, fontSize: type.caption, color: color.dim },

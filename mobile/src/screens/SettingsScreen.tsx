@@ -128,6 +128,7 @@ export function SettingsScreen({ navigation }: Props) {
         <Group>
           <View style={styles.block}>
             <Text style={styles.blockTitle}>Starting amount</Text>
+            <Text style={styles.blockNote}>Every coin starts here. The chip you last aped with sets it.</Text>
             <View style={styles.pills}>
               {CHIPS.map((c) => (
                 <Pill key={c} label={`$${c}`} on={settings.defaultAmount === c} onPress={() => store.setSettings({ defaultAmount: c })} />
@@ -179,6 +180,7 @@ const styles = StyleSheet.create({
   ago: { fontFamily: font.bodySemi, fontSize: type.micro, color: color.faint },
   block: { paddingVertical: space.x4, paddingHorizontal: space.x4 },
   blockTitle: { fontFamily: font.bodyBold, fontSize: type.body, color: color.white },
+  blockNote: { marginTop: space.hair, fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
   pills: { flexDirection: "row", gap: space.x2, marginTop: space.x3 },
   version: { marginTop: space.x7, marginBottom: space.x2, textAlign: "center", fontFamily: font.body, fontSize: type.footnote, lineHeight: leading.footnote, color: color.faint },
 });

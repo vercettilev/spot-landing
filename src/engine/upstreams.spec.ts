@@ -3,7 +3,7 @@ import { COIN_A, COIN_B, PAIR_A, fakeFetch, jsonResponse, token } from "@/engine
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from "./address";
 import { makeMintReader, mintFactsOf } from "./chain";
 import { coinOf, makePairLookup } from "./dexscreener";
-import { jupiterConfig, makePacer, makeQuoter, makeSearch, ultraAuthority, waitAfter429 } from "./jupiter";
+import { jupiterConfig, makePacer, makeQuoter, makeSearch, remembering, ultraAuthority, waitAfter429 } from "./jupiter";
 
 const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const SOL = "So11111111111111111111111111111111111111112";
@@ -131,6 +131,20 @@ describe("a search", () => {
     expect(got.ok && got.value.map((t) => t.id)).toEqual([COIN_A]);
     expect(paced).toEqual(["turn", "turn"]);
     expect((fetchFn.seen[0]!.init?.headers as Record<string, string>)["x-api-key"]).toBe("k");
+  });
+
+  it("is not asked again, within one request, for a coin it already turned up", async () => {
+    const fetchFn = fakeFetch([
+      ["https://api.jup.ag/ultra/v1/search", () => jsonResponse([token(COIN_A, { symbol: "WIF" }), token(COIN_B, { symbol: "WIF" })])],
+    ]);
+    const search = remembering(makeSearch(jupiterConfig({ JUPITER_API_KEY: "k" }), { fetchFn }));
+    await search.search("WIF");
+    const again = await search.search(COIN_B);
+    expect(again.ok && again.value.map((t) => t.id)).toEqual([COIN_B]);
+    expect(fetchFn.seen).toHaveLength(1);
+    /* A word is always asked: only a coin's own address is answered from memory. */
+    await search.search("WIF");
+    expect(fetchFn.seen).toHaveLength(2);
   });
 });
 

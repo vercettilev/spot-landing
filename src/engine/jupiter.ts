@@ -102,6 +102,25 @@ export function makeSearch(
   };
 }
 
+/**
+ * ONE REQUEST'S SEARCHES, REMEMBERED. Every coin a search turned up is kept
+ * for the rest of the request, so a sniff that follows a resolve reads the
+ * coin the resolve just found instead of asking Jupiter for it again: on
+ * the free plan's one request a second, that is a second off the verdict.
+ */
+export function remembering(search: UltraSearchClient): UltraSearchClient {
+  const seen = new Map<string, JupiterUltraTokenInfo>();
+  return {
+    async search(query, callOpts) {
+      const known = seen.get(query);
+      if (known) return { ok: true, value: [known] };
+      const res = await search.search(query, callOpts);
+      if (res.ok) for (const t of res.value) seen.set(t.id, t);
+      return res;
+    },
+  };
+}
+
 /** How long a 429 asks to wait: Retry-After, else the window's reset, capped. */
 export function waitAfter429(headers: Headers, now = Date.now()): number {
   const cap = (ms: number) => Math.min(Math.max(ms, 0), 1_500);

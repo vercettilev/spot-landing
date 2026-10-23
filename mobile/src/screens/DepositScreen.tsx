@@ -5,14 +5,14 @@ import { AppState, Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { USDC_MINT, executeOrder, fetchHoldings, placeOrder } from "../api";
 import { ICON_SVG } from "../art";
-import { celebrate, onCelebrate } from "../components/Moment";
 import { Button, Card, Group, Pill, Row, Section, Sheet, Steps, feel, useRouteSheet, useToast } from "../components/ui";
+import { cashIn, onCashIn } from "../cashIn";
 import { forgetHoldings, useHoldings } from "../holdings";
-import { amount as fmtAmount, cashLede, coverWith, money, spareSol, turnKey, usd } from "../logic";
+import { amount as fmtAmount, cashInLine, cashLede, coverWith, money, spareSol, turnKey, usd } from "../logic";
 import type { RootParams } from "../navigation";
 import { hold, pendingFor, subscribe } from "../pending";
 import { useStore } from "../store";
-import { color, font, leading, radius, space, type } from "../theme";
+import { color, font, leading, motion, radius, size, space, type } from "../theme";
 import { LAND_WINDOW_MS, failedLine, orderErrorLine, secondsLeft, settled, snapshotOf, type Pending } from "../trade";
 import type { TokenCard } from "../types";
 import { signTransaction, walletError } from "../wallet/mwa";
@@ -24,6 +24,13 @@ type Props = NativeStackScreenProps<RootParams, "Deposit">;
    none yet, so it says the way that works. */
 const BUY_STEPS = ["Open your wallet app and tap Buy.", "Pick USDC (digital dollars) on Solana and pay with your card.", "Come back to Spot. Your cash shows up here once it lands."];
 const BUY_NOTE = "Your wallet app's card partner may ask for ID, and takes a fee.";
+/* Spot's cash is USDC in the user's own wallet and Spot has no bank partner, so cashing out is said the way that works today: sent to an exchange, sold there. */
+const OUT_STEPS = [
+  "In your exchange (Coinbase, Kraken…), tap Deposit, pick USDC on Solana and copy the address it shows.",
+  "In your wallet app, tap Send, pick USDC and paste that address.",
+  "Back in the exchange, sell the USDC and withdraw to your bank.",
+];
+const OUT_NOTE = "Pick Solana in both apps. USDC sent on another network can be lost.";
 
 const NOTES = [
   "Only send on Solana. USDC or SOL sent on another network (Ethereum, Base, Tron) can be lost.",
@@ -51,30 +58,28 @@ const USDC: TokenCard = {
 const CASH_CHIPS = [25, 50, 100];
 
 /**
- * ADDING CASH, as a sheet over whatever needed it. Spot apes in dollars
- * (USDC), and dollars go straight to the wallet's own address: Spot never
- * holds them. A wallet that holds SOL turns some into cash here, in one
- * approval, keeping a little for fees; opened from a coin, the swap that
- * covers the ape is picked already. When the cash lands, the moment says
- * so and the sheet goes, back to the coin with the key ready. The code is
- * the plain address, which every exchange and wallet scanner reads.
+ * ADDING CASH, as a sheet over whatever needed it. An ape is paid in
+ * dollars (USDC), or in SOL when the dollars run short; dollars go straight
+ * to the wallet's own address: Spot never holds them. A wallet that holds
+ * SOL can turn some into cash here, in one approval, keeping 0.01 SOL back;
+ * opened from a coin, the swap that covers the ape is picked already. When
+ * the cash lands, the card says so where its key was and the sheet goes,
+ * back to the coin with the key ready. From Home's Cash row it is the Cash sheet, with the
+ * way out to a bank folded last. The code is the plain address, which every
+ * exchange and wallet scanner reads.
  */
 export function DepositScreen({ navigation, route }: Props) {
   const { ref, onDismiss } = useRouteSheet(navigation);
   const [toastNode, toast] = useToast(space.x6);
   const [busy, setBusy] = useState(false);
   const need = route.params?.need ?? null;
-  useEffect(
-    () =>
-      onCelebrate((m) => {
-        if (m.kind === "cash") ref.current?.close();
-      }),
-    [ref],
-  );
+  /* Opened from Home's Cash row: all the money's ways, cashing out among them. */
+  const all = route.params?.cash ?? false;
+  useEffect(() => onCashIn(() => ref.current?.close()), [ref]);
   return (
     <View style={styles.fill}>
-      <Sheet ref={ref} visible onDismiss={onDismiss} dismissable={!busy} title={need !== null ? `Add cash to ape $${need}` : "Add cash"} label="Add cash">
-        <CashPanel need={need} toast={toast} onBusy={setBusy} onConnect={() => navigation.replace("Connect", need !== null ? { ape: need } : undefined)} />
+      <Sheet ref={ref} visible onDismiss={onDismiss} dismissable={!busy} title={need !== null ? `Add cash to ape $${need}` : all ? "Cash" : "Add cash"} label={all ? "Cash" : "Add cash"}>
+        <CashPanel need={need} withdraw={all} toast={toast} onBusy={setBusy} onConnect={() => navigation.replace("Connect", need !== null ? { ape: need } : undefined)} />
       </Sheet>
       {toastNode}
     </View>
@@ -82,7 +87,7 @@ export function DepositScreen({ navigation, route }: Props) {
 }
 
 /** What Add cash holds, in its own sheet or as the step after connecting from a coin. */
-export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | null; toast: (m: string) => void; onBusy?: (busy: boolean) => void; onConnect?: () => void }) {
+export function CashPanel({ need, withdraw = false, toast, onBusy, onConnect }: { need: number | null; withdraw?: boolean; toast: (m: string) => void; onBusy?: (busy: boolean) => void; onConnect?: () => void }) {
   const store = useStore();
   const { wallet } = store;
   const bag = useHoldings(wallet?.address ?? null);
@@ -91,8 +96,11 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
   /* The two ways in from outside, each folded to one line until asked for. */
   const [showBuy, setShowBuy] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
+  const [showOut, setShowOut] = useState(false);
   /* A swap that may still land locks the key, as a trade does on a coin. */
   const [pending, setPending] = useState<Pending | null>(() => (wallet ? pendingFor(wallet.address, USDC_MINT) : null));
+  /* Cash that just landed, said where the key was. */
+  const [landed, setLanded] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const owner = wallet?.address ?? null;
 
@@ -175,7 +183,10 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
       switch (settled(res)) {
         case "landed":
           forgetHoldings(wallet.address);
-          celebrate({ kind: "cash", symbol: "USDC", usdc: chosen, amount: chosen });
+          feel("success");
+          /* The word where the key was, a moment, then the sheet goes, back to what needed the cash. */
+          setLanded(chosen);
+          setTimeout(() => cashIn(chosen), motion.cashIn);
           return;
         case "failed":
           feel("error");
@@ -225,7 +236,13 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
               <Pill key={c} label={c === all ? `All ($${c})` : `$${c}`} on={c === chosen} onPress={() => setPick(c)} disabled={Boolean(pending) || busy} />
             ))}
           </View>
-          <Button label={key.label} kind={pending ? "wait" : "go"} disabled={!key.enabled} onPress={() => void turn()} style={styles.turnButton} />
+          {landed !== null ? (
+            <Text style={styles.cashIn} accessibilityLiveRegion="polite">
+              {cashInLine(landed)}
+            </Text>
+          ) : (
+            <Button label={key.label} kind={pending ? "wait" : "go"} disabled={!key.enabled} onPress={() => void turn()} style={styles.turnButton} />
+          )}
         </Card>
       )}
 
@@ -284,6 +301,22 @@ export function CashPanel({ need, toast, onBusy, onConnect }: { need: number | n
           </View>
         </>
       ) : null}
+
+      {/* Opened from Home's Cash row: the way out sits last, folded like the ways in. */}
+      {mwa && withdraw ? (
+        <>
+          <Group style={styles.more}>
+            <Row
+              title="Cash out to your bank"
+              subtitle={showOut ? "Three steps, below" : "Through an exchange"}
+              chevron
+              onPress={() => setShowOut((v) => !v)}
+              label={showOut ? "Hide how to cash out" : "Show how to cash out to your bank through an exchange"}
+            />
+          </Group>
+          {showOut ? <Steps steps={OUT_STEPS} note={OUT_NOTE} caution style={styles.steps} /> : null}
+        </>
+      ) : null}
     </>
   );
 }
@@ -303,6 +336,7 @@ const styles = StyleSheet.create({
   turnNote: { marginTop: space.x2, fontFamily: font.body, fontSize: type.caption, lineHeight: leading.caption, color: color.dim },
   turnChips: { flexDirection: "row", flexWrap: "wrap", gap: space.x2, marginTop: space.x4 },
   turnButton: { marginTop: space.x4 },
+  cashIn: { marginTop: space.x4, minHeight: size.key + size.keyEdge, textAlign: "center", textAlignVertical: "center", lineHeight: size.key + size.keyEdge, fontFamily: font.display, fontSize: type.lead, color: color.orange },
   paper: { alignItems: "center", paddingTop: space.x6, paddingBottom: space.x5, paddingHorizontal: space.x5, borderRadius: radius.block, backgroundColor: color.white },
   paperFirst: { marginTop: space.x4 },
   more: { marginTop: space.x3 },

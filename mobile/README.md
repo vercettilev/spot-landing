@@ -1,6 +1,6 @@
 # Spot for Android
 
-Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Apps with a share menu of their own keep the phone's behind a button (X's Share via…, More in others), and Spot is in the phone's. Or select a CA and pick Spot from the menu over the selection. Around it, one screen, **Home**: the bag's worth, three round keys (Paste CA, Add cash, Cash out), your coins and what you sniffed lately; the wallet, every trade and the settings rise from its puppy.
+Share → Spot. See a CA in X, TikTok or Telegram, hit Share, pick Spot, and the coin opens with its sniff: the landing's buy sheet, for real. Apps with a share menu of their own keep the phone's behind a button (X's Share via…, More in others), and Spot is in the phone's, among its apps and, once it has been used, as "Sniff it" in the row of direct targets above them. Or select a CA and pick Spot from the menu over the selection, or copy it and long-press Spot's icon for "Sniff it". Around it, one screen, **Home**: the bag's worth, one round key (Paste CA), your coins and what you sniffed lately; the Cash row opens adding cash and cashing out, and the wallet, every trade and the settings rise from its puppy.
 
 It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/order`, `/api/execute`; see `../src/engine/README.md`) at `https://www.usespot.fun`. `EXPO_PUBLIC_SPOT_API` points a build at another deployment.
 
@@ -15,13 +15,16 @@ It calls the site's API (`/api/resolve`, `/api/sniff`, `/api/holdings`, `/api/or
 ```
 App.tsx                    fonts, splash until the phone's memory is read, safe area
 src/navigation.tsx         Home and what opens over it; a share opens over whatever is showing
-src/screens/               one file per screen: Home, Resolve, Coin, Choose, and the Connect, Add cash, Cash out and Settings sheets
+src/screens/               one file per screen: Home, Resolve, Coin, Choose, and the Connect, Add cash (Cash, from Home) and Settings sheets
 src/store.tsx              what the app remembers, on the phone only (settings, history, watch list, activity, wallet address)
 src/holdings.ts            the bag, cached per wallet for 30 s
 src/wallet/                Mobile Wallet Adapter (loaded on first use), base58 for addresses
 src/share.ts               Share → Spot (expo-share-intent): text, links and screenshots (ocr.ts); share.web.ts reads ?url=&text=
-plugins/                   withSelectedText.js: Spot in the menu over selected text (Android's PROCESS_TEXT), arriving as a text share
+plugins/                   withSelectedText.js: Spot in the menu over selected text (Android's PROCESS_TEXT), arriving as a text share;
+                           withShareTarget.js: the shares Spot's shortcut stands for in the share sheet's top row
+modules/share-target/      that shortcut, published from the app and moved up with every share (Android's sharing shortcuts)
 src/api.ts                 the calls, with timeouts and words for every failure
+src/resolve.ts             a share's coin and its sniff in one request, read line by line (lines.ts) as they come
 src/logic.ts               what a share becomes, amount chips under a cap, numbers in CT, the button
 src/components/            the sniff report paper, "which one?", status screens, buttons, chips, toggles
 src/art.ts                 the landing's icon and wordmark SVGs

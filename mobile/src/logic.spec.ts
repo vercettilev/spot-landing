@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, coinLine, coinsOf, saleOf, sellShare, spareSol, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { MAX_TRADE, amountChips, sinceSniff, sniffedLine, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashInLine, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import { pnlOf } from "./pnl";
 import type { Candidate, Check, Holding } from "./types";
 
@@ -229,7 +229,6 @@ describe("a shared screenshot", () => {
 describe("the moment after a trade", () => {
   it("says what happened in three lines, loudest where the money is", () => {
     expect(momentLines({ kind: "ape", symbol: "WIF", usdc: 25, amount: 113.5 })).toEqual({ head: "Aped.", big: "$25.00 → 113.5 WIF", small: "In your bag. Sniffed for rugs first.", backdrop: "orange" });
-    expect(momentLines({ kind: "cash", symbol: "USDC", usdc: 50, amount: 50 })).toEqual({ head: "Cash in.", big: "$50.00 ready to ape", small: "From SOL, in one tap.", backdrop: "orange" });
     expect(momentLines({ kind: "sell", symbol: "ANSEM", usdc: 9.93, amount: 75.31 })).toEqual({ head: "Sold.", big: "75.31 ANSEM → $9.93", small: "Back in your wallet as cash.", backdrop: "orange" });
   });
 
@@ -293,7 +292,8 @@ describe("the dock", () => {
     amount: 25,
     wallet: "mwa",
     cash: 120,
-    solCovers: false,
+    sol: null,
+    solCost: null,
     restricted: false,
     busy: false,
     checking: null,
@@ -322,7 +322,7 @@ describe("the dock", () => {
     expect(needsCash({ ...base, cash: 3 })).toBe(true);
     expect(dockKey({ ...base, cash: 3 })).toEqual({ label: "Add cash", enabled: true, tone: "go" });
     expect(dockNote({ ...base, cash: 3 })).toBe("Only $3.00 in USDC. Add cash, then ape.");
-    expect(dockNote({ ...base, cash: 3, solCovers: true })).toBe("Only $3.00 in USDC. Turn some SOL into cash first.");
+    expect(dockNote({ ...base, cash: 3, sol: 5 })).toBe("Only $3.00 in USDC and $5.00 in SOL. Add cash, then ape.");
     expect(needsCash({ ...base, cash: null })).toBe(false);
     /* Right after an ape the cash is spent and the coin is held: nothing to fix, so nothing shouts. */
     expect(dockKey({ ...base, cash: 0, held: 25.09 })).toEqual({ label: "Add cash to ape more", enabled: true, tone: "quiet" });
@@ -352,7 +352,30 @@ describe("the dock", () => {
     expect(dockKey({ ...sell, held: null })).toMatchObject({ enabled: false });
     expect(dockKey({ ...sell, busy: true })).toMatchObject({ label: "Selling…", enabled: false });
     expect(dockNote(sell)).toBeNull();
-    expect(dockNote({ ...sell, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to sell.");
+    expect(dockNote({ ...sell, wallet: "watch" })).toBeNull();
+  });
+
+  it("pays in USDC when it covers the ape, else in SOL, one swap either way", () => {
+    expect(payFor({ amount: 25, cash: 120, sol: 90 })).toBe("usdc");
+    expect(payFor({ amount: 25, cash: 3.2, sol: 93.85 })).toBe("sol");
+    expect(payFor({ amount: 25, cash: 20, sol: 10 })).toBeNull();
+    expect(payFor({ amount: 25, cash: null, sol: null })).toBeNull();
+    const sol = { ...base, cash: 3.2, sol: 93.85, solCost: 0.2321 };
+    expect(needsCash(sol)).toBe(false);
+    expect(dockKey(sol)).toEqual({ label: "Ape $25", enabled: true, tone: "buy" });
+    expect(dockNote(sol)).toBe("You pay about 0.232 SOL.");
+    /* On SOL itself there is no SOL to pay with: short of USDC is short. */
+    expect(needsCash({ ...sol, sol: 0 })).toBe(true);
+    expect(dockNote({ ...base, cash: 120, sol: 93.85, solCost: 0.2321 })).toBeNull();
+  });
+
+  it("turns a tracked wallet's keys into the way to connect one's own", () => {
+    const watch = { ...base, wallet: "watch" as const, cash: 412.5 };
+    expect(dockKey(watch)).toEqual({ label: "Connect to ape", enabled: true, tone: "go" });
+    expect(dockKey({ ...watch, side: "sell", held: 84 })).toEqual({ label: "Connect to sell", enabled: true, tone: "go" });
+    expect(dockKey({ ...watch, sniff: "block" })).toMatchObject({ label: "Spot won't buy this", enabled: false });
+    expect(dockKey({ ...watch, sniff: "loading" })).toMatchObject({ label: "Sniffing…", enabled: false });
+    expect(dockNote(watch)).toBeNull();
   });
 
   it("says nothing when the key says it all, and what to do first when there is something", () => {
@@ -361,7 +384,7 @@ describe("the dock", () => {
     expect(dockNote({ ...base, wallet: "none", cash: null })).toBeNull();
     expect(dockNote({ ...base, sniff: "loading" })).toBeNull();
     expect(dockNote({ ...base, sniff: "block" })).toBeNull();
-    expect(dockNote({ ...base, wallet: "watch" })).toBe("You're only tracking this wallet. Connect yours to ape.");
+    expect(dockNote({ ...base, wallet: "watch" })).toBeNull();
   });
 });
 
@@ -382,6 +405,10 @@ describe("the keypad", () => {
     expect(maxApe(0.4, 50)).toBe(50);
     expect(maxApe(null, null)).toBeNull();
     expect(maxApe(0.4, null)).toBeNull();
+    /* Paid in SOL, a hundredth of it stays: the price can dip before the order is built. */
+    expect(maxApe(93.7, null, true)).toBe(92);
+    expect(maxApe(1_000, null, true)).toBe(990);
+    expect(maxApe(93.7, 50, true)).toBe(50);
   });
 
   it("says the cap, the cash, or what a sell amount is of the bag", () => {
@@ -392,6 +419,9 @@ describe("the keypad", () => {
     expect(padHint({ ...buy, over: true, held: null })).toBe("Up to $10,000 a trade.");
     expect(padHint({ ...buy, over: true, cap: 50, held: null })).toBe("Spot caps this one at $50.");
     expect(padHint({ ...buy, cash: null, held: null })).toBe("");
+    /* Paid in SOL when the USDC is short: the most that can be spent is the SOL, and it says so. */
+    expect(padHint({ ...buy, cash: 93.85, inSol: true, held: null })).toBe("$93.85 in SOL ready to ape.");
+    expect(padHint({ ...buy, typed: 120, cash: 93.85, inSol: true, held: null })).toBe("More than your $93.85 in SOL. Add cash first.");
     const sell = { side: "sell" as const, over: false, cap: null, cash: null, held: 31.2 };
     expect(padHint({ ...sell, typed: null })).toBe("You hold $31.20.");
     expect(padHint({ ...sell, typed: 15 })).toBe("48.1% of your $31.20.");
@@ -423,6 +453,7 @@ describe("adding cash", () => {
     expect(turnKey({ pending: { landed: true, seconds: 3 }, busy: false, chosen: 25 })).toEqual({ label: "Updating your bag…", enabled: false });
     expect(turnKey({ pending: null, busy: true, chosen: 25 })).toEqual({ label: "Turning…", enabled: false });
     expect(turnKey({ pending: null, busy: false, chosen: 50 })).toEqual({ label: "Turn $50 of SOL into cash", enabled: true });
+    expect(cashInLine(25)).toBe("Cash in: $25.00 ready to ape.");
   });
 
   it("says what the wallet has, never leading with $0.00, and nothing when it has nothing", () => {
@@ -508,3 +539,61 @@ describe("the receipt, shortened", () => {
     expect(coinLine({ name: "Tesla xStock", kind: "stock" })).toBe("Tesla xStock, a stock coin");
   });
 });
+
+describe("a coin sized up", () => {
+  it("is market cap, pool, holders and age in one line, whatever is known", () => {
+    const skr = { mcapUsd: 108_501_193, liquidityUsd: 631_172, holders: 46_524 };
+    expect(statsLine(skr, 275 * 86_400_000)).toBe("MC $108.5M · Liq $631.2k · 47k holders · 275d");
+    expect(statsLine({ mcapUsd: 400_000, liquidityUsd: null, holders: 120 }, 40 * 60_000)).toBe("MC $400.0k · 120 holders · 40m");
+    expect(statsLine({ mcapUsd: null, liquidityUsd: null, holders: null }, null)).toBe("");
+  });
+  it("says an age the short way", () => {
+    expect(shortAge(10_000)).toBe("1m");
+    expect(shortAge(5 * 3_600_000)).toBe("5h");
+    expect(shortAge(47 * 3_600_000)).toBe("47h");
+    expect(shortAge(3 * 86_400_000)).toBe("3d");
+    expect(shortAge(800 * 86_400_000)).toBe("2y");
+  });
+});
+
+describe("the amount chips", () => {
+  const usds = (cap: number | null, most: number | null) => amountChips(cap, most).map((c) => (c.max ? `Max ${c.usd}` : c.usd));
+
+  it("are the coin's chips while the wallet covers them, or no wallet has been read", () => {
+    expect(usds(null, null)).toEqual([10, 25, 50]);
+    expect(usds(null, 50)).toEqual([10, 25, 50]);
+    expect(usds(null, 4_000)).toEqual([10, 25, 50]);
+    expect(usds(20, 37)).toEqual([10, 20]);
+  });
+
+  it("give the biggest one's place to Max when the wallet can't cover it", () => {
+    expect(usds(null, 37)).toEqual([10, 25, "Max 37"]);
+    expect(usds(null, 5)).toEqual([10, 25, "Max 5"]);
+    expect(usds(50, 37)).toEqual([10, 25, "Max 37"]);
+    expect(usds(20, 15)).toEqual([10, "Max 15"]);
+  });
+
+  it("never offer the same amount twice", () => {
+    expect(usds(null, 25)).toEqual([10, 25, 50]);
+    expect(usds(25, 10)).toEqual([10, 25]);
+    expect(usds(0, 37)).toEqual([]);
+  });
+});
+
+describe("a coin sniffed lately", () => {
+  it("says how far it has gone since the sniff, in the time since", () => {
+    expect(sinceSniff(0.1, 0.142)).toBeCloseTo(42);
+    expect(sniffedLine(sinceSniff(0.1, 0.142), "2h")).toBe("+42.0% in 2h");
+    expect(sniffedLine(sinceSniff(1, 0.1), "3d")).toBe("−90.0% in 3d");
+    expect(sniffedLine(sinceSniff(1, 3.5), "1w")).toBe("+250% in 1w");
+  });
+
+  it("says only the time when a price is missing, or no time has passed", () => {
+    expect(sinceSniff(null, 1)).toBeNull();
+    expect(sinceSniff(0, 1)).toBeNull();
+    expect(sinceSniff(1, null)).toBeNull();
+    expect(sniffedLine(null, "5m")).toBe("5m");
+    expect(sniffedLine(12, "now")).toBe("now");
+  });
+});
+

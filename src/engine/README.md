@@ -1,6 +1,6 @@
 # The engine: `/api/resolve` and `/api/sniff`
 
-What the Spot app asks before anyone apes: **which coin is this share about?** and **does it smell off?** Two endpoints feed the first screen after Share → Spot: the coin's card from `/api/resolve`, then the sniff from `/api/sniff` while the "Sniffing the CA…" line runs.
+What the Spot app asks before anyone apes: **which coin is this share about?** and **does it smell off?** Two endpoints feed the first screen after Share → Spot: the coin's card from `/api/resolve`, then the sniff from `/api/sniff` while the "Sniffing the CA…" line runs. The app asks both in one request: `/api/resolve` sends the coin at once and its sniff on a second line (see below).
 
 Fresh coins are warned, not blocked. Spot refuses only what can take the bag away; everything that is just small or new gets a GRRR, an extra confirm and a size cap.
 
@@ -11,9 +11,11 @@ They ship with the site, at `https://www.usespot.fun/api/…`. Call the `www` ho
 ```
 src/app/api/resolve/route.ts  share payload in, coin out
 src/app/api/sniff/route.ts    a mint in, the verdict out
+src/app/api/prices/route.ts   up to ten mints in, their prices now
 src/app/api/health/route.ts   which upstreams this deployment points at
 src/engine/resolve.ts         links, posts, pools, cashtags → one coin, or "which one?"
 src/engine/sniff.ts           the checks and the block / warn / wait rules
+src/engine/shared.ts          a sniff just made, shared for ten seconds
 src/engine/links.ts           what a link says on its own (platform, post, addresses, shorteners)
 src/engine/posts.ts           a post's words from public embeds; short links asked where they go
 src/engine/jupiter.ts         Ultra search and the quote each way (the honeypot probe)
@@ -28,6 +30,10 @@ src/core/                     vendored from Poppin's spot-core (see src/core/REA
 ## `GET /api/holdings?owner=…`
 
 A wallet's bag for the app's Bag tab: `{ ok, owner, totalUsd, usdc, sol, positions: [{ token, amount, raw, usd }], hidden }`. Balances from the chain (both token programs, plus SOL), prices and faces from one Jupiter search. Coins worth under a cent, and whatever Jupiter cannot price (spam, dust), are counted in `hidden`, not listed. Errors: `400 invalid_owner`, `429`, `503 lookup_failed`.
+
+## `GET /api/prices?mints=…,…`
+
+Up to ten coins' prices now, for the app's Sniffed lately, where each coin says how far it has gone since it was sniffed: `{ ok, prices: { <mint>: usd | null } }`, from one Jupiter search for all of them, `null` where Jupiter has no price. Shared at the CDN for half a minute. Errors: `400 invalid_mints`, `429`, `503 lookup_failed`.
 
 ## `POST /api/order` and `POST /api/execute` (closed by default)
 
@@ -75,6 +81,10 @@ Body `{ "url"?: string, "text"?: string }`, exactly as the share sheet handed th
 - `restrictions`: who the issuer says may not hold it (`us-persons` for every tokenized stock). Returned, not applied: the app knows its user's region.
 - `missed`: upstreams that did not answer (`post`, `search`, `pairs`, `short_link`). When Jupiter could not be asked and nothing was found, the answer is `503 lookup_failed` instead of a "none" that would be a guess.
 - Errors: `400 nothing_shared | url_too_long | bad_json`, `429 rate_limited`, `503 lookup_failed`.
+
+### With its sniff: `{ …, "sniff": 25 }`
+
+A POST that adds `"sniff": <usdc>` ($1 to $10,000) has a `found` coin sniffed in the same request, sized to that amount. The answer comes in two lines (`application/x-ndjson`): the answer above at once, then `{ "sniff": … }` when the verdict is in, exactly as `/api/sniff` would answer it, or `{ "sniff": null }` when the sniff got no answer (ask `/api/sniff` then). Any other answer (`ambiguous`, `none`, an error) is the usual single JSON, and so is everything a server without this sends, so a client reads the first line as the answer either way. The sniff reads the coin the resolve already found instead of searching Jupiter for it again, so the verdict comes a Jupiter turn (a second on the free plan) and a round trip sooner than from `/api/sniff` after. Never on a GET, which is cached for a minute.
 
 ## `GET /api/sniff?mint=…&amount=25`
 
@@ -127,5 +137,6 @@ The floors are spot-core's, calibrated on live mints in August 2026 to tell esta
 
 - Not yet run against the live upstreams. The specs fake every upstream, and the built server was run end to end against a stand-in for Jupiter and the RPC. The shapes come from spot-core's live measurements (Ultra search, quotes, through September 2026) and Jupiter's docs (Swap V2 `/order`, routing error codes, Tokens V2 `audit` flags); the first deploy should be checked against a handful of known coins, a known honeypot and a Token-2022 coin.
 - `/api/sniff` makes four upstream calls (search, mint, buy quote, sell quote), three of them at once when the plan allows. Jupiter calls share one pacer per instance, and a 429 gets one more try at the time Jupiter names. Without a key it runs on `lite-api.jup.ag` for as long as Jupiter keeps it up; Jupiter's keyless tier on `api.jup.ag` allows about 0.5 requests a second, which a few sniffs outrun.
+- A sniff is shared for ten seconds by every request an instance answers about the same coin at the same size (`src/engine/shared.ts`), however it was asked for: the CDN keeps `/api/sniff`'s GETs as long, but no CDN keeps the POST that brings a resolve's sniff. A sniff that failed or could not finish is not kept, and `/api/order` never reads from it.
 - The limiters bound one function instance (30 resolves and 60 sniffs a minute per IP). For a fleet-wide limit, add a Vercel Firewall rate-limit rule on `/api/*`.
 - No keys, cookies or wallets here: everything the engine reads is public. Swaps, signing and take profit move money and hold a fee payer's key, so they get their own private backend rather than a home in the site.

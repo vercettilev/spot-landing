@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setDeps } from "@/engine/deps";
-import { COIN_A, fakeDeps, fakePosts, fakeSearch, token } from "@/engine/fakes";
+import { COIN_A, COIN_B, fakeDeps, fakeMintReader, fakePosts, fakeQuoter, fakeSearch, fresh, token } from "@/engine/fakes";
+import { GET as sniffGet } from "../sniff/route";
 import { GET, POST } from "./route";
 
 let ip = 0;
@@ -50,6 +51,60 @@ describe("/api/resolve", () => {
     const res = await post({ text: `ape ${COIN_A}` });
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ ok: false, error: "lookup_failed", missed: ["search"] });
+  });
+
+  it("sniffs a found coin in the same answer when asked: the coin's line first, then the verdict's", async () => {
+    const search = fakeSearch([fresh(COIN_A)]);
+    const quote = fakeQuoter();
+    setDeps(fakeDeps({ search, quote }));
+    const res = await post({ text: `ape ${COIN_A}`, sniff: 25 });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("application/x-ndjson; charset=utf-8");
+    expect(res.headers.get("cache-control")).toBe("no-store, no-transform");
+    const lines = (await res.text()).split("\n");
+    expect(lines).toHaveLength(3);
+    expect(lines[2]).toBe("");
+    expect(JSON.parse(lines[0]!)).toMatchObject({ ok: true, status: "found", pick: { token: { mint: COIN_A } } });
+    expect(JSON.parse(lines[1]!)).toMatchObject({ sniff: { ok: true, mint: COIN_A, level: "warn", maxBuyUsdc: 50 } });
+    /* The sniff read the coin the resolve found: Jupiter was searched once. */
+    expect(search.queries).toEqual([COIN_A]);
+    expect(quote.calls.filter((c) => c.outputMint === COIN_A).map((c) => c.amount)).toEqual(["25000000"]);
+  });
+
+  it("shares the sniff it sent with /api/sniff for the next ten seconds, as the CDN would", async () => {
+    const quote = fakeQuoter();
+    setDeps(fakeDeps({ search: fakeSearch([fresh(COIN_A)]), quote }));
+    await (await post({ text: COIN_A, sniff: 25 })).text();
+    const again = await sniffGet(new Request(`https://api.test/api/sniff?mint=${COIN_A}`, { headers: { "x-real-ip": "10.3.3.3" } }));
+    expect(await again.json()).toMatchObject({ ok: true, level: "warn" });
+    expect(quote.calls).toHaveLength(2);
+  });
+
+  it("sends the coin's line even when its sniff gets no answer", async () => {
+    setDeps(fakeDeps({ search: fakeSearch([token(COIN_A)]), readMint: fakeMintReader({ ok: false, reason: "not_a_mint" }) }));
+    const lines = (await (await post({ text: COIN_A, sniff: 25 })).text()).trim().split("\n");
+    expect(JSON.parse(lines[0]!)).toMatchObject({ status: "found" });
+    expect(JSON.parse(lines[1]!)).toEqual({ sniff: null });
+  });
+
+  it("answers in one line when there is no one coin to sniff, or no sniff was asked for", async () => {
+    setDeps(fakeDeps({ search: fakeSearch([token(COIN_A), token(COIN_B)]) }));
+    const two = await post({ text: `${COIN_A} or ${COIN_B}`, sniff: 25 });
+    expect(two.headers.get("content-type")).toBe("application/json; charset=utf-8");
+    expect(await two.json()).toMatchObject({ status: "ambiguous" });
+    for (const body of [{ text: COIN_A }, { text: COIN_A, sniff: 0 }, { text: COIN_A, sniff: "25" }]) {
+      const one = await post(body);
+      expect(one.headers.get("content-type"), JSON.stringify(body)).toBe("application/json; charset=utf-8");
+      expect(await one.json()).toMatchObject({ status: "found" });
+    }
+  });
+
+  it("never sniffs on a GET, which is cached for a minute", async () => {
+    const quote = fakeQuoter();
+    setDeps(fakeDeps({ search: fakeSearch([token(COIN_A)]), quote }));
+    const res = await get(`text=${COIN_A}&sniff=25`);
+    expect(res.headers.get("content-type")).toBe("application/json; charset=utf-8");
+    expect(quote.calls).toEqual([]);
   });
 
   it("slows down one caller after thirty", async () => {

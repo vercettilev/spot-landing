@@ -22,6 +22,8 @@ export interface Settings {
   haptics: boolean;
   /** When this phone first opened Spot. */
   since: string;
+  /** Posts and screenshots shared to Spot so far: Home's how-to-share hint goes after a few. */
+  shares: number;
 }
 
 export interface SniffRecord {
@@ -77,7 +79,7 @@ const KEY = {
 } as const;
 
 const fresh = (): State => ({
-  settings: { defaultAmount: 25, tpDefault: true, usPerson: false, usAsked: false, haptics: true, since: new Date().toISOString() },
+  settings: { defaultAmount: 25, tpDefault: true, usPerson: false, usAsked: false, haptics: true, since: new Date().toISOString(), shares: 0 },
   history: [],
   watch: [],
   activity: [],
