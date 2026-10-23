@@ -42,7 +42,7 @@ Not financial advice. Coins can go to zero with or without a trick, and the snif
 
 ## What's new (0.6.6)
 
-• The verdict comes about a second sooner after a share.
+• The verdict comes sooner after a share: Spot asks once, not twice.
 • "Sniff it" can show up in the top row of your share menu, a tap from any post. Long-press Spot's icon to sniff a CA you copied.
 • The chip you last aped with is where the next coin starts. Wallet short of a chip? Max apes all it can.
 • Sniffed lately shows how far each coin has gone since you sniffed it.
