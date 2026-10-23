@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { toAddress } from "./base58";
+import { base64ToBytes, bytesToBase64, toAddress } from "./base58";
 import { sessionAt, walletHome } from "./home";
 
 /**
@@ -106,6 +106,46 @@ export async function signTransaction(transaction: string, authToken: string | n
     const signed = signed_payloads[0];
     if (!signed) throw new Error("The wallet returned nothing to send.");
     return { signed, authToken: auth.auth_token };
+  };
+  return sessionAt(async (run, config) => load().transact(run, config), homeOf(address), session, () => rememberWallet(address, null));
+}
+
+/** What one wallet opening can be asked, one approval each. */
+export interface WalletAsk {
+  /** The account's signature on a message: its 64 bytes. */
+  signMessage(message: Uint8Array): Promise<Uint8Array>;
+  /** The transaction, signed (not sent). */
+  signTransaction(transaction: string): Promise<string>;
+}
+
+/**
+ * SEVERAL ASKS IN ONE WALLET OPENING, with Spot's own calls between them:
+ * signing in to Jupiter (a message) and the deposit that sign-in lets Spot
+ * build (a transaction) are two approvals in the wallet, not two trips to
+ * it. Only the given account signs, as with a trade.
+ */
+export async function inWallet<T>(address: string, authToken: string | null, steps: (ask: WalletAsk) => Promise<T>): Promise<{ value: T; authToken: string }> {
+  const session = async (wallet: Session) => {
+    const auth = await authorize(wallet, authToken);
+    const account = auth.accounts.find((a) => toAddress(a.address) === address);
+    if (!account) throw Object.assign(new Error("The wallet is on another account."), { code: "SPOT_WRONG_ACCOUNT" });
+    if (auth.wallet_uri_base) rememberWallet(address, auth.wallet_uri_base);
+    const ask: WalletAsk = {
+      async signMessage(message) {
+        const { signed_payloads } = await wallet.signMessages({ addresses: [account.address], payloads: [bytesToBase64(message)] });
+        const signed = signed_payloads[0];
+        if (!signed) throw new Error("The wallet signed nothing.");
+        /* A signed message comes back as the message with the signature after it: the signature is its last 64 bytes. */
+        return base64ToBytes(signed).slice(-64);
+      },
+      async signTransaction(transaction) {
+        const { signed_payloads } = await wallet.signTransactions({ payloads: [transaction] });
+        const signed = signed_payloads[0];
+        if (!signed) throw new Error("The wallet returned nothing to send.");
+        return signed;
+      },
+    };
+    return { value: await steps(ask), authToken: auth.auth_token };
   };
   return sessionAt(async (run, config) => load().transact(run, config), homeOf(address), session, () => rememberWallet(address, null));
 }

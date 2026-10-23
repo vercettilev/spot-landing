@@ -136,7 +136,7 @@ export function SettingsScreen({ navigation }: Props) {
             </View>
           </View>
           {AUTO_SELL && (
-            <SettingRow title="Never round-trip a 2x" note="Spot sells half at 2x on every new buy, so your money comes back.">
+            <SettingRow title="Never round-trip a 2x" note="After an ape, Spot offers to sell half at 2x through Jupiter: your money back, the rest rides free.">
               <Toggle label="Never round-trip a 2x" value={settings.tpDefault} onChange={(tpDefault) => store.setSettings({ tpDefault })} />
             </SettingRow>
           )}

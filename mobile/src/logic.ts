@@ -319,6 +319,50 @@ export function coinsOf(bag: Holdings): Holding[] {
   return sol ? [...bag.positions, sol].sort((x, y) => y.usd - x.usd) : bag.positions;
 }
 
+/** Coins waiting in Jupiter's vault to sell at 2x, as the bag counts them. */
+export interface Vaulted {
+  mint: string;
+  symbol: string;
+  icon: string | null;
+  decimals: number;
+  amount: number;
+}
+
+/**
+ * THE BAG WITH THE VAULT IN IT. Coins waiting in Jupiter's vault for a 2x
+ * sell are still the wallet's: each coin's row counts them (and says how
+ * many wait there), at the price the bag has for it, or the price given
+ * when the wallet holds none of it any more, and the total grows by the
+ * same. `added` is what the vault adds to the bag's worth.
+ */
+export function withVault(rows: Holding[], vault: Vaulted[], prices: Map<string, number | null>): { rows: (Holding & { vaulted: number })[]; added: number } {
+  const waiting = new Map<string, number>();
+  for (const v of vault) waiting.set(v.mint, (waiting.get(v.mint) ?? 0) + v.amount);
+  let added = 0;
+  const out: (Holding & { vaulted: number })[] = rows.map((r) => {
+    const vaulted = waiting.get(r.token.mint) ?? 0;
+    waiting.delete(r.token.mint);
+    if (!vaulted) return { ...r, vaulted: 0 };
+    const priceNow = r.amount > 0 ? r.usd / r.amount : (r.token.priceUsd ?? prices.get(r.token.mint) ?? 0);
+    added += vaulted * priceNow;
+    return { ...r, amount: r.amount + vaulted, usd: r.usd + vaulted * priceNow, vaulted };
+  });
+  for (const [mint, vaulted] of waiting) {
+    const v = vault.find((x) => x.mint === mint)!;
+    const priceNow = prices.get(mint) ?? null;
+    const usd = priceNow === null ? 0 : vaulted * priceNow;
+    added += usd;
+    out.push({
+      token: { mint, symbol: v.symbol, name: v.symbol, icon: v.icon, decimals: v.decimals, kind: "coin", priceUsd: priceNow, mcapUsd: null, liquidityUsd: null, holders: null, change24hPct: null, verified: false, issuer: null, restrictions: [] },
+      amount: vaulted,
+      raw: "0",
+      usd,
+      vaulted,
+    });
+  }
+  return { rows: out.sort((x, y) => y.usd - x.usd), added };
+}
+
 /** SOL held, as the coin screen trades it: only while there is more than the 0.01 SOL a sell keeps back. */
 export function solPosition(mint: string, bag: Holdings | null | undefined): Holding | null {
   if (mint !== SOL_MINT || !bag) return null;
@@ -408,6 +452,82 @@ export function shareOf(raw: string, pctOf100: number): string {
   if (!/^\d+$/.test(raw)) return "0";
   if (pctOf100 >= 100) return raw;
   return ((BigInt(raw) * BigInt(Math.round(pctOf100 * 100))) / BigInt(10000)).toString();
+}
+
+/** Jupiter's smallest trigger order, in dollars of what goes in. */
+export const HALF_FLOOR_USD = 10;
+
+/** A 2x sell to offer: half of what Spot bought, at twice what it cost on average. */
+export interface HalfPlan {
+  /** Base units into Jupiter's vault. */
+  raw: string;
+  amount: number;
+  /** The price it sells at: twice the average cost. */
+  priceUsd: number;
+  /** Dollars it brings back when it sells: what the coins cost. */
+  back: number;
+}
+
+/**
+ * SELL HALF AT 2X: of the coins Spot bought and the wallet still holds,
+ * half, at twice what they cost on average, so the sale brings back what
+ * all of them cost and the rest rides free. Null when there is nothing to
+ * offer: Spot bought none of it, the half is under Jupiter's $10 floor
+ * (with room for the price to slip before it lands), or the price is past
+ * 2x already, when selling half is the Sell key's job.
+ */
+export function halfAt2x(book: { held: number; basis: number } | undefined, holding: { amount: number; raw: string; usd: number } | null): HalfPlan | null {
+  if (!book || !holding || !(book.held > 0) || !(book.basis > 0) || !(holding.amount > 0) || !(holding.usd > 0)) return null;
+  const held = Math.min(book.held, holding.amount);
+  const share = Math.min(100, (held / 2 / holding.amount) * 100);
+  const raw = shareOf(holding.raw, share);
+  if (!/^\d+$/.test(raw) || BigInt(raw) <= 0n) return null;
+  const amountHalf = held / 2;
+  const priceUsd = (2 * book.basis) / book.held;
+  const priceNow = holding.usd / holding.amount;
+  if (amountHalf * priceNow < HALF_FLOOR_USD * 1.05 || priceNow >= priceUsd) return null;
+  return { raw, amount: amountHalf, priceUsd, back: amountHalf * priceUsd };
+}
+
+/**
+ * WHAT BECAME OF A 2X SELL, by Jupiter's word: still waiting, sold (and for
+ * what), ended with the coins still in the vault (expired, or failed: both
+ * are taken back the same way), or gone back to the wallet. A state Jupiter
+ * adds later reads as waiting until it says more.
+ */
+export function halfFate(o: { orderState: string; inputUsed?: string | null; outputAmount?: string | null }, decimals: number): { state: "open" | "expired" | "gone" } | { state: "sold"; usdc: number; amount: number } {
+  const units = (raw: string | null | undefined, d: number) => (raw && /^\d+$/.test(raw) ? Number(raw) / 10 ** d : 0);
+  switch (o.orderState) {
+    case "filled":
+      return { state: "sold", usdc: units(o.outputAmount, 6), amount: units(o.inputUsed, decimals) };
+    case "expired":
+    case "failed":
+      return { state: "expired" };
+    case "cancelled":
+      return { state: "gone" };
+    default:
+      return { state: "open" };
+  }
+}
+
+/** The 2x card on a coin, in words: on offer, waiting in the vault, or ended there. */
+export function halfCard(
+  h: { state: "offer" | "open" | "expired" | "cancelling"; symbol: string; amount: number; priceUsd: number; back: number; expiresAt?: number },
+  now = Date.now(),
+): { title: string; line: string; key: string | null } {
+  const coins = `${amount(h.amount)} ${h.symbol}`;
+  switch (h.state) {
+    case "offer":
+      return { title: "Never round-trip a 2x", line: `Half sells when it doubles: your ${money(h.back)} back, the rest rides free. That half waits in Jupiter's vault.`, key: "Sell half at 2x" };
+    case "open": {
+      const days = h.expiresAt ? Math.max(0, Math.ceil((h.expiresAt - now) / 86_400_000)) : null;
+      return { title: `Half sells at ${price(h.priceUsd)}`, line: `${coins} in Jupiter's vault until it does${days === null ? "" : days <= 1 ? ", for a day more" : `, for ${days} days more`}.`, key: "Cancel" };
+    }
+    case "expired":
+      return { title: "The 2x sell ran out", line: `${coins} wait in Jupiter's vault.`, key: "Get them back" };
+    case "cancelling":
+      return { title: "Taking them back", line: `${coins} come back from Jupiter's vault.`, key: null };
+  }
 }
 
 /* expo-share-intent hands a shared image over as a file:// URI, and the text

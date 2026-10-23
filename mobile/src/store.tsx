@@ -13,7 +13,7 @@ import { homeOf, keepHomes, rememberWallet } from "./wallet/mwa";
 
 export interface Settings {
   defaultAmount: number;
-  /** Take profit switched on for each new buy. */
+  /** After an ape, offer to sell half at 2x (src/half.ts). */
   tpDefault: boolean;
   /** The issuer of a tokenized stock does not sell to US persons; this hides the buy. */
   usPerson: boolean;
@@ -55,6 +55,32 @@ export interface ActivityItem {
   signature?: string | null;
 }
 
+/**
+ * A 2x sell placed through Jupiter (src/half.ts): half the coins Spot bought
+ * in Jupiter's vault, sold for USDC when the price reaches twice what they
+ * cost. Kept on the phone so the coin's page can say so without asking
+ * Jupiter; its state is Jupiter's, read again when it can be.
+ */
+export interface Half {
+  /** Jupiter's order id. */
+  id: string;
+  owner: string;
+  mint: string;
+  symbol: string;
+  icon: string | null;
+  decimals: number;
+  /** Coins in the vault. */
+  amount: number;
+  raw: string;
+  /** The price it sells at. */
+  priceUsd: number;
+  /** Dollars it brings back when it sells. */
+  back: number;
+  at: string;
+  expiresAt: number;
+  state: "open" | "expired" | "cancelling";
+}
+
 export type Wallet =
   | { kind: "mwa"; address: string; label: string | null; authToken: string; walletUriBase: string | null }
   | { kind: "watch"; address: string; label: null };
@@ -66,6 +92,8 @@ interface State {
   activity: ActivityItem[];
   /** Every trade made through Spot, newest first (see pnl.ts). */
   trades: Trade[];
+  /** 2x sells waiting in Jupiter's vault, or ended there and not taken back yet. */
+  halves: Half[];
   wallet: Wallet | null;
 }
 
@@ -75,6 +103,7 @@ const KEY = {
   watch: "spot:watch",
   activity: "spot:activity",
   trades: "spot:trades",
+  halves: "spot:halves",
   wallet: "spot:wallet",
 } as const;
 
@@ -84,6 +113,7 @@ const fresh = (): State => ({
   watch: [],
   activity: [],
   trades: [],
+  halves: [],
   wallet: null,
 });
 
@@ -100,6 +130,10 @@ interface Store extends State {
   setAlert: (mint: string, kind: AlertKind, on: boolean) => void;
   addActivity: (item: Omit<ActivityItem, "id" | "at">) => void;
   addTrade: (trade: Trade) => void;
+  /** A 2x sell placed, or changed: kept by its id. */
+  putHalf: (half: Half) => void;
+  /** A 2x sell that sold, or came back: gone from the coin's page. */
+  dropHalf: (id: string) => void;
   setWallet: (wallet: Wallet | null) => void;
 }
 
@@ -144,6 +178,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           watch: parseList<WatchItem>(got[KEY.watch]),
           activity: parseList<ActivityItem>(got[KEY.activity]),
           trades: parseList<Trade>(got[KEY.trades]),
+          halves: parseList<Half>(got[KEY.halves]),
           wallet,
         });
         if (!got[KEY.settings]) void AsyncStorage.setItem(KEY.settings, JSON.stringify(settings)).catch(() => {});
@@ -224,6 +259,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (latest.current.trades.some((t) => t.id === trade.id)) return;
         save("trades", [trade, ...latest.current.trades].slice(0, MAX_TRADES));
       },
+      putHalf: (half) => save("halves", [half, ...latest.current.halves.filter((h) => h.id !== half.id)]),
+      dropHalf: (id) => save("halves", latest.current.halves.filter((h) => h.id !== id)),
       setWallet: (wallet) => {
         /* The bridge knows the wallet's home best: a renewed token arrives with the home it had. */
         save("wallet", wallet?.kind === "mwa" ? { ...wallet, walletUriBase: homeOf(wallet.address) } : wallet);

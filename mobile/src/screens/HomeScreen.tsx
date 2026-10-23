@@ -8,7 +8,7 @@ import Svg, { Path } from "react-native-svg";
 import { errorLine } from "../api";
 import { ActionKey, Answer, Breathing, Button, CoinFace, Group, PuppyIcon, Row, Section, Wordmark, tap, useToast } from "../components/ui";
 import { useHoldings } from "../holdings";
-import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, sinceSniff, sniffedLine, verdictWord, worth } from "../logic";
+import { ago, amount as fmtAmount, coinsOf, emptyBag, fromPaste, money, pct, sinceSniff, sniffedLine, verdictWord, withVault, worth } from "../logic";
 import type { RootParams } from "../navigation";
 import { books, gain, pnlOf, since, sinceLine } from "../pnl";
 import { usePrices } from "../prices";
@@ -47,7 +47,9 @@ export function HomeScreen({ navigation, route }: Props) {
   const recent = store.history.slice(0, 8);
   const first = recent.length === 0 && !wallet;
   /* Each coin sniffed lately, against its price when it was sniffed: what was missed, or dodged. */
-  const now = usePrices(recent.map((h) => h.mint));
+  /* Coins waiting in Jupiter's vault to sell at 2x: still yours, so the bag counts them. */
+  const vault = wallet ? store.halves.filter((h) => h.owner === wallet.address) : [];
+  const now = usePrices([...recent.map((h) => h.mint), ...vault.map((h) => h.mint)]);
   useEffect(() => {
     if (focused) void now.refreshIfOld();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,9 +123,11 @@ export function HomeScreen({ navigation, route }: Props) {
   const b = bag.value;
   const mine = wallet ? trades.filter((t) => t.owner === wallet.address) : [];
   const ledger = books(mine);
-  const held = b ? coinsOf(b) : [];
+  const counted = b ? withVault(coinsOf(b), vault, now.prices) : null;
+  const held = counted?.rows ?? [];
+  const total = b ? b.totalUsd + (counted?.added ?? 0) : 0;
   const pnl = b ? pnlOf(mine, held) : null;
-  const nothing = b ? emptyBag(b.totalUsd) : false;
+  const nothing = b ? emptyBag(total) : false;
   const trading = wallet?.kind === "mwa";
 
   return (
@@ -160,7 +164,7 @@ export function HomeScreen({ navigation, route }: Props) {
           ) : b ? (
             <>
               <Text style={styles.total} numberOfLines={1} adjustsFontSizeToFit>
-                {money(b.totalUsd)}
+                {money(total)}
               </Text>
               {/* Only a tracked wallet needs naming: your own is just your bag. */}
               {wallet.kind === "watch" ? (
@@ -209,10 +213,10 @@ export function HomeScreen({ navigation, route }: Props) {
                     key={p.token.mint}
                     left={<CoinFace uri={p.token.icon} symbol={p.token.symbol} size={size.faceRow} />}
                     title={`$${p.token.symbol}`}
-                    subtitle={`${fmtAmount(p.amount)} ${p.token.symbol}`}
+                    subtitle={`${fmtAmount(p.amount)} ${p.token.symbol}${p.vaulted ? ` · ${fmtAmount(p.vaulted)} wait for 2x` : ""}`}
                     right={<Value value={worth(p.usd)} under={under} tint={down ? color.dim : color.green} />}
                     onPress={() => navigation.navigate("Coin", { candidate: { token: p.token, via: "link" }, source: null, share: null, others: [], side: "sell" })}
-                    label={`$${p.token.symbol}, ${worth(p.usd)}${under ? `, ${under}` : ""}. Opens on Sell.`}
+                    label={`$${p.token.symbol}, ${worth(p.usd)}${p.vaulted ? `, ${fmtAmount(p.vaulted)} of it waiting in Jupiter's vault to sell at 2x` : ""}${under ? `, ${under}` : ""}. Opens on Sell.`}
                   />
                 );
               })}

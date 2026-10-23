@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAddressLike, short, toAddress } from "./base58";
+import { base64ToBytes, bytesToBase64, isAddressLike, short, toAddress } from "./base58";
 
 const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
@@ -23,3 +23,17 @@ describe("a wallet's address", () => {
     expect(short(USDC)).toBe("EPjF…Dt1v");
   });
 });
+
+describe("base64, for what the wallet signs", () => {
+  it("goes there and back, padded as the wallet expects", () => {
+    const text = "Sign this message to authenticate with Jupiter";
+    const bytes = new TextEncoder().encode(text);
+    expect(bytesToBase64(bytes)).toBe(Buffer.from(text).toString("base64"));
+    expect(new TextDecoder().decode(base64ToBytes(bytesToBase64(bytes)))).toBe(text);
+    for (const n of [0, 1, 2, 3, 64]) {
+      const b = Uint8Array.from({ length: n }, (_, i) => (i * 37) % 256);
+      expect(bytesToBase64(b)).toBe(Buffer.from(b).toString("base64"));
+    }
+  });
+});
+

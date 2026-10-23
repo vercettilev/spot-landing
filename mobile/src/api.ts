@@ -23,6 +23,7 @@ export type ApiError =
   | "refused"
   | "needs_key"
   | "pending"
+  | "signed_out"
   | "bad";
 
 const KNOWN = new Set<ApiError>([
@@ -37,6 +38,7 @@ const KNOWN = new Set<ApiError>([
   "refused",
   "needs_key",
   "pending",
+  "signed_out",
 ]);
 
 /** A failed answer keeps whatever the API said with it: a headline, a cap, Jupiter's words. */
@@ -90,6 +92,57 @@ export const placeOrder = (o: { mint: string; side: "buy" | "sell"; taker: strin
 export const executeOrder = (requestId: string, signedTransaction: string) =>
   post<Executed>("/api/execute", { requestId, signedTransaction }, 65_000);
 
+/* ---- Jupiter's trigger orders, through Spot (src/app/api/tp): "sell half at 2x" ---- */
+
+/** A wallet's session at Jupiter: the access token lasts minutes, the refresh token renews it. */
+export interface JupSession {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+}
+
+/** An order as Jupiter's history tells it; fields Spot doesn't read are left alone. */
+export interface JupOrder {
+  id: string;
+  orderState: string;
+  inputMint?: string;
+  initialInputAmount?: string;
+  remainingInputAmount?: string;
+  inputUsed?: string | null;
+  outputAmount?: string | null;
+  triggerPriceUsd?: number;
+  expiresAt?: number | string;
+  updatedAt?: number | string;
+}
+
+const tpCall = <T>(op: string, init: { method: "GET" | "POST"; body?: unknown; bearer?: string | null; query?: string }, timeoutMs = 20_000) =>
+  call<T>(
+    `/api/tp/${op}${init.query ?? ""}`,
+    {
+      method: init.method,
+      headers: { ...(init.body !== undefined ? { "content-type": "application/json" } : {}), ...(init.bearer ? { authorization: `Bearer ${init.bearer}` } : {}) },
+      ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+    },
+    timeoutMs,
+  );
+
+export const tp = {
+  challenge: (walletPubkey: string) => tpCall<{ challenge: string }>("challenge", { method: "POST", body: { walletPubkey } }),
+  verify: (walletPubkey: string, signature: string) => tpCall<JupSession>("verify", { method: "POST", body: { walletPubkey, signature } }),
+  refresh: (refreshToken: string) => tpCall<JupSession>("refresh", { method: "POST", body: { refreshToken } }),
+  vault: (bearer: string) => tpCall<{ vaultPubkey?: string }>("vault", { method: "POST", body: {}, bearer }),
+  deposit: (bearer: string, b: { inputMint: string; userAddress: string; amount: string }) =>
+    tpCall<{ transaction: string; requestId: string }>("deposit", { method: "POST", body: b, bearer }),
+  order: (
+    bearer: string,
+    b: { depositRequestId: string; depositSignedTx: string; userPubkey: string; inputMint: string; inputAmount: string; triggerPriceUsd: number; expiresAt: number },
+  ) => tpCall<{ id: string; txSignature: string; depositConfirmed: boolean }>("order", { method: "POST", body: b, bearer }, 45_000),
+  orders: (bearer: string, state: "active" | "past") => tpCall<{ orders: JupOrder[] }>("orders", { method: "GET", bearer, query: `?state=${state}` }),
+  cancel: (bearer: string, orderId: string) => tpCall<{ transaction: string; requestId: string }>("cancel", { method: "POST", body: { orderId }, bearer }),
+  confirmCancel: (bearer: string, b: { orderId: string; signedTransaction: string; cancelRequestId: string }) =>
+    tpCall<{ txSignature: string }>("confirm-cancel", { method: "POST", body: b, bearer }, 45_000),
+};
+
 export function errorLine(e: ApiError): string {
   switch (e) {
     case "offline":
@@ -120,6 +173,8 @@ export function errorLine(e: ApiError): string {
       return "Trading isn't switched on yet.";
     case "pending":
       return "Still landing. Check your bag in a minute.";
+    case "signed_out":
+      return "Jupiter signed you out. Try again to sign in.";
     default:
       return "Something went wrong. Try again.";
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TRADE, amountChips, sinceSniff, sniffedLine, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashInLine, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
+import { MAX_TRADE, halfAt2x, halfCard, halfFate, withVault, amountChips, sinceSniff, sniffedLine, coinLine, coinsOf, payFor, saleOf, sellShare, shortAge, spareSol, statsLine, foldChecks, moreChecks, plainShortFill, actionFor, emptyBag, faceSources, ago, amount, approx, candidateLine, cardLines, cashInLine, cashLede, coverWith, turnKey, chipsFor, clampAmount, count, dockKey, dockNote, fitFigure, fromPaste, fromShare, maxApe, momentLines, money, needsCash, ordered, padHint, pct, price, readablePath, sameName, shareFor, solHolding, solPosition, SOL_MINT, shareOf, shareText, shareWord, sourceLine, typeDigit, usd, verdictHead, verdictWord, worth, type DockState } from "./logic";
 import { pnlOf } from "./pnl";
 import type { Candidate, Check, Holding } from "./types";
 
@@ -594,6 +594,74 @@ describe("a coin sniffed lately", () => {
     expect(sinceSniff(1, null)).toBeNull();
     expect(sniffedLine(null, "5m")).toBe("5m");
     expect(sniffedLine(12, "now")).toBe("now");
+  });
+});
+
+describe("sell half at 2x", () => {
+  /* $25 aped into 1,240 WIF; the wallet holds them all, worth $26 now. */
+  const book = { held: 1240, basis: 25 };
+  const holding = { amount: 1240, raw: "1240000000", usd: 26 };
+
+  it("sells half of what Spot bought at twice what it cost, which brings all of it back", () => {
+    const p = halfAt2x(book, holding)!;
+    expect(p.raw).toBe("620000000");
+    expect(p.amount).toBe(620);
+    expect(p.priceUsd).toBeCloseTo(0.04032, 5);
+    expect(p.back).toBeCloseTo(25);
+  });
+
+  it("counts only what Spot bought, of a wallet that holds more", () => {
+    const p = halfAt2x(book, { amount: 2480, raw: "2480000000", usd: 52 })!;
+    expect(p.raw).toBe("620000000");
+    expect(p.back).toBeCloseTo(25);
+  });
+
+  it("offers nothing under Jupiter's $10 floor, past 2x already, or bought elsewhere", () => {
+    expect(halfAt2x({ held: 1240, basis: 20 }, { amount: 1240, raw: "1240000000", usd: 20 })).toBeNull();
+    expect(halfAt2x(book, { ...holding, usd: 50 })).toBeNull();
+    expect(halfAt2x(undefined, holding)).toBeNull();
+    expect(halfAt2x({ held: 0, basis: 0 }, holding)).toBeNull();
+  });
+
+  it("reads what Jupiter says became of it", () => {
+    expect(halfFate({ orderState: "filled", inputUsed: "620000000", outputAmount: "24950000" }, 6)).toEqual({ state: "sold", usdc: 24.95, amount: 620 });
+    expect(halfFate({ orderState: "open" }, 6)).toEqual({ state: "open" });
+    expect(halfFate({ orderState: "executing" }, 6)).toEqual({ state: "open" });
+    expect(halfFate({ orderState: "something_new" }, 6)).toEqual({ state: "open" });
+    expect(halfFate({ orderState: "expired" }, 6)).toEqual({ state: "expired" });
+    expect(halfFate({ orderState: "failed" }, 6)).toEqual({ state: "expired" });
+    expect(halfFate({ orderState: "cancelled" }, 6)).toEqual({ state: "gone" });
+  });
+
+  it("says where it is, in words", () => {
+    const now = Date.parse("2026-10-23T12:00:00Z");
+    const base = { symbol: "WIF", amount: 620, priceUsd: 0.4032, back: 25 };
+    expect(halfCard({ ...base, state: "offer" })).toEqual({ title: "Never round-trip a 2x", line: "Half sells when it doubles: your $25.00 back, the rest rides free. That half waits in Jupiter's vault.", key: "Sell half at 2x" });
+    expect(halfCard({ ...base, state: "open", expiresAt: now + 30 * 86_400_000 }, now)).toEqual({ title: "Half sells at $0.4032", line: "620 WIF in Jupiter's vault until it does, for 30 days more.", key: "Cancel" });
+    expect(halfCard({ ...base, state: "open", expiresAt: now + 3_600_000 }, now).line).toBe("620 WIF in Jupiter's vault until it does, for a day more.");
+    expect(halfCard({ ...base, state: "expired" })).toEqual({ title: "The 2x sell ran out", line: "620 WIF wait in Jupiter's vault.", key: "Get them back" });
+  });
+});
+
+describe("the bag with the vault in it", () => {
+  const card = (mint: string, symbol: string, priceUsd: number | null) => ({ mint, symbol, name: symbol, icon: null, decimals: 6, kind: "coin" as const, priceUsd, mcapUsd: null, liquidityUsd: null, holders: null, change24hPct: null, verified: false, issuer: null, restrictions: [] });
+  const wif = { token: card("WIFmint", "WIF", 0.04), amount: 620, raw: "620000000", usd: 24.8 };
+  const bonk = { token: card("BONKmint", "BONK", 0.00002), amount: 1_000_000, raw: "1000000000000", usd: 20 };
+
+  it("counts the coins waiting to sell at 2x in their coin's row and in the total", () => {
+    const r = withVault([wif, bonk], [{ mint: "WIFmint", symbol: "WIF", icon: null, decimals: 6, amount: 620 }], new Map());
+    expect(r.rows.map((x) => [x.token.symbol, x.amount, Math.round(x.usd * 100) / 100, x.vaulted])).toEqual([
+      ["WIF", 1240, 49.6, 620],
+      ["BONK", 1_000_000, 20, 0],
+    ]);
+    expect(r.added).toBeCloseTo(24.8);
+  });
+
+  it("keeps a coin whose wallet half was sold, at the price given", () => {
+    const r = withVault([bonk], [{ mint: "WIFmint", symbol: "WIF", icon: null, decimals: 6, amount: 620 }], new Map([["WIFmint", 0.05]]));
+    expect(r.rows[0]).toMatchObject({ token: { mint: "WIFmint", symbol: "WIF", priceUsd: 0.05 }, amount: 620, usd: 31, vaulted: 620, raw: "0" });
+    expect(r.added).toBeCloseTo(31);
+    expect(withVault([], [{ mint: "WIFmint", symbol: "WIF", icon: null, decimals: 6, amount: 620 }], new Map()).rows[0]).toMatchObject({ usd: 0, vaulted: 620 });
   });
 });
 
