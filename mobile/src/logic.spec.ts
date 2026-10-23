@@ -636,7 +636,7 @@ describe("sell half at 2x", () => {
   it("says where it is, in words", () => {
     const now = Date.parse("2026-10-23T12:00:00Z");
     const base = { symbol: "WIF", amount: 620, priceUsd: 0.4032, back: 25 };
-    expect(halfCard({ ...base, state: "offer" })).toEqual({ title: "Never round-trip a 2x", line: "Half sells when it doubles: your $25.00 back, the rest rides free. That half waits in Jupiter's vault.", key: "Sell half at 2x" });
+    expect(halfCard({ ...base, state: "offer" })).toEqual({ title: "Never round-trip a 2x", line: "Half sells at twice what you paid: your $25.00 back, the rest rides free. That half waits in Jupiter's vault.", key: "Sell half at 2x" });
     expect(halfCard({ ...base, state: "open", expiresAt: now + 30 * 86_400_000 }, now)).toEqual({ title: "Half sells at $0.4032", line: "620 WIF in Jupiter's vault until it does, for 30 days more.", key: "Cancel" });
     expect(halfCard({ ...base, state: "open", expiresAt: now + 3_600_000 }, now).line).toBe("620 WIF in Jupiter's vault until it does, for a day more.");
     expect(halfCard({ ...base, state: "expired" })).toEqual({ title: "The 2x sell ran out", line: "620 WIF wait in Jupiter's vault.", key: "Get them back" });

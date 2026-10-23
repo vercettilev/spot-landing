@@ -518,7 +518,7 @@ export function halfCard(
   const coins = `${amount(h.amount)} ${h.symbol}`;
   switch (h.state) {
     case "offer":
-      return { title: "Never round-trip a 2x", line: `Half sells when it doubles: your ${money(h.back)} back, the rest rides free. That half waits in Jupiter's vault.`, key: "Sell half at 2x" };
+      return { title: "Never round-trip a 2x", line: `Half sells at twice what you paid: your ${money(h.back)} back, the rest rides free. That half waits in Jupiter's vault.`, key: "Sell half at 2x" };
     case "open": {
       const days = h.expiresAt ? Math.max(0, Math.ceil((h.expiresAt - now) / 86_400_000)) : null;
       return { title: `Half sells at ${price(h.priceUsd)}`, line: `${coins} in Jupiter's vault until it does${days === null ? "" : days <= 1 ? ", for a day more" : `, for ${days} days more`}.`, key: "Cancel" };

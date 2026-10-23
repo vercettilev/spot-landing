@@ -40,7 +40,12 @@ Sniffs are free. No account, no email: everything Spot remembers stays on your p
 
 Not financial advice. Coins can go to zero with or without a trick, and the sniff can miss one.
 
-## What's new (0.6.6)
+## What's new (0.6.7)
+
+• Never round-trip a 2x: after an ape of $25 or more, one tap sells half at twice what you paid, through Jupiter. Your money back, the rest rides free. The half waits in Jupiter's vault until it sells.
+• CLEAN now asks for a $50k pool, 1,000 holders and a day of trading. Smaller coins get GRRR.
+
+## What was new in 0.6.6
 
 • The verdict comes sooner after a share: Spot asks once, not twice.
 • "Sniff it" can show up in the top row of your share menu, a tap from any post. Long-press Spot's icon to sniff a CA you copied.
